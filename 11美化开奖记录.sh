@@ -195,8 +195,8 @@ parse_single_line() {
     # 格式2：第112期：10 16 24 32 37 40 特码17
     elif echo "$line" | grep -qE '^第[0-9]+期：([0-9]+[[:space:]]+){6}特码[0-9]+$'; then
         period_number=$(echo "$line" | sed -E 's/第([0-9]+)期：.*/\1/')
-        period_date="未知/$period_number"
-        formatted_date="未知"
+        period_date="24/$period_number"  # 将 "未知" 改为 "24"
+        formatted_date="24"  # 将 "未知" 改为 "24"
         numbers=""
         for num in $(echo "$line" | sed -E 's/第[0-9]+期：//; s/特码[0-9]+$//' | tr ' ' '\n'); do
             numbers="$numbers$(number_to_image "$num") "
@@ -205,8 +205,8 @@ parse_single_line() {
     # 格式3：112期 10,16,24,32,37,40,17
     elif echo "$line" | grep -qE '^[0-9]+期[[:space:]]+[0-9]+(,[0-9]+){6}$'; then
         period_number=$(echo "$line" | sed -E 's/([0-9]+)期.*/\1/')
-        period_date="未/$period_number"
-        formatted_date="未知"
+        period_date="24/$period_number"  # 将 "未知" 改为 "24"
+        formatted_date="24"  # 将 "未知" 改为 "24"
         numbers=""
         for num in $(echo "$line" | sed -E 's/[0-9]+期[[:space:]]+//; s/,[^,]*$//' | tr ',' '\n'); do
             numbers="$numbers$(number_to_image "$num") "
@@ -219,6 +219,16 @@ parse_single_line() {
         original_date=$(echo "$line" | awk '{print $2}')
         formatted_date=$(echo "$original_date" | awk -F'/' '{print $2"/"$1"/"$3}')
         return 2  # 返回特殊值表示需要继续读取后续行
+    # 新增格式：第110期：40 44 48 35 33 10 特码 06
+    elif echo "$line" | grep -qE '^第[0-9]+期：([0-9]+[[:space:]]+){6}特码[[:space:]]+[0-9]+$'; then
+        period_number=$(echo "$line" | sed -E 's/第([0-9]+)期：.*/\1/')
+        period_date="24/$period_number"  # 将 "未知" 改为 "24"
+        formatted_date="24"  # 将 "未知" 改为 "24"
+        numbers=""
+        for num in $(echo "$line" | sed -E 's/第[0-9]+期：//; s/特码[[:space:]]+[0-9]+$//' | tr ' ' '\n'); do
+            numbers="$numbers$(number_to_image "$num") "
+        done
+        special_number=$(number_to_image "$(echo "$line" | sed -E 's/.*特码[[:space:]]+([0-9]+)$/\1/')")
     else
         return 1
     fi
@@ -298,7 +308,7 @@ if [ -n "$period_date" ] && [ $count -eq 7 ]; then
     printf "%s|%s|%s|%s|%s|%s\n" "$period_number" "$period_date" "$formatted_date" "$numbers" "$special_number" "$special_attributes" >> "$temp_file"
 fi
 
-# 排��临时文件并生成HTML
+# 排临时文件并生成HTML
 {
     echo '<!DOCTYPE html>'
     echo '<html lang="zh-CN">'
