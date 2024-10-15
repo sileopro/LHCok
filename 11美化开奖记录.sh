@@ -32,26 +32,13 @@ number_to_image() {
     echo "<span class='ball $color$special_class'>$num</span>"
 }
 
-# 函数：将大小单双转换为对应的HTML span
-attribute_to_image() {
-    local attribute=$1
-    local class_name
-    case $attribute in
-        大) class_name="big" ;;
-        小) class_name="small" ;;
-        单) class_name="odd" ;;
-        双) class_name="even" ;;
-    esac
-    echo "<span class='attribute $class_name'>$attribute</span>"
-}
-
-# 函数：将生肖转换为对应的HTML span
+# 函数：将生肖转换为对应的图片文件名
 zodiac_to_image() {
     local zodiac=$1
     local symbol
     local class_name="zodiac-3d"
     case $zodiac in
-        鼠|虎|兔|龙|蛇|猴) class_name="zodiac-3d special" ;;
+        鼠|龙|虎|兔|蛇|猴) class_name="zodiac-3d special" ;;
     esac
     case $zodiac in
         鼠) symbol="鼠" ;;
@@ -71,6 +58,19 @@ zodiac_to_image() {
     echo "<span class='$class_name' title='$zodiac'>$symbol</span>"
 }
 
+# 函数：将大小单换为对应的图片件名
+attribute_to_image() {
+    local attribute=$1
+    local class_name
+    case $attribute in
+        大) class_name="big" ;;
+        小) class_name="small" ;;
+        单) class_name="odd" ;;
+        双) class_name="even" ;;
+    esac
+    echo "<span class='attribute $class_name'>$attribute</span>"
+}
+
 # 函数：将波色转换为对应的图片文件名
 wave_color_to_image() {
     local color=$1
@@ -86,14 +86,13 @@ wave_color_to_image() {
 # 函数:将波色单双转换为对应的HTML span
 wave_color_to_span() {
     local color=$1
-    local odd_even=$2
     local class_name
     case $color in
-        红) class_name="ball red" ;;
-        蓝) class_name="ball blue" ;;
-        绿) class_name="ball green" ;;
+        红单|红双) class_name="ball red" ;;
+        蓝单|蓝双) class_name="ball blue" ;;
+        绿单|绿双) class_name="ball green" ;;
     esac
-    echo "<span class='$class_name'>$color$odd_even</span>"
+    echo "<span class='$class_name'>$color</span>"
 }
 
 # 定十二生肖
@@ -162,22 +161,20 @@ analyze_number() {
         attributes="$attributes $(zodiac_to_image '蛇')"
     fi
 
-    # 波色和单双
-    local color=""
-    local odd_even=""
-    if echo $red_numbers | grep -wq "$num"; then
-        color="红"
-    elif echo $blue_numbers | grep -wq "$num"; then
-        color="蓝"
-    elif echo $green_numbers | grep -wq "$num"; then
-        color="绿"
+    # 颜色单双
+    if echo $red_even | grep -wq "$num"; then
+        attributes="$attributes $(wave_color_to_span '红双')"
+    elif echo $red_odd | grep -wq "$num"; then
+        attributes="$attributes $(wave_color_to_span '红单')"
+    elif echo $blue_even | grep -wq "$num"; then
+        attributes="$attributes $(wave_color_to_span '蓝双')"
+    elif echo $blue_odd | grep -wq "$num"; then
+        attributes="$attributes $(wave_color_to_span '蓝单')"
+    elif echo $green_even | grep -wq "$num"; then
+        attributes="$attributes $(wave_color_to_span '绿双')"
+    elif echo $green_odd | grep -wq "$num"; then
+        attributes="$attributes $(wave_color_to_span '绿单')"
     fi
-    if echo $odd_sum_numbers | grep -wq "$num"; then
-        odd_even="单"
-    elif echo $even_sum_numbers | grep -wq "$num"; then
-        odd_even="双"
-    fi
-    attributes="$attributes $(wave_color_to_span "$color" "$odd_even")"
 
     # 大小
     if echo $small_numbers | grep -wq "$num"; then
@@ -194,7 +191,7 @@ parse_single_line() {
     local line="$1"
     local period_date period_number formatted_date numbers special_number
 
-    # 处理月信息
+    # 处理月份信息
     if echo "$line" | grep -qE '^[一二三四五六七八九十]+月[[:space:]]+[0-9]{4}$'; then
         current_month=$(echo "$line" | awk '{print $1}')
         current_year=$(echo "$line" | awk '{print $2}')
@@ -380,133 +377,129 @@ fi
 printf "\r处理进度: 100%%\n"
 
 # 修改 HTML 输出部分
-cat << EOF > output.html
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<title>六合彩结果</title>
-<style>
-/* 基础样式保持不变 */
-body { font-size: 16px; }
-table { border-collapse: collapse; width: 100%; max-width: 1000px; margin: 0 auto; }
-th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-th { background-color: #f2f2f2; font-size: 18px; }
-.period { font-weight: bold; font-size: 18px; }
-
-/* 球的基本样式 */
-.ball, .attribute, .zodiac-3d {
-    display: inline-block;
-    width: 36px;
-    height: 36px;
-    line-height: 36px;
-    text-align: center;
-    font-weight: bold;
-    margin: 0 2px;
-    border-radius: 50%;
-    color: white;
-}
-
-/* 波色球样式 */
-.ball.red { background-color: #ff0000; }
-.ball.blue { background-color: #0000ff; }
-.ball.green { background-color: #008000; }
-
-/* 属性球样式 */
-.attribute.odd { background-color: #FF3366; }
-.attribute.even { background-color: #FF6600; }
-.attribute.big { background-color: #0066CC; }
-.attribute.small { background-color: #006633; }
-
-/* 修改生肖球样式 */
-.zodiac-3d {
-    background: linear-gradient(145deg, #4B0082, #8B008B);
-    color: #FFD700;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.3), -2px -2px 5px rgba(255,255,255,0.1);
-    text-shadow: 0 1px 0 #000, 0 2px 0 #000;
-}
-.zodiac-3d.special {
-    background: linear-gradient(145deg, #87CEFA, #1E90FF); /* 浅蓝色渐变 */
-    color: #FFFFFF;
-}
-
-/* 模式二样式 */
-.circle {
-    border-radius: 50% !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-.circle.ball, .circle.attribute, .circle.zodiac-3d {
-    width: 36px !important;
-    height: 36px !important;
-}
-
-/* 切换按钮样式 */
-.toggle-btn {
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    cursor: pointer;
-    margin-bottom: 10px;
-    font-size: 16px;
-}
-</style>
-</head>
-<body>
-<button id="toggleBtn" class="toggle-btn">模式一</button>
-<table>
-<tr><th>期数</th><th>平码</th><th>特码</th><th>属性</th></tr>
-EOF
-
-sort -n -t'|' -k1 "$temp_file" | while IFS='|' read -r period_number period_date formatted_date numbers special_number special_attributes; do
-    printf "<tr><td class='period'>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n" \
-           "$period_number" "$numbers" "$special_number" "$special_attributes" >> output.html
-done
-
-cat << EOF >> output.html
-</table>
-<script>
-let isMode1 = true;
-function toggleDisplay() {
-    const elements = document.querySelectorAll(".ball, .attribute, .zodiac-3d");
-    const btn = document.getElementById("toggleBtn");
-    isMode1 = !isMode1;
-    btn.textContent = isMode1 ? "模式一" : "模式二";
-    elements.forEach(el => {
-        if (isMode1) {
-            el.classList.remove("circle");
-            if (el.classList.contains("ball")) {
-                el.style.width = "44px";
-                el.style.height = "32px";
-                el.style.borderRadius = "16px";
-            } else if (el.classList.contains("attribute")) {
-                el.style.width = "32px";
-                el.style.height = "32px";
-                el.style.borderRadius = "8px";
-            } else if (el.classList.contains("zodiac-3d")) {
-                el.style.width = "36px";
-                el.style.height = "36px";
-                el.style.borderRadius = "50%";
-            }
-        } else {
-            el.classList.add("circle");
-            el.style.width = "36px";
-            el.style.height = "36px";
-            el.style.borderRadius = "50%";
-        }
-    });
-}
-// 初始化页面时调用一次toggleDisplay，确保正确显示模式一
-document.addEventListener('DOMContentLoaded', (event) => {
-    toggleDisplay();
-});
-document.getElementById("toggleBtn").addEventListener("click", toggleDisplay);
-</script>
-</body>
-</html>
-EOF
+{
+    echo '<!DOCTYPE html>'
+    echo '<html lang="zh-CN">'
+    echo '<head>'
+    echo '<meta charset="UTF-8">'
+    echo '<title>六合彩结果</title>'
+    echo '<style>'
+    echo 'table {border-collapse: collapse; width: 100%; max-width: 800px; margin: 0 auto;}'
+    echo 'th, td {border: 1px solid #ddd; padding: 4px; text-align: center;}'
+    echo 'th {background-color: #f2f2f2;}'
+    echo '.period {font-weight: bold;}'  # 期数加粗
+    echo '.ball {display: inline-block; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; margin: 0 1px;}'
+    echo '.red {background-color: #ff0000; color: white;}'
+    echo '.blue {background-color: #0000ff; color: white;}'
+    echo '.green {background-color: #008000; color: white;}'
+    echo '.special {border: 2px solid gold;}'
+    echo '.attribute {display: inline-block; width: 28px; height: 28px; border-radius: 6px; text-align: center; line-height: 28px; font-weight: bold; margin: 0 1px; color: white;}'
+    echo '.odd {background-color: #ff0000;}'
+    echo '.even {background-color: #ffc0cb;}'
+    echo '.big {background-color: #FF8C00;}' # 修改为黄丹色 (Dark Orange)
+    echo '.small {background-color: #90ee90;}'
+    echo '.zodiac-3d {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        color: #FFD700;  /* 金色字体 */
+        background: linear-gradient(145deg, #4B0082, #8B008B);
+        border-radius: 50%;
+        box-shadow: 
+            2px 2px 5px rgba(0,0,0,0.3),
+            -2px -2px 5px rgba(255,255,255,0.1);
+        text-shadow: 
+            0 1px 0 #000,
+            0 2px 0 #000;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin: 0 4px;
+    }
+    .zodiac-3d.special {
+        background: linear-gradient(145deg, #1E90FF, #4169E1);  /* 蓝色渐变背景 */
+        color: #FFFFFF;  /* 白色字体 */
+        text-shadow: 
+            0 1px 0 #000,
+            0 2px 0 #000,
+            0 3px 3px rgba(0,0,0,0.3);
+        box-shadow: 
+            inset 0 0 10px rgba(255,255,255,0.5),
+            0 5px 15px rgba(0,0,0,0.3);
+        transform: translateY(-2px);
+    }
+    .zodiac-3d::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+        transform: rotate(45deg);
+    }
+    .zodiac-3d:hover {
+        transform: translateY(-3px);
+        box-shadow: 
+            4px 4px 10px rgba(0,0,0,0.4),
+            -4px -4px 10px rgba(255,255,255,0.2);
+    }
+    .zodiac-3d.special:hover {
+        transform: translateY(-4px);
+        box-shadow: 
+            inset 0 0 15px rgba(255,255,255,0.7),
+            0 8px 20px rgba(0,0,0,0.4);
+    }
+    .attribute {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        text-align: center;
+        line-height: 28px;
+        font-weight: bold;
+        margin: 0 4px;
+        color: white;
+    }
+    .attribute.even {
+        background-color: #FF69B4;  /* 亮牡丹色 */
+        color: white;  /* 保持字体颜色不变 */
+    }
+    .attribute-group {
+        margin: 0 8px;
+    }
+    .ball.red, .ball.blue, .ball.green {
+        display: inline-block;
+        width: 40px;
+        height: 28px;
+        border-radius: 14px;
+        text-align: center;
+        line-height: 28px;
+        font-weight: bold;
+        color: white;
+        margin: 0 2px;
+    }
+    .ball.red { background-color: #ff0000; }
+    .ball.blue { background-color: #0000ff; }
+    .ball.green { background-color: #008000; }
+    '
+    echo '</style>'
+    echo '</head>'
+    echo '<body>'
+    echo '<table>'
+    echo '<tr><th>期数</th><th>平码</th><th>特码</th><th>属性</th></tr>'
+    sort -n -t'|' -k1 "$temp_file" | while IFS='|' read -r period_number period_date formatted_date numbers special_number special_attributes; do
+        printf "<tr><td class='period'>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n" \
+               "$period_number" "$numbers" "$special_number" "$special_attributes"
+    done
+    echo '</table>'
+    echo '</body>'
+    echo '</html>'
+} > output.html
 
 # 删除临时文件
 rm "$temp_file"
