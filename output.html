@@ -3,119 +3,115 @@
 <head>
 <meta charset="UTF-8">
 <title>六合彩结果</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
 <style>
-/* 基础样式保持不变 */
-body { font-size: 16px; }
-table { border-collapse: collapse; width: 100%; max-width: 1000px; margin: 0 auto; }
-th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-th { background-color: #f2f2f2; font-size: 18px; }
-.period { font-weight: bold; font-size: 18px; }
-
-/* 球的基本样式 */
-.ball, .attribute, .zodiac-3d {
-    display: inline-block;
-    width: 36px;
-    height: 36px;
-    line-height: 36px;
-    text-align: center;
-    font-weight: bold;
-    margin: 0 2px;
-    border-radius: 50%;
-    color: white;
-}
-
-/* 波色球样式 */
-.ball.red { background-color: #ff0000; }
-.ball.blue { background-color: #0000ff; }
-.ball.green { background-color: #008000; }
-
-/* 属性球样式 */
-.attribute.odd { background-color: #FF3366; }
-.attribute.even { background-color: #FF6600; }
-.attribute.big { background-color: #0066CC; }
-.attribute.small { background-color: #006633; }
-
-/* 修改生肖球样式 */
+table {border-collapse: collapse; width: 100%; max-width: 800px; margin: 0 auto;}
+th, td {border: 1px solid #ddd; padding: 4px; text-align: center;}
+th {background-color: #f2f2f2;}
+.period {font-weight: bold;}
+.ball {display: inline-block; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; margin: 0 1px;}
+.red {background-color: #ff0000; color: white;}
+.blue {background-color: #0000ff; color: white;}
+.green {background-color: #008000; color: white;}
+.special {border: 2px solid gold;}
+.attribute {display: inline-block; width: 28px; height: 28px; border-radius: 6px; text-align: center; line-height: 28px; font-weight: bold; margin: 0 1px; color: white;}
+.odd {background-color: #ff0000;}
+.even {background-color: #ffc0cb;}
+.big {background-color: #FF8C00;}
+.small {background-color: #90ee90;}
 .zodiac-3d {
-    background: linear-gradient(145deg, #4B0082, #8B008B);
-    color: #FFD700;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.3), -2px -2px 5px rgba(255,255,255,0.1);
-    text-shadow: 0 1px 0 #000, 0 2px 0 #000;
-}
-.zodiac-3d.special {
-    background: linear-gradient(145deg, #87CEFA, #1E90FF); /* 浅蓝色渐变 */
-    color: #FFFFFF;
-}
-
-/* 模式二样式 */
-.circle {
-    border-radius: 50% !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-.circle.ball, .circle.attribute, .circle.zodiac-3d {
-    width: 36px !important;
-    height: 36px !important;
-}
-
-/* 修改按钮容器样式 */
-.button-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-right: 20px;
-    position: fixed;
-    left: 20px;
-    top: 20px;
-}
-
-/* 修改按钮样式 */
-.btn {
-    padding: 10px 20px;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    margin-bottom: 10px;
-    width: 120px;
-    text-align: center;
-}
-
-.toggle-btn {
-    background-color: #4CAF50;
-}
-
-.analysis-btn {
-    background-color: #2196F3;
-}
-
-/* 添加内容容器样式 */
-.content-container {
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
-    padding-left: 160px; /* 为按钮留出空间 */
-}
-
-/* 调整表格样式 */
-table {
-    border-collapse: collapse;
-    width: calc(100% - 160px); /* 减去按钮宽度 */
-    max-width: 1000px;
-    margin: 0;
-}
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        color: #FFD700;  /* 金色字体 */
+        background: linear-gradient(145deg, #4B0082, #8B008B);
+        border-radius: 50%;
+        box-shadow: 
+            2px 2px 5px rgba(0,0,0,0.3),
+            -2px -2px 5px rgba(255,255,255,0.1);
+        text-shadow: 
+            0 1px 0 #000,
+            0 2px 0 #000;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin: 0 4px;
+    }
+    .zodiac-3d.special {
+        background: linear-gradient(145deg, #1E90FF, #4169E1);  /* 蓝色渐变背景 */
+        color: #FFFFFF;  /* 白色字体 */
+        text-shadow: 
+            0 1px 0 #000,
+            0 2px 0 #000,
+            0 3px 3px rgba(0,0,0,0.3);
+        box-shadow: 
+            inset 0 0 10px rgba(255,255,255,0.5),
+            0 5px 15px rgba(0,0,0,0.3);
+        transform: translateY(-2px);
+    }
+    .zodiac-3d::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+        transform: rotate(45deg);
+    }
+    .zodiac-3d:hover {
+        transform: translateY(-3px);
+        box-shadow: 
+            4px 4px 10px rgba(0,0,0,0.4),
+            -4px -4px 10px rgba(255,255,255,0.2);
+    }
+    .zodiac-3d.special:hover {
+        transform: translateY(-4px);
+        box-shadow: 
+            inset 0 0 15px rgba(255,255,255,0.7),
+            0 8px 20px rgba(0,0,0,0.4);
+    }
+    .attribute {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        text-align: center;
+        line-height: 28px;
+        font-weight: bold;
+        margin: 0 4px;
+        color: white;
+    }
+    .attribute.even {
+        background-color: #FF69B4;  /* 亮牡丹色 */
+        color: white;  /* 保持字体颜色不变 */
+    }
+    .attribute-group {
+        margin: 0 8px;
+    }
+    .ball.red, .ball.blue, .ball.green {
+        display: inline-block;
+        width: 40px;
+        height: 28px;
+        border-radius: 14px;
+        text-align: center;
+        line-height: 28px;
+        font-weight: bold;
+        color: white;
+        margin: 0 2px;
+    }
+    .ball.red { background-color: #ff0000; }
+    .ball.blue { background-color: #0000ff; }
+    .ball.green { background-color: #008000; }
+    
 </style>
 </head>
 <body>
-<div class="content-container">
-    <div class="button-container">
-        <button id="toggleBtn" class="btn toggle-btn">模式一</button>
-        <button id="analysisBtn" class="btn analysis-btn">智能分析</button>
-    </div>
-    <table>
-    <tr><th>期数</th><th>平码</th><th>特码</th><th>属性</th></tr>
+<table>
+<tr><th>期数</th><th>平码</th><th>特码</th><th>属性</th></tr>
 <tr><td class='period'>001</td><td><span class='ball red'>2</span> <span class='ball blue'>3</span> <span class='ball red'>19</span> <span class='ball red'>34</span> <span class='ball blue'>37</span> <span class='ball red'>46</span> </td><td><span class='ball green'>32</span></td><td><span class='zodiac-3d' title='鸡'>鸡</span> <span class='ball green'>绿双</span> <span class='attribute big'>大</span></td></tr>
 <tr><td class='period'>002</td><td><span class='ball red'>1</span> <span class='ball blue'>4</span> <span class='ball red'>24</span> <span class='ball blue'>31</span> <span class='ball green'>33</span> <span class='ball red'>34</span> </td><td><span class='ball red'>2</span></td><td><span class='zodiac-3d special' title='兔'>兔</span> <span class='ball red'>红双</span> <span class='attribute small'>小</span></td></tr>
 <tr><td class='period'>003</td><td><span class='ball blue'>3</span> <span class='ball blue'>9</span> <span class='ball green'>16</span> <span class='ball red'>19</span> <span class='ball green'>33</span> <span class='ball red'>35</span> </td><td><span class='ball green'>39</span></td><td><span class='zodiac-3d special' title='虎'>虎</span> <span class='ball green'>绿单</span> <span class='attribute big'>大</span></td></tr>
@@ -223,56 +219,10 @@ table {
 <tr><td class='period'>105</td><td><span class='ball red'>2</span> <span class='ball blue'>3</span> <span class='ball blue'>14</span> <span class='ball blue'>25</span> <span class='ball green'>27</span> <span class='ball blue'>36</span> </td><td><span class='ball red'>45</span></td><td><span class='zodiac-3d special' title='猴'>猴</span> <span class='ball red'>红单</span> <span class='attribute big'>大</span></td></tr>
 <tr><td class='period'>106</td><td><span class='ball blue'>9</span> <span class='ball green'>17</span> <span class='ball green'>28</span> <span class='ball blue'>31</span> <span class='ball red'>40</span> <span class='ball green'>49</span> </td><td><span class='ball blue'>25</span></td><td><span class='zodiac-3d special' title='龙'>龙</span> <span class='ball blue'>蓝单</span> <span class='attribute big'>大</span></td></tr>
 <tr><td class='period'>107</td><td><span class='ball red'>2</span> <span class='ball blue'>4</span> <span class='ball red'>29</span> <span class='ball red'>35</span> <span class='ball green'>38</span> <span class='ball green'>49</span> </td><td><span class='ball blue'>14</span></td><td><span class='zodiac-3d special' title='兔'>兔</span> <span class='ball blue'>蓝双</span> <span class='attribute small'>小</span></td></tr>
-<tr><td class='period'>108</td><td><span class='ball red'>8</span> <span class='ball blue'>15</span> <span class='ball green'>21</span> <span class='ball green'>32</span> <span class='ball green'>43</span> <span class='ball blue'>47</span> </td><td><span class='ball blue'>41</span></td><td><span class='zodiac-3d special' title='鼠'>鼠</span> <span class='ball blue'>蓝单</span> <span class='attribute big'>大</span></td></tr>
-<tr><td class='period'>109</td><td><span class='ball blue'>10</span> <span class='ball green'>16</span> <span class='ball red'>24</span> <span class='ball green'>32</span> <span class='ball blue'>37</span> <span class='ball red'>40</span> </td><td><span class='ball red'>19</span></td><td><span class='zodiac-3d' title='狗'>狗</span> <span class='ball red'>红单</span> <span class='attribute small'>小</span></td></tr>
+<tr><td class='period'>108</td><td><span class='ball red'>8</span> <span class='ball blue'>15</span> <span class='ball green'>21</span> <span class='ball green'>32</span> <span class='ball green'>43</span> <span class='ball blue'>47</span> </td><td><span class='ball blue special'>41</span></td><td><span class='zodiac-3d special' title='鼠'>鼠</span> <span class='ball blue'>蓝单</span> <span class='attribute big'>大</span></td></tr>
+<tr><td class='period'>109</td><td><span class='ball blue'>10</span> <span class='ball green'>16</span> <span class='ball red'>24</span> <span class='ball green'>32</span> <span class='ball blue'>37</span> <span class='ball red'>40</span> </td><td><span class='ball red special'>19</span></td><td><span class='zodiac-3d' title='狗'>狗</span> <span class='ball red'>红单</span> <span class='attribute small'>小</span></td></tr>
 <tr><td class='period'>110</td><td><span class='ball red'>40</span> <span class='ball green'>44</span> <span class='ball blue'>48</span> <span class='ball red'>35</span> <span class='ball green'>33</span> <span class='ball blue'>10</span> </td><td><span class='ball green special'>6</span></td><td><span class='zodiac-3d' title='猪'>猪</span> <span class='ball green'>绿双</span> <span class='attribute small'>小</span></td></tr>
-<tr><td class='period'>111</td><td><span class='ball red'>40</span> <span class='ball green'>44</span> <span class='ball blue'>48</span> <span class='ball red'>35</span> <span class='ball green'>33</span> <span class='ball blue'>10</span> </td><td><span class='ball red special'>7</span></td><td><span class='zodiac-3d' title='狗'>狗</span> <span class='ball red'>红单</span> <span class='attribute small'>小</span></td></tr>
-<tr><td class='period'>112</td><td><span class='ball blue'>10</span> <span class='ball green'>16</span> <span class='ball green'>32</span> <span class='ball red'>24</span> <span class='ball blue'>37</span> <span class='ball red'>40</span> </td><td><span class='ball red special'>8</span></td><td><span class='zodiac-3d' title='鸡'>鸡</span> <span class='ball red'>红双</span> <span class='attribute small'>小</span></td></tr>
-<tr><td class='period'>113</td><td><span class='ball red'>40</span> <span class='ball green'>44</span> <span class='ball blue'>48</span> <span class='ball red'>35</span> <span class='ball green'>33</span> <span class='ball blue'>10</span> </td><td><span class='ball blue special'>9</span></td><td><span class='zodiac-3d special' title='猴'>猴</span> <span class='ball blue'>蓝单</span> <span class='attribute small'>小</span></td></tr>
-<tr><td class='period'>114</td><td><span class='ball blue'>10</span> <span class='ball green'>16</span> <span class='ball red'>24</span> <span class='ball green'>32</span> <span class='ball blue'>37</span> <span class='ball red'>40</span> </td><td><span class='ball red'>19</span></td><td><span class='zodiac-3d' title='狗'>狗</span> <span class='ball red'>红单</span> <span class='attribute small'>小</span></td></tr>
-    </table>
-</div>
-<script>
-let isMode1 = true;
-function toggleDisplay() {
-    const elements = document.querySelectorAll(".ball, .attribute, .zodiac-3d");
-    const btn = document.getElementById("toggleBtn");
-    isMode1 = !isMode1;
-    btn.textContent = isMode1 ? "模式一" : "模式二";
-    elements.forEach(el => {
-        if (isMode1) {
-            el.classList.remove("circle");
-            if (el.classList.contains("ball")) {
-                el.style.width = "44px";
-                el.style.height = "32px";
-                el.style.borderRadius = "16px";
-            } else if (el.classList.contains("attribute")) {
-                el.style.width = "32px";
-                el.style.height = "32px";
-                el.style.borderRadius = "8px";
-            } else if (el.classList.contains("zodiac-3d")) {
-                el.style.width = "36px";
-                el.style.height = "36px";
-                el.style.borderRadius = "50%";
-            }
-        } else {
-            el.classList.add("circle");
-            el.style.width = "36px";
-            el.style.height = "36px";
-            el.style.borderRadius = "50%";
-        }
-    });
-}
-// 初始化页面时调用一次toggleDisplay，确保正确显示模式一
-document.addEventListener('DOMContentLoaded', (event) => {
-    toggleDisplay();
-});
-document.getElementById("toggleBtn").addEventListener("click", toggleDisplay);
-
-// 添加智能分析按钮的点击事件
-document.getElementById("analysisBtn").addEventListener("click", function() {
-    window.open("https://sileopro.github.io/LHCok/fenxi.html", "_blank");
-});
-</script>
+<tr><td class='period'>111</td><td><span class='ball blue'>20</span> <span class='ball blue'>48</span> <span class='ball blue'>4</span> <span class='ball blue'>9</span> <span class='ball red'>8</span> <span class='ball red'>19</span> </td><td><span class='ball green special'>21</span></td><td><span class='zodiac-3d special' title='猴'>猴</span> <span class='ball green'>绿单</span> <span class='attribute small'>小</span></td></tr>
+</table>
 </body>
 </html>
