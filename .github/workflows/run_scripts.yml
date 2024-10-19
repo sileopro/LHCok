@@ -44,5 +44,4 @@ jobs:
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
         git add -A
-        git commit -m "Update lottery analysis results" || exit 0
-        git push
+        git diff --cached --exit-code || (git commit -m "Update lottery analysis results" && git push)
