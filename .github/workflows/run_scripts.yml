@@ -28,7 +28,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install beautifulsoup4
+        pip install beautifulsoup4 requests
 
 # 运行11美化开奖记录.sh脚本
     - name: Run 11美化开奖记录.sh
