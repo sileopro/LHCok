@@ -1,0 +1,48 @@
+name: Run Lottery Analysis Scripts
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '25-45 13 * * *'  # 每天UTC时间13:25到13:45之间运行（北京时间21:25到21:45）
+  workflow_dispatch:  # 添加手动触发选项
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install beautifulsoup4 requests
+
+    - name: Fetch latest result
+      run: |
+        python -V
+        pip list
+        python fetch_latest_result.py
+        echo "Content of 1.txt after fetching latest result:"
+        cat 1.txt
+
+    - name: Run 11美化开奖记录.sh
+      run: sh 11美化开奖记录.sh
+
+    - name: Run 12fenxi.sh
+      run: sh 12fenxi.sh
+
+    - name: Commit and push if changed
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git add -A
+        git diff --cached --exit-code || (git commit -m "Update lottery analysis results" && git push)
