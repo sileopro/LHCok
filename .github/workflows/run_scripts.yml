@@ -29,7 +29,16 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install beautifulsoup4 requests telethon
+        pip install telethon requests beautifulsoup4
+
+    - name: Debug Environment Variables
+      run: |
+        echo "Checking if API_ID is set:"
+        if [ -n "$API_ID" ]; then echo "API_ID is set"; else echo "API_ID is not set"; fi
+        echo "Checking if API_HASH is set:"
+        if [ -n "$API_HASH" ]; then echo "API_HASH is set"; else echo "API_HASH is not set"; fi
+        echo "Checking if SESSION_STRING is set:"
+        if [ -n "$SESSION_STRING" ]; then echo "SESSION_STRING is set"; else echo "SESSION_STRING is not set"; fi
 
     - name: Fetch from Telegram
       run: python fetch_telegram.py
