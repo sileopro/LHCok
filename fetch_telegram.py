@@ -3,10 +3,21 @@ import asyncio
 import re
 import os
 
-# Telegram API credentials
-api_id = os.environ['API_ID']
-api_hash = os.environ['API_HASH']
-session_string = os.environ['SESSION_STRING']
+# 检查环境变量
+api_id = os.environ.get('API_ID')
+api_hash = os.environ.get('API_HASH')
+session_string = os.environ.get('SESSION_STRING')
+
+if not all([api_id, api_hash, session_string]):
+    raise ValueError(
+        "环境变量未正确设置!\n"
+        f"API_ID: {'已设置' if api_id else '未设置'}\n"
+        f"API_HASH: {'已设置' if api_hash else '未设置'}\n"
+        f"SESSION_STRING: {'已设置' if session_string else '未设置'}"
+    )
+
+# 确保API_ID是整数
+api_id = int(api_id)
 
 async def fetch_latest_result():
     client = TelegramClient('anon', api_id, api_hash)
