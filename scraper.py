@@ -25,11 +25,13 @@ def get_lottery_data():
         # 模拟点击背景色
         background_data = {
             'bcolor': '#E9FAFF',  # 默认背景色
-            'text': '默认'
+            'text': '默认',
+            'type': 'background'
         }
         
         # 发送背景色选择请求
-        bg_url = f'{url}/setBackground'
+        bg_url = f'{url}/ajax/setBackground'
+        headers['Content-Type'] = 'application/x-www-form-urlencoded'
         response = session.post(bg_url, data=background_data, headers=headers, verify=False)
         print(f"背景色设置响应: {response.text[:200]}")
         
@@ -37,13 +39,14 @@ def get_lottery_data():
         cookies = {
             'chaofancookie': '1',
             'bcolor': '#E9FAFF',
-            'selectedBg': 'default'
+            'selectedBg': 'default',
+            'JSESSIONID': session.cookies.get('JSESSIONID', '')
         }
         session.cookies.update(cookies)
         
-        # 再次请求获取内容
-        headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        response = session.post(url, data={'action': 'getContent'}, headers=headers, cookies=cookies, verify=False)
+        # 获取内容
+        headers['Accept'] = '*/*'
+        response = session.get(f'{url}/lottery/list', headers=headers, cookies=cookies, verify=False)
         response.encoding = 'utf-8'
         
         # 保存原始HTML用于调试
@@ -55,13 +58,9 @@ def get_lottery_data():
         # 使用BeautifulSoup解析HTML
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # 移除style标签
-        for style in soup.find_all('style'):
-            style.decompose()
-            
-        # 移除script标签
-        for script in soup.find_all('script'):
-            script.decompose()
+        # 移除style和script标签
+        for tag in soup.find_all(['style', 'script']):
+            tag.decompose()
             
         # 获取页面文本
         text = soup.get_text()
