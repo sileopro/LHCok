@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import Select
 import time
 from datetime import datetime
 
@@ -20,71 +21,90 @@ def setup_driver():
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     return driver
 
-def wait_for_element(driver, by, value, timeout=10):
-    """等待元素出现"""
+def select_background(driver):
+    """选择背景色"""
     try:
-        element = WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((by, value))
-        )
-        return element
-    except Exception:
-        return None
+        # 等待页面加载
+        time.sleep(5)
+        
+        # 执行JavaScript来选择背景色
+        driver.execute_script("""
+            // 移除body的display:none
+            document.body.style.display = 'block';
+            
+            // 创建并触发点击事件
+            var clickEvent = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+            
+            // 选择默认背景色
+            var options = document.querySelectorAll('option');
+            for (var option of options) {
+                if (option.textContent.includes('默认')) {
+                    option.selected = true;
+                    option.dispatchEvent(clickEvent);
+                    break;
+                }
+            }
+        """)
+        
+        time.sleep(3)  # 等待背景色生效
+        return True
+    except Exception as e:
+        print(f"选择背景色失败: {str(e)}")
+        return False
 
 def extract_lottery_info(driver, lottery_name):
     """提取指定彩种的开奖信息"""
     try:
-        # 等待页面加载
-        wait_for_element(driver, By.TAG_NAME, "body")
-        time.sleep(5)  # 等待JavaScript加载
+        # 查找开奖结果
+        script = f"""
+            var results = [];
+            var elements = document.getElementsByTagName('*');
+            for (var elem of elements) {{
+                if (elem.textContent.includes('{lottery_name}') && 
+                    elem.textContent.includes('第') && 
+                    elem.textContent.includes('期')) {{
+                    results.push({{
+                        text: elem.textContent,
+                        html: elem.innerHTML
+                    }});
+                }}
+            }}
+            return results;
+        """
         
-        # 执行JavaScript来显示内容
-        driver.execute_script("""
-            document.body.style.display = 'block';
-            // 移除所有style标签
-            document.querySelectorAll('style').forEach(s => s.remove());
-        """)
+        lottery_elements = driver.execute_script(script)
         
-        # 等待内容加载
-        time.sleep(3)
-        
-        # 查找开奖结果区域
-        lottery_sections = driver.find_elements(By.XPATH, "//div[contains(@class, 'lottery') or contains(@class, 'kj')]")
-        
-        for section in lottery_sections:
-            section_text = section.text
-            if lottery_name in section_text:
-                print(f"找到 {lottery_name} 区域")
+        if lottery_elements:
+            for element in lottery_elements:
+                text = element['text']
                 
-                # 查找期数
-                period_elements = section.find_elements(By.XPATH, ".//div[contains(text(), '第') and contains(text(), '期')]")
-                if period_elements:
-                    period = period_elements[0].text.split('第')[1].split('期')[0].strip()
+                # 提取期数
+                if '第' in text and '期' in text:
+                    period = text.split('第')[1].split('期')[0].strip()
                     print(f"找到期数: {period}")
                     
-                    # 查找数字和生肖
-                    result_elements = section.find_elements(By.XPATH, ".//div[not(contains(text(), '第')) and not(contains(text(), '开奖'))]")
+                    # 提取数字和生肖
                     numbers = []
                     zodiacs = []
                     
-                    for elem in result_elements:
-                        text = elem.text.strip()
-                        if text:
-                            if text.isdigit():
-                                numbers.append(text)
-                            elif any(zodiac in text for zodiac in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']):
-                                zodiacs.append(text)
+                    # 分析文本内容
+                    parts = text.split()
+                    for i in range(0, len(parts)-1, 2):
+                        if parts[i].isdigit() and any(zodiac in parts[i+1] for zodiac in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']):
+                            numbers.append(parts[i])
+                            zodiacs.append(parts[i+1])
                     
-                    # 确保找到了数字和生肖
-                    if numbers and zodiacs and len(numbers) == len(zodiacs):
+                    if numbers and zodiacs:
                         result = (
                             f"{lottery_name}  第 {period} 开奖结果\n"
                             f"{' '.join([f'{num}{zodiac}' for num, zodiac in zip(numbers, zodiacs)])}\n"
                         )
                         print(f"找到完整结果:\n{result}")
                         return result
-                    else:
-                        print(f"数字: {numbers}")
-                        print(f"生肖: {zodiacs}")
         
         print(f"未找到 {lottery_name} 的完整开奖信息")
         return None
@@ -106,7 +126,11 @@ def get_lottery_results(driver):
         # 访问页面
         driver.get('https://akjw09d.48489aaa.com:8800/')
         print("页面加载完成")
-        time.sleep(5)
+        
+        # 选择背景色
+        if not select_background(driver):
+            print("选择背景色失败")
+            return
         
         # 获取各彩种结果
         for code, name in lottery_mapping.items():
