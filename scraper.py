@@ -29,18 +29,21 @@ def get_lottery_data():
         }
         
         # 发送背景色选择请求
-        bg_url = f'{url}/ajax/setBackground'
-        session.post(bg_url, json=background_data, headers=headers, verify=False)
+        bg_url = f'{url}/setBackground'
+        response = session.post(bg_url, data=background_data, headers=headers, verify=False)
+        print(f"背景色设置响应: {response.text[:200]}")
         
         # 设置cookie
         cookies = {
             'chaofancookie': '1',
-            'bcolor': '#E9FAFF'
+            'bcolor': '#E9FAFF',
+            'selectedBg': 'default'
         }
         session.cookies.update(cookies)
         
         # 再次请求获取内容
-        response = session.get(url, headers=headers, cookies=cookies, verify=False)
+        headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        response = session.post(url, data={'action': 'getContent'}, headers=headers, cookies=cookies, verify=False)
         response.encoding = 'utf-8'
         
         # 保存原始HTML用于调试
