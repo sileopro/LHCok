@@ -23,34 +23,38 @@ def setup_driver():
 def extract_lottery_info(driver, lottery_name):
     """提取指定彩种的开奖信息"""
     try:
-        # 查找包含彩种名称的区域
-        sections = driver.find_elements(By.XPATH, f"//div[contains(text(), '{lottery_name}')]/../..")
-        for section in sections:
+        # 使用更精确的XPath定位彩种区域
+        xpath = f"//div[text()='{lottery_name}']/following-sibling::div[contains(text(), '开奖历史')]/following-sibling::div[contains(text(), '第') and contains(text(), '期')]/.."
+        section = driver.find_element(By.XPATH, xpath)
+        
+        if section:
             # 获取期数
-            period_elem = section.find_element(By.XPATH, ".//div[contains(text(), '第') and contains(text(), '期')]")
-            if period_elem:
-                period = period_elem.text.split('第')[1].split('开奖')[0].strip()
+            period_text = section.find_element(By.XPATH, ".//div[contains(text(), '第') and contains(text(), '期')]").text
+            period = period_text.split('第')[1].split('开奖')[0].strip()
+            
+            # 获取号码和生肖
+            numbers = []
+            zodiacs = []
+            
+            # 直接获取数字和生肖元素
+            elements = section.find_elements(By.XPATH, "./div[not(contains(text(), '第')) and not(contains(text(), '开奖'))]")
+            
+            for i in range(0, len(elements), 2):
+                if i+1 < len(elements):
+                    num = elements[i].text.strip()
+                    zodiac = elements[i+1].text.strip()
+                    if num.isdigit():
+                        numbers.append(num)
+                        zodiacs.append(zodiac)
+            
+            if numbers and zodiacs:
+                result = (
+                    f"{lottery_name}  第 {period} 开奖结果\n"
+                    f"{' '.join([f'{num}{zodiac}' for num, zodiac in zip(numbers, zodiacs)])}\n"
+                )
+                print(f"找到 {lottery_name} 开奖结果：\n{result}")
+                return result
                 
-                # 获取号码和生肖
-                result_elements = section.find_elements(By.XPATH, ".//div[contains(@class, 'history')]/following-sibling::div//text()")
-                numbers = []
-                zodiacs = []
-                
-                for i in range(0, len(result_elements), 2):
-                    if i+1 < len(result_elements):
-                        num = result_elements[i].text.strip()
-                        zodiac = result_elements[i+1].text.strip()
-                        if num.isdigit():
-                            numbers.append(num)
-                            zodiacs.append(zodiac)
-                
-                if numbers and zodiacs:
-                    result = (
-                        f"{lottery_name}\n"
-                        f"第 {period} 开奖结果\n"
-                        f"{' '.join([f'{num}{zodiac}' for num, zodiac in zip(numbers, zodiacs)])}\n"
-                    )
-                    return result
     except Exception as e:
         print(f"提取 {lottery_name} 信息时出错: {str(e)}")
     return None
@@ -67,24 +71,34 @@ def get_lottery_results(driver):
     try:
         # 访问页面
         driver.get('https://akjw09d.48489aaa.com:8800/')
+        print("页面加载完成")
         time.sleep(5)
         
         # 执行JavaScript来显示内容
         driver.execute_script("document.body.style.display = 'block';")
+        print("页面内容已显示")
         time.sleep(3)
+        
+        # 保存页面源码用于调试
+        with open('debug.html', 'w', encoding='utf-8') as f:
+            f.write(driver.page_source)
+        print("已保存页面源码")
         
         # 获取各彩种结果
         for code, name in lottery_mapping.items():
+            print(f"\n正在处理 {name}...")
             result = extract_lottery_info(driver, name)
             if result:
                 with open(f'{code}.txt', 'w', encoding='utf-8') as f:
                     f.write(result)
-                print(f"已保存 {name} 开奖结果")
+                print(f"已保存 {name} 开奖结果到 {code}.txt")
             else:
                 print(f"未找到 {name} 开奖结果")
                 
     except Exception as e:
         print(f"获取开奖结果时出错: {str(e)}")
+        print("页面内容:")
+        print(driver.page_source[:1000])
 
 def main():
     try:
