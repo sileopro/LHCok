@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-def get_lottery_data(lottery_type):
+def get_lottery_data():
     """获取彩票数据"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -13,67 +13,57 @@ def get_lottery_data(lottery_type):
         'Cookie': 'chaofancookie=1'
     }
     
-    # 彩种URL映射
-    urls = {
-        'lam': '/lottery/macau',  # 老澳门
-        'xam': '/lottery/newmacau',  # 新澳门
-        'hk': '/lottery/hongkong',  # 港彩
-        'tc': '/lottery/taiwan'  # 台湾
-    }
-    
     try:
         session = requests.Session()
-        base_url = 'https://akjw09d.48489aaa.com:8800'
+        url = 'https://akjw09d.48489aaa.com:8800'
         
-        # 先访问主页
-        session.get(base_url, headers=headers, verify=False)
-        
-        # 访问具体彩种页面
-        url = f"{base_url}{urls[lottery_type]}"
-        print(f"访问URL: {url}")
         response = session.get(url, headers=headers, verify=False)
         response.encoding = 'utf-8'
         
         # 保存原始HTML用于调试
-        with open(f'debug_{lottery_type}.html', 'w', encoding='utf-8') as f:
+        with open('debug.html', 'w', encoding='utf-8') as f:
             f.write(response.text)
             
         # 使用BeautifulSoup解析HTML
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # 移除style标签
-        for style in soup.find_all('style'):
-            style.decompose()
-            
-        # 获取页面文本
-        text = soup.get_text()
-        print(f"页面文本预览:\n{text[:500]}")
+        # 查找所有开奖结果区域
+        results = {}
+        for section in soup.find_all('div', class_=lambda x: x and any(name in str(x) for name in ['六合彩', '澳门', '台湾'])):
+            title = section.find('div', text=lambda x: x and any(name in str(x) for name in lottery_mapping.values()))
+            if title:
+                lottery_name = title.text.strip()
+                period_elem = section.find('div', text=lambda x: x and '第' in str(x) and '期' in str(x))
+                if period_elem:
+                    period = re.search(r'第(\d+)期', period_elem.text).group(1)
+                    
+                    # 查找数字和生肖
+                    numbers = []
+                    zodiacs = []
+                    for elem in section.find_all('div'):
+                        text = elem.text.strip()
+                        if text.isdigit():
+                            numbers.append(text)
+                        elif any(zodiac in text for zodiac in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']):
+                            zodiacs.append(text)
+                    
+                    if numbers and zodiacs and len(numbers) == len(zodiacs):
+                        result = (
+                            f"{lottery_name}  第 {period} 开奖结果\n"
+                            f"{' '.join([f'{num}{zodiac}' for num, zodiac in zip(numbers, zodiacs)])}\n"
+                        )
+                        
+                        # 根据彩种名称找到对应的代码
+                        for code, name in lottery_mapping.items():
+                            if name in lottery_name:
+                                results[code] = result
+                                break
         
-        # 使用正则表达式提取开奖信息
-        pattern = r'第(\d+)期.*?开奖结果.*?((?:\d+[鼠牛虎兔龙蛇马羊猴鸡狗猪]\s*)+)'
-        match = re.search(pattern, text, re.DOTALL)
-        
-        if match:
-            period = match.group(1)
-            result_text = match.group(2)
-            
-            # 提取数字和生肖对
-            pairs = re.findall(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', result_text)
-            
-            if pairs:
-                result = (
-                    f"{lottery_mapping[lottery_type]}  第 {period} 开奖结果\n"
-                    f"{' '.join([f'{num}{zodiac}' for num, zodiac in pairs])}\n"
-                )
-                print(f"找到完整结果:\n{result}")
-                return result
-                
-        print(f"未找到 {lottery_mapping[lottery_type]} 的完整开奖信息")
-        return None
+        return results
         
     except Exception as e:
-        print(f"获取 {lottery_type} 数据失败: {str(e)}")
-        return None
+        print(f"获取数据失败: {str(e)}")
+        return {}
 
 def main():
     """主函数"""
@@ -86,15 +76,18 @@ def main():
     }
     
     try:
-        # 获取各彩种结果
+        # 获取所有彩种结果
+        results = get_lottery_data()
+        
+        # 保存结果
+        for code, result in results.items():
+            with open(f'{code}.txt', 'w', encoding='utf-8') as f:
+                f.write(result)
+            print(f"已保存 {lottery_mapping[code]} 开奖结果到 {code}.txt")
+            
+        # 检查是否有未获取到的彩种
         for code, name in lottery_mapping.items():
-            print(f"\n正在处理 {name}...")
-            result = get_lottery_data(code)
-            if result:
-                with open(f'{code}.txt', 'w', encoding='utf-8') as f:
-                    f.write(result)
-                print(f"已保存 {name} 开奖结果到 {code}.txt")
-            else:
+            if code not in results:
                 print(f"未找到 {name} 开奖结果")
                 
     except Exception as e:
