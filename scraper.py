@@ -27,7 +27,7 @@ def select_background(driver):
         # 等待页面加载
         time.sleep(5)
         
-        # 执行JavaScript来显示内容并点击背景色
+        # 执行JavaScript来显示内��并点击背景色
         script = """
             // 移除body的display:none
             document.body.style.display = 'block';
@@ -39,22 +39,25 @@ def select_background(driver):
                 view: window
             });
             
-            // 查找包含背景色的文本节点
-            var textNodes = document.evaluate(
-                "//text()[contains(., '背景') and contains(., '默认')]",
-                document,
+            // 查找所有文本节点
+            var walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
                 null,
-                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-                null
+                false
             );
             
-            // 如果找到节点，点击其父元素
-            if (textNodes.snapshotLength > 0) {
-                var node = textNodes.snapshotItem(0);
-                var parent = node.parentElement;
-                if (parent) {
-                    parent.dispatchEvent(clickEvent);
-                    return true;
+            var node;
+            var colors = ['背景', '默认', '银色', '白雪', '米色', '漆黑', '明黄', '淡绿', '深灰', '红粉', '草绿', '茶色'];
+            
+            while (node = walker.nextNode()) {
+                var text = node.textContent.trim();
+                if (colors.includes(text)) {
+                    var parent = node.parentElement;
+                    if (parent) {
+                        parent.dispatchEvent(clickEvent);
+                        return true;
+                    }
                 }
             }
             
@@ -80,17 +83,19 @@ def extract_lottery_info(driver, lottery_name):
         # 查找包含开奖结果的文本
         script = f"""
             var results = [];
-            var textNodes = document.evaluate(
-                "//text()[contains(., '{lottery_name}') and contains(., '第') and contains(., '期')]",
-                document,
+            var walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
                 null,
-                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-                null
+                false
             );
             
-            for (var i = 0; i < textNodes.snapshotLength; i++) {{
-                var node = textNodes.snapshotItem(i);
-                results.push(node.textContent);
+            var node;
+            while (node = walker.nextNode()) {{
+                var text = node.textContent.trim();
+                if (text.includes('{lottery_name}') && text.includes('第') && text.includes('期')) {{
+                    results.push(text);
+                }}
             }}
             
             return results;
