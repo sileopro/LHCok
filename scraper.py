@@ -9,54 +9,64 @@ def get_lottery_data():
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Cookie': 'chaofancookie=1'
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
     }
     
     try:
         session = requests.Session()
         url = 'https://akjw09d.48489aaa.com:8800'
         
+        # 第一次请求获取页面
         response = session.get(url, headers=headers, verify=False)
+        response.encoding = 'utf-8'
+        
+        # 设置背景色cookie
+        cookies = {
+            'chaofancookie': '1',
+            'background': 'default'  # 设置默认背景色
+        }
+        session.cookies.update(cookies)
+        
+        # 第二次请求获取内容
+        response = session.get(url, headers=headers, cookies=cookies, verify=False)
         response.encoding = 'utf-8'
         
         # 保存原始HTML用于调试
         with open('debug.html', 'w', encoding='utf-8') as f:
             f.write(response.text)
             
+        # 使用JavaScript来显示内容
+        script = """
+            document.body.style.display = 'block';
+            return document.documentElement.outerHTML;
+        """
+        
         # 使用BeautifulSoup解析HTML
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # 查找所有开奖结果区域
         results = {}
-        for section in soup.find_all('div', class_=lambda x: x and any(name in str(x) for name in ['六合彩', '澳门', '台湾'])):
-            title = section.find('div', text=lambda x: x and any(name in str(x) for name in lottery_mapping.values()))
-            if title:
-                lottery_name = title.text.strip()
-                period_elem = section.find('div', text=lambda x: x and '第' in str(x) and '期' in str(x))
-                if period_elem:
-                    period = re.search(r'第(\d+)期', period_elem.text).group(1)
+        for section in soup.find_all('div', recursive=True):
+            text = section.get_text(strip=True)
+            if any(name in text for name in lottery_mapping.values()):
+                # 查找期数
+                period_match = re.search(r'第(\d+)期', text)
+                if period_match:
+                    period = period_match.group(1)
                     
                     # 查找数字和生肖
-                    numbers = []
-                    zodiacs = []
-                    for elem in section.find_all('div'):
-                        text = elem.text.strip()
-                        if text.isdigit():
-                            numbers.append(text)
-                        elif any(zodiac in text for zodiac in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']):
-                            zodiacs.append(text)
+                    pairs = re.findall(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
                     
-                    if numbers and zodiacs and len(numbers) == len(zodiacs):
-                        result = (
-                            f"{lottery_name}  第 {period} 开奖结果\n"
-                            f"{' '.join([f'{num}{zodiac}' for num, zodiac in zip(numbers, zodiacs)])}\n"
-                        )
-                        
-                        # 根据彩种名称找到对应的代码
+                    if pairs:
+                        # 确定彩种名称
                         for code, name in lottery_mapping.items():
-                            if name in lottery_name:
+                            if name in text:
+                                result = (
+                                    f"{name}  第 {period} 开奖结果\n"
+                                    f"{' '.join([f'{num}{zodiac}' for num, zodiac in pairs])}\n"
+                                )
                                 results[code] = result
+                                print(f"找到 {name} 开奖结果")
                                 break
         
         return results
