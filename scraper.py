@@ -28,20 +28,29 @@ def extract_lottery_info(driver, lottery_code, lottery_name):
         # 获取期号
         issue_element = lottery_div.find_element(By.CLASS_NAME, "preDrawIssue")
         issue_number = issue_element.text.strip()
+        # 提取期号中的最后三位数字
+        issue_short = re.search(r'\d+$', issue_number)[-3:]
         
         # 获取开奖号码
         numbers = []
+        special_number = None
+        special_zodiac = None
         number_box = lottery_div.find_element(By.CLASS_NAME, "number-box")
         number_elements = number_box.find_elements(By.TAG_NAME, "li")
         
-        for elem in number_elements:
+        for i, elem in enumerate(number_elements):
             if "xgcaddF1" not in elem.get_attribute("class"):  # 跳过分隔符
                 number = elem.find_element(By.TAG_NAME, "span").text
                 zodiac = elem.find_element(By.CLASS_NAME, "animal").text
-                numbers.append(f"{number.zfill(2)}{zodiac}")
+                if i == len(number_elements) - 2:  # 最后一个数字是特码
+                    special_number = number
+                    special_zodiac = zodiac
+                else:
+                    numbers.append(number)
         
-        if numbers:
-            result = f"{lottery_name}  第 {issue_number} 开奖结果\n" + "\n".join(numbers)
+        if numbers and special_number:
+            # 格式化输出
+            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
             return result
             
     except Exception as e:
