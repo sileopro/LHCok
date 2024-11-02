@@ -9,12 +9,19 @@ def get_lottery_data(lottery_type):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Cookie': 'chaofancookie=1'  # 添加cookie来跳过背景色选择
     }
     
     try:
         # 获取页面内容
-        response = requests.get('https://akjw09d.48489aaa.com:8800/', headers=headers, verify=False)
+        session = requests.Session()
+        
+        # 先访问主页设置cookie
+        session.get('https://akjw09d.48489aaa.com:8800/', headers=headers, verify=False)
+        
+        # 再次访问获取内容
+        response = session.get('https://akjw09d.48489aaa.com:8800/', headers=headers, verify=False)
         response.encoding = 'utf-8'
         
         # 保存原始HTML用于调试
@@ -30,6 +37,7 @@ def get_lottery_data(lottery_type):
             
         # 获取页面文本
         text = soup.get_text()
+        print(f"页面文本预览:\n{text[:1000]}")
         
         # 使用正则表达式提取开奖信息
         pattern = f'{lottery_mapping[lottery_type]}.*?第(\\d+)期.*?开奖结果.*?((?:\\d+[鼠牛虎兔龙蛇马羊猴鸡狗猪]\\s*)+)'
@@ -51,7 +59,6 @@ def get_lottery_data(lottery_type):
                 return result
                 
         print(f"未找到 {lottery_mapping[lottery_type]} 的完整开奖信息")
-        print(f"页面文本预览:\n{text[:500]}")
         return None
         
     except Exception as e:
