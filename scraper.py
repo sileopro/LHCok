@@ -7,6 +7,16 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
 from datetime import datetime
 import os
+import random
+
+def get_random_user_agent():
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0'
+    ]
+    return random.choice(user_agents)
 
 def setup_driver():
     """设置Chrome浏览器"""
@@ -16,113 +26,116 @@ def setup_driver():
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+    chrome_options.add_argument(f'--user-agent={get_random_user_agent()}')
+    
+    # 添加更多的浏览器参数
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_argument('--disable-infobars')
+    chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
     
     if os.getenv('GITHUB_ACTIONS'):
         chrome_options.binary_location = '/usr/bin/google-chrome'
     
     print("Chrome选项配置完成")
     driver = webdriver.Chrome(options=chrome_options)
-    driver.set_page_load_timeout(30)  # 设置页面加载超时
+    
+    # 修改 navigator.webdriver 标志
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    
+    driver.set_page_load_timeout(30)
     print("Chrome驱动初始化成功")
     return driver
 
-def wait_for_element(driver, selector, timeout=20, by=By.CSS_SELECTOR):
-    """等待元素出现并返回"""
+def bypass_cloudflare(driver, url):
+    """尝试绕过 Cloudflare 检测"""
     try:
-        element = WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((by, selector))
-        )
-        return element
-    except TimeoutException:
-        print(f"等待元素超时: {selector}")
-        return None
+        driver.get(url)
+        time.sleep(5)  # 等待初始加载
+        
+        # 检查是否存在 Cloudflare 挑战页面
+        if "Just a moment" in driver.page_source or "Checking your browser" in driver.page_source:
+            print("检测到 Cloudflare 验证，等待...")
+            time.sleep(10)  # 等待 Cloudflare 验证通过
+            
+        return True
+    except Exception as e:
+        print(f"绕过 Cloudflare 失败: {str(e)}")
+        return False
 
 def get_lottery_result(driver, lottery_type):
+    base_url = 'https://www.1292.com'
     urls = {
-        'lam': 'https://www.1292.com/macau',
-        'xam': 'https://www.1292.com/newmacau',
-        'hk': 'https://www.1292.com/hongkong'
+        'lam': f'{base_url}/macau',
+        'xam': f'{base_url}/newmacau',
+        'hk': f'{base_url}/hongkong'
     }
     
     try:
         print(f"\n访问页面: {urls[lottery_type]}")
-        driver.get(urls[lottery_type])
+        
+        # 先访问主页
+        if not bypass_cloudflare(driver, base_url):
+            print("无法访问主页")
+            return
+            
+        time.sleep(3)
+        
+        # 再访问具体页面
+        if not bypass_cloudflare(driver, urls[lottery_type]):
+            print("无法访问彩票页面")
+            return
+            
         print("页面加载完成")
         
         # 等待页面加载
-        time.sleep(15)  # 增加等待时间
+        time.sleep(10)
         print("开始检查页面元素...")
         
-        # 保存页面源码用于分析
+        # 打印页面标题和URL
+        print(f"当前页面标题: {driver.title}")
+        print(f"当前URL: {driver.current_url}")
+        
+        # 保存页面源码
+        page_source = driver.page_source
         with open(f'debug_{lottery_type}.html', 'w', encoding='utf-8') as f:
-            f.write(driver.page_source)
+            f.write(page_source)
         print("已保存页面源码")
         
         # 保存页面截图
         driver.save_screenshot(f'screenshot_{lottery_type}.png')
         print("已保存页面截图")
         
-        # 尝试多个可能的选择器
-        selectors = {
-            'period': [
-                '.lottery-period', 
-                '.period',
-                '[class*="period"]',
-                '//div[contains(text(), "期")]',  # XPath
-                '//span[contains(text(), "期")]'   # XPath
-            ],
-            'numbers': [
-                '.lottery-number',
-                '.number',
-                '[class*="number"]',
-                '//div[contains(@class, "number")]',  # XPath
-                '//span[contains(@class, "number")]'  # XPath
-            ]
-        }
+        # 打印页面文本内容的一部分
+        print("页面文本预览:")
+        print(driver.find_element(By.TAG_NAME, 'body').text[:500])
         
-        # 获取期数
-        period = None
-        for selector in selectors['period']:
-            try:
-                if selector.startswith('//'):
-                    element = wait_for_element(driver, selector, by=By.XPATH)
-                else:
-                    element = wait_for_element(driver, selector)
-                if element:
-                    period = element.text
-                    print(f"找到期数: {period}")
-                    break
-            except Exception as e:
-                print(f"尝试选择器 {selector} 失败: {str(e)}")
-        
-        # 获取号码
-        numbers_text = ""
-        for selector in selectors['numbers']:
-            try:
-                if selector.startswith('//'):
-                    elements = driver.find_elements(By.XPATH, selector)
-                else:
-                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                if elements:
-                    numbers_text = ' '.join([num.text for num in elements if num.text.strip()])
-                    print(f"找到号码: {numbers_text}")
-                    break
-            except Exception as e:
-                print(f"尝试选择器 {selector} 失败: {str(e)}")
-        
-        if period or numbers_text:
-            result = (
-                f"期数: {period if period else '未知'}\n"
-                f"开奖时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                f"号码: {numbers_text if numbers_text else '未知'}\n"
+        # 尝试查找开奖信息
+        try:
+            # 等待页面加载完成
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             
-            with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
-                f.write(result)
-            print(f'{lottery_type} 更新成功：\n{result}')
-        else:
-            print(f"未能找到 {lottery_type} 的开奖信息")
+            # 执行JavaScript来获取页面内容
+            page_text = driver.execute_script("return document.body.innerText")
+            
+            # 查找包含"期"的文本
+            if "期" in page_text:
+                print("找到期数相关文本")
+                # 获取包含"期"的元素
+                elements = driver.find_elements(By.XPATH, "//*[contains(text(), '期')]")
+                for element in elements:
+                    print(f"找到文本: {element.text}")
+                    
+            # 查找数字
+            number_elements = driver.find_elements(By.XPATH, "//div[contains(@class, 'num')] | //span[contains(@class, 'num')]")
+            if number_elements:
+                numbers_text = ' '.join([e.text for e in number_elements if e.text.strip()])
+                print(f"找到号码: {numbers_text}")
+                
+        except Exception as e:
+            print(f"查找元素时出错: {str(e)}")
             
     except Exception as e:
         print(f'获取 {lottery_type} 结果失败: {str(e)}')
