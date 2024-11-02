@@ -27,7 +27,7 @@ def select_background(driver):
         # 等待页面加载
         time.sleep(5)
         
-        # 执行JavaScript来显示内��并点击背景色
+        # 执行JavaScript来显示内容并点击背景色
         script = """
             // 移除body的display:none
             document.body.style.display = 'block';
@@ -39,23 +39,17 @@ def select_background(driver):
                 view: window
             });
             
-            // 查找所有文本节点
-            var walker = document.createTreeWalker(
-                document.body,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-            
-            var node;
-            var colors = ['背景', '默认', '银色', '白雪', '米色', '漆黑', '明黄', '淡绿', '深灰', '红粉', '草绿', '茶色'];
-            
-            while (node = walker.nextNode()) {
-                var text = node.textContent.trim();
-                if (colors.includes(text)) {
-                    var parent = node.parentElement;
-                    if (parent) {
-                        parent.dispatchEvent(clickEvent);
+            // 查找包含背景色的文本
+            var elements = document.getElementsByTagName('*');
+            for (var elem of elements) {
+                var text = elem.textContent.trim();
+                if (text.includes('背景') && text.includes('默认') && text.includes('翻页')) {
+                    // 找到包含所有背景色的元素，点击"默认"
+                    var defaultElem = Array.from(elem.childNodes).find(node => 
+                        node.nodeType === 3 && node.textContent.trim() === '默认'
+                    );
+                    if (defaultElem) {
+                        defaultElem.parentElement.dispatchEvent(clickEvent);
                         return true;
                     }
                 }
@@ -66,7 +60,7 @@ def select_background(driver):
         
         result = driver.execute_script(script)
         if result:
-            print("已选择背景色")
+            print("已选择默认背景色")
             time.sleep(3)
             return True
             
@@ -83,21 +77,13 @@ def extract_lottery_info(driver, lottery_name):
         # 查找包含开奖结果的文本
         script = f"""
             var results = [];
-            var walker = document.createTreeWalker(
-                document.body,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-            
-            var node;
-            while (node = walker.nextNode()) {{
-                var text = node.textContent.trim();
+            var elements = document.getElementsByTagName('*');
+            for (var elem of elements) {{
+                var text = elem.textContent.trim();
                 if (text.includes('{lottery_name}') && text.includes('第') && text.includes('期')) {{
                     results.push(text);
                 }}
             }}
-            
             return results;
         """
         
