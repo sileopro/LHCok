@@ -39,23 +39,47 @@ def select_background(driver):
                 view: window
             });
             
-            // 查找包含背景色的文本
-            var elements = document.getElementsByTagName('*');
-            for (var elem of elements) {
-                var text = elem.textContent.trim();
-                if (text.includes('背景') && text.includes('默认') && text.includes('翻页')) {
-                    // 找到包含所有背景色的元素，点击"默认"
-                    var defaultElem = Array.from(elem.childNodes).find(node => 
-                        node.nodeType === 3 && node.textContent.trim() === '默认'
-                    );
-                    if (defaultElem) {
-                        defaultElem.parentElement.dispatchEvent(clickEvent);
-                        return true;
-                    }
+            // 查找完整的背景色文本
+            var targetText = '背景 默认 银色 白雪 米色 漆黑 明黄 淡绿 深灰 红粉 草绿 茶色翻页';
+            var found = false;
+            
+            // 遍历所有文本节点
+            var walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            var node;
+            while (node = walker.nextNode()) {
+                if (node.textContent.includes(targetText)) {
+                    // 找到目标文本，点击包含"默认"的部分
+                    var range = document.createRange();
+                    var defaultIndex = node.textContent.indexOf('默认');
+                    range.setStart(node, defaultIndex);
+                    range.setEnd(node, defaultIndex + 2);
+                    
+                    var rect = range.getBoundingClientRect();
+                    var clickX = rect.left + rect.width / 2;
+                    var clickY = rect.top + rect.height / 2;
+                    
+                    // 创建鼠标事件
+                    var mouseEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: clickX,
+                        clientY: clickY
+                    });
+                    
+                    document.elementFromPoint(clickX, clickY).dispatchEvent(mouseEvent);
+                    found = true;
+                    break;
                 }
             }
             
-            return false;
+            return found;
         """
         
         result = driver.execute_script(script)
