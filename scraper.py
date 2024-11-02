@@ -3,40 +3,73 @@ import json
 import time
 from datetime import datetime
 
-def get_lottery_result(lottery_type):
+def get_session_cookies():
+    """获取网站cookies"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+    }
+    
+    session = requests.Session()
+    try:
+        # 先访问主页获取cookies
+        response = session.get('https://www.1292.com', headers=headers)
+        print("获取cookies状态码:", response.status_code)
+        return session
+    except Exception as e:
+        print(f"获取cookies失败: {str(e)}")
+        return None
+
+def get_lottery_result(session, lottery_type):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
         'Referer': 'https://www.1292.com/',
-        'Origin': 'https://www.1292.com'
+        'Origin': 'https://www.1292.com',
+        'Connection': 'keep-alive',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'X-Requested-With': 'XMLHttpRequest'
     }
     
     # API端点映射
-    api_endpoints = {
-        'lam': 'https://www.1292.com/api/macau/current',  # 澳彩
-        'xam': 'https://www.1292.com/api/newmacau/current',  # 新澳彩
-        'hk': 'https://www.1292.com/api/hongkong/current'  # 港彩
+    endpoints = {
+        'lam': ('https://www.1292.com/macau', 'https://www.1292.com/api/macau/current'),
+        'xam': ('https://www.1292.com/newmacau', 'https://www.1292.com/api/newmacau/current'),
+        'hk': ('https://www.1292.com/hongkong', 'https://www.1292.com/api/hongkong/current')
     }
     
     try:
-        response = requests.get(api_endpoints[lottery_type], headers=headers, timeout=10)
-        response.raise_for_status()  # 检查响应状态
+        # 先访问对应的页面
+        page_url, api_url = endpoints[lottery_type]
+        session.get(page_url, headers=headers)
         
-        print(f"\n当前访问API: {api_endpoints[lottery_type]}")
+        # 然后请求API
+        response = session.get(api_url, headers=headers)
+        response.raise_for_status()
+        
+        print(f"\n当前访问API: {api_url}")
         print(f"响应状态码: {response.status_code}")
+        print(f"响应头: {dict(response.headers)}")
         print(f"响应内容: {response.text[:200]}")
         
         data = response.json()
         
-        # 格式化开奖结果
         if data.get('data'):
             lottery_data = data['data']
             period = lottery_data.get('period', '')
             numbers = lottery_data.get('numbers', [])
             draw_time = lottery_data.get('drawTime', '')
             
-            # 格式化时间
             if draw_time:
                 try:
                     draw_time = datetime.fromtimestamp(draw_time/1000).strftime('%Y-%m-%d %H:%M:%S')
@@ -49,7 +82,6 @@ def get_lottery_result(lottery_type):
                 f"号码: {' '.join(map(str, numbers)) if numbers else '待开奖'}\n"
             )
             
-            # 保存到文件
             with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
                 f.write(result)
             print(f'{lottery_type} 更新成功：\n{result}')
@@ -60,6 +92,9 @@ def get_lottery_result(lottery_type):
             
     except requests.exceptions.RequestException as e:
         print(f'请求失败 ({lottery_type}): {str(e)}')
+        if 'response' in locals():
+            print(f'响应头: {dict(response.headers)}')
+            print(f'响应内容: {response.text}')
     except json.JSONDecodeError as e:
         print(f'JSON解析失败 ({lottery_type}): {str(e)}')
         print(f'原始响应: {response.text}')
@@ -69,10 +104,16 @@ def get_lottery_result(lottery_type):
 def main():
     lottery_types = ['lam', 'xam', 'hk']
     
+    # 获取session和cookies
+    session = get_session_cookies()
+    if not session:
+        print("获取session失败")
+        return
+        
     for lottery_type in lottery_types:
         print(f'\n正在获取 {lottery_type} 的开奖结果...')
-        get_lottery_result(lottery_type)
-        time.sleep(2)  # 请求间隔
+        get_lottery_result(session, lottery_type)
+        time.sleep(2)
 
 if __name__ == '__main__':
     main()
