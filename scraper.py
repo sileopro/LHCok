@@ -22,41 +22,14 @@ def get_lottery_data():
         response = session.get(url, headers=headers, verify=False)
         response.encoding = 'utf-8'
         
-        # 模拟点击背景色
-        background_data = {
-            'bcolor': '#E9FAFF',  # 默认背景色
-            'text': '默认',
-            'type': 'background'
-        }
-        
-        # 发送背景色选择请求
-        bg_url = f'{url}/ajax/setBackground'
-        headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        response = session.post(bg_url, data=background_data, headers=headers, verify=False)
-        print(f"背景色设置响应: {response.text[:200]}")
-        
-        # 设置cookie
-        cookies = {
-            'chaofancookie': '1',
-            'bcolor': '#E9FAFF',
-            'selectedBg': 'default',
-            'JSESSIONID': session.cookies.get('JSESSIONID', '')
-        }
-        session.cookies.update(cookies)
-        
-        # 获取内容
-        headers['Accept'] = '*/*'
-        response = session.get(f'{url}/lottery/list', headers=headers, cookies=cookies, verify=False)
-        response.encoding = 'utf-8'
+        # 直接从主页获取内容，不再请求背景色和lottery/list
+        soup = BeautifulSoup(response.text, 'html.parser')
         
         # 保存原始HTML用于调试
         with open('debug.html', 'w', encoding='utf-8') as f:
             f.write(response.text)
             
         print(f"页面内容预览:\n{response.text[:1000]}")
-        
-        # 使用BeautifulSoup解析HTML
-        soup = BeautifulSoup(response.text, 'html.parser')
         
         # 移除style和script标签
         for tag in soup.find_all(['style', 'script']):
@@ -68,7 +41,8 @@ def get_lottery_data():
         
         # 查找所有开奖结果区域
         results = {}
-        for section in soup.find_all('div', recursive=True):
+        # 尝试查找包含开奖结果的div元素
+        for section in soup.find_all(['div', 'section'], class_=lambda x: x and ('lottery' in x or 'result' in x)):
             text = section.get_text(strip=True)
             if any(name in text for name in lottery_mapping.values()):
                 # 查找期数
@@ -83,13 +57,33 @@ def get_lottery_data():
                         # 确定彩种名称
                         for code, name in lottery_mapping.items():
                             if name in text:
-                                # 修改结果格式，每个数字生肖对单独一行
                                 result_lines = [f"{name}  第 {period} 开奖结果"]
                                 for num, zodiac in pairs:
                                     result_lines.append(f"{num}{zodiac}")
                                 results[code] = "\n".join(result_lines)
                                 print(f"找到 {name} 开奖结果")
                                 break
+        
+        # 如果没有找到结果，尝试其他URL
+        if not results:
+            alternate_urls = [
+                f'{url}/index.html',
+                f'{url}/lottery.html',
+                f'{url}/results.html'
+            ]
+            
+            for alt_url in alternate_urls:
+                try:
+                    response = session.get(alt_url, headers=headers, verify=False)
+                    response.encoding = 'utf-8'
+                    if '六合彩' in response.text:
+                        print(f"在 {alt_url} 找到可能的结果")
+                        soup = BeautifulSoup(response.text, 'html.parser')
+                        # 重复上面的解析逻辑
+                        # ... 
+                except Exception as e:
+                    print(f"尝试访问 {alt_url} 失败: {str(e)}")
+                    continue
         
         return results
         
