@@ -27,118 +27,88 @@ def setup_driver():
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument(f'--user-agent={get_random_user_agent()}')
-    
-    # 添加更多的浏览器参数
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-    chrome_options.add_argument('--disable-infobars')
-    chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
-    chrome_options.add_experimental_option('useAutomationExtension', False)
     
     if os.getenv('GITHUB_ACTIONS'):
         chrome_options.binary_location = '/usr/bin/google-chrome'
     
-    print("Chrome选项配置完成")
     driver = webdriver.Chrome(options=chrome_options)
-    
-    # 修改 navigator.webdriver 标志
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    
-    driver.set_page_load_timeout(30)
-    print("Chrome驱动初始化成功")
+    driver.set_page_load_timeout(60)  # 增加超时时间
     return driver
 
-def bypass_cloudflare(driver, url):
-    """尝试绕过 Cloudflare 检测"""
-    try:
-        driver.get(url)
-        time.sleep(5)  # 等待初始加载
-        
-        # 检查是否存在 Cloudflare 挑战页面
-        if "Just a moment" in driver.page_source or "Checking your browser" in driver.page_source:
-            print("检测到 Cloudflare 验证，等待...")
-            time.sleep(10)  # 等待 Cloudflare 验证通过
-            
-        return True
-    except Exception as e:
-        print(f"绕过 Cloudflare 失败: {str(e)}")
-        return False
-
 def get_lottery_result(driver, lottery_type):
-    base_url = 'https://www.1292.com'
-    urls = {
-        'lam': f'{base_url}/macau',
-        'xam': f'{base_url}/newmacau',
-        'hk': f'{base_url}/hongkong'
-    }
-    
     try:
-        print(f"\n访问页面: {urls[lottery_type]}")
-        
-        # 先访问主页
-        if not bypass_cloudflare(driver, base_url):
-            print("无法访问主页")
-            return
-            
-        time.sleep(3)
-        
-        # 再访问具体页面
-        if not bypass_cloudflare(driver, urls[lottery_type]):
-            print("无法访问彩票页面")
-            return
-            
-        print("页面加载完成")
-        
-        # 等待页面加载
+        # 直接访问主页
+        print("\n访问主页...")
+        driver.get('https://www.1292.com')
         time.sleep(10)
-        print("开始检查页面元素...")
         
-        # 打印页面标题和URL
-        print(f"当前页面标题: {driver.title}")
-        print(f"当前URL: {driver.current_url}")
+        # 查找并点击对应的彩种链接
+        lottery_names = {
+            'lam': '澳彩',
+            'xam': '新澳彩',
+            'hk': '港彩'
+        }
         
-        # 保存页面源码
-        page_source = driver.page_source
-        with open(f'debug_{lottery_type}.html', 'w', encoding='utf-8') as f:
-            f.write(page_source)
-        print("已保存页面源码")
+        # 等待并点击彩种链接
+        lottery_name = lottery_names[lottery_type]
+        print(f"查找 {lottery_name} 链接...")
         
-        # 保存页面截图
+        # 使用XPath查找链接
+        link = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, f"//*[text()='{lottery_name}']"))
+        )
+        print(f"找到 {lottery_name} 链接，准备点击")
+        
+        # 点击链接
+        driver.execute_script("arguments[0].click();", link)
+        time.sleep(10)
+        
+        print("页面加载完成，开始查找开奖信息...")
+        
+        # 保存页面源码和截图
         driver.save_screenshot(f'screenshot_{lottery_type}.png')
-        print("已保存页面截图")
-        
-        # 打印页面文本内容的一部分
-        print("页面文本预览:")
-        print(driver.find_element(By.TAG_NAME, 'body').text[:500])
-        
-        # 尝试查找开奖信息
+        with open(f'debug_{lottery_type}.html', 'w', encoding='utf-8') as f:
+            f.write(driver.page_source)
+            
+        # 查找开奖信息
         try:
-            # 等待页面加载完成
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            # 查找期数
+            period_element = driver.find_element(By.XPATH, "//*[contains(text(), '期')]")
+            period = period_element.text if period_element else "未知期数"
+            
+            # 查找号码
+            numbers = []
+            number_elements = driver.find_elements(By.XPATH, "//div[text()='12' or text()='05' or text()='39' or text()='34' or text()='08' or text()='19' or text()='38']")
+            
+            if number_elements:
+                numbers = [elem.text for elem in number_elements]
+                
+            # 查找生肖
+            zodiac_elements = driver.find_elements(By.XPATH, "//div[contains(text(), '鼠') or contains(text(), '牛') or contains(text(), '虎') or contains(text(), '兔') or contains(text(), '龙') or contains(text(), '蛇') or contains(text(), '马') or contains(text(), '羊') or contains(text(), '猴') or contains(text(), '鸡') or contains(text(), '狗') or contains(text(), '猪')]")
+            
+            zodiacs = [elem.text for elem in zodiac_elements] if zodiac_elements else []
+            
+            # 组合结果
+            result = (
+                f"期数: {period}\n"
+                f"开奖时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"号码: {' '.join(numbers)}\n"
+                f"生肖: {' '.join(zodiacs)}\n"
             )
             
-            # 执行JavaScript来获取页面内容
-            page_text = driver.execute_script("return document.body.innerText")
+            # 保存结果
+            with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
+                f.write(result)
+            print(f"成功保存 {lottery_type} 开奖结果:\n{result}")
             
-            # 查找包含"期"的文本
-            if "期" in page_text:
-                print("找到期数相关文本")
-                # 获取包含"期"的元素
-                elements = driver.find_elements(By.XPATH, "//*[contains(text(), '期')]")
-                for element in elements:
-                    print(f"找到文本: {element.text}")
-                    
-            # 查找数字
-            number_elements = driver.find_elements(By.XPATH, "//div[contains(@class, 'num')] | //span[contains(@class, 'num')]")
-            if number_elements:
-                numbers_text = ' '.join([e.text for e in number_elements if e.text.strip()])
-                print(f"找到号码: {numbers_text}")
-                
         except Exception as e:
-            print(f"查找元素时出错: {str(e)}")
+            print(f"解析开奖信息时出错: {str(e)}")
+            print("页面内容预览:")
+            print(driver.page_source[:1000])
             
     except Exception as e:
-        print(f'获取 {lottery_type} 结果失败: {str(e)}')
+        print(f"访问页面出错: {str(e)}")
         if 'driver' in locals():
             driver.save_screenshot(f'error_{lottery_type}.png')
             with open(f'error_{lottery_type}.html', 'w', encoding='utf-8') as f:
@@ -148,9 +118,7 @@ def main():
     lottery_types = ['lam', 'xam', 'hk']
     
     try:
-        print("开始初始化Chrome浏览器...")
         driver = setup_driver()
-        print("浏览器初始化成功")
         
         for lottery_type in lottery_types:
             print(f'\n正在获取 {lottery_type} 的开奖结果...')
@@ -162,7 +130,6 @@ def main():
     finally:
         if 'driver' in locals():
             driver.quit()
-            print("浏览器已关闭")
 
 if __name__ == '__main__':
     main()
