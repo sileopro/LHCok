@@ -3,7 +3,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import Select
 import time
 from datetime import datetime
 import re
@@ -28,27 +27,41 @@ def select_background(driver):
         # 等待页面加载
         time.sleep(5)
         
-        # 执行JavaScript来选择背景色
+        # 执行JavaScript来显示内容并点击背景色
         script = """
             // 移除body的display:none
             document.body.style.display = 'block';
             
-            // 选择背景色
-            var options = document.querySelectorAll('option');
-            for (var option of options) {
-                if (option.textContent.includes('默认')) {
-                    option.selected = true;
-                    var event = new Event('change', { bubbles: true });
-                    option.parentElement.dispatchEvent(event);
+            // 创建点击事件
+            var clickEvent = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+            
+            // 查找并点击"默认"文本
+            var elements = document.getElementsByTagName('*');
+            for (var elem of elements) {
+                if (elem.textContent.trim() === '默认') {
+                    elem.dispatchEvent(clickEvent);
                     return true;
                 }
             }
+            
+            // 如果找不到"默认"，尝试点击"白雪"
+            for (var elem of elements) {
+                if (elem.textContent.trim() === '白雪') {
+                    elem.dispatchEvent(clickEvent);
+                    return true;
+                }
+            }
+            
             return false;
         """
         
         result = driver.execute_script(script)
         if result:
-            print("已选择默认背景色")
+            print("已选择背景色")
             time.sleep(3)
             return True
             
@@ -76,6 +89,7 @@ def extract_lottery_info(driver, lottery_name):
         """
         
         texts = driver.execute_script(script)
+        print(f"找到的文本内容: {texts}")
         
         for text in texts:
             # 检查是否包含期数和生肖
@@ -130,6 +144,10 @@ def get_lottery_results(driver):
             
         # 等待内容加载
         time.sleep(5)
+        
+        # 打印页面源码用于调试
+        print("页面内容:")
+        print(driver.page_source[:1000])
         
         # 获取各彩种结果
         for code, name in lottery_mapping.items():
