@@ -29,7 +29,12 @@ def extract_lottery_info(driver, lottery_code, lottery_name):
         issue_element = lottery_div.find_element(By.CLASS_NAME, "preDrawIssue")
         issue_number = issue_element.text.strip()
         # 提取期号中的最后三位数字
-        issue_short = re.search(r'\d+$', issue_number)[-3:]
+        match = re.search(r'(\d+)$', issue_number)
+        if match:
+            issue_short = match.group(1)[-3:]
+        else:
+            print(f"无法从 {issue_number} 提取期号")
+            return None
         
         # 获取开奖号码
         numbers = []
@@ -38,15 +43,20 @@ def extract_lottery_info(driver, lottery_code, lottery_name):
         number_box = lottery_div.find_element(By.CLASS_NAME, "number-box")
         number_elements = number_box.find_elements(By.TAG_NAME, "li")
         
-        for i, elem in enumerate(number_elements):
-            if "xgcaddF1" not in elem.get_attribute("class"):  # 跳过分隔符
-                number = elem.find_element(By.TAG_NAME, "span").text
+        valid_elements = [elem for elem in number_elements if "xgcaddF1" not in elem.get_attribute("class")]
+        
+        for i, elem in enumerate(valid_elements):
+            try:
+                number = elem.find_element(By.TAG_NAME, "span").text.zfill(2)  # 确保数字是两位
                 zodiac = elem.find_element(By.CLASS_NAME, "animal").text
-                if i == len(number_elements) - 2:  # 最后一个数字是特码
+                if i == len(valid_elements) - 1:  # 最后一个数字是特码
                     special_number = number
                     special_zodiac = zodiac
                 else:
                     numbers.append(number)
+            except Exception as e:
+                print(f"处理号码元素时出错: {str(e)}")
+                continue
         
         if numbers and special_number:
             # 格式化输出
