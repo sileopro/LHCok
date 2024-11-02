@@ -1,45 +1,57 @@
 import requests
-import json
+import re
 import time
 from datetime import datetime
+from bs4 import BeautifulSoup
 
 def get_lottery_data(lottery_type):
     """获取彩票数据"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/json',
-        'Referer': 'https://akjw09d.48489aaa.com:8800/',
-        'Origin': 'https://akjw09d.48489aaa.com:8800'
-    }
-    
-    # API端点映射
-    api_endpoints = {
-        'lam': '/api/lottery/macau/current',  # 老澳门
-        'xam': '/api/lottery/newmacau/current',  # 新澳门
-        'hk': '/api/lottery/hongkong/current',  # 港彩
-        'tc': '/api/lottery/taiwan/current'  # 台湾
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
     }
     
     try:
-        url = f'https://akjw09d.48489aaa.com:8800{api_endpoints[lottery_type]}'
-        response = requests.get(url, headers=headers, verify=False)
-        print(f"API响应: {response.text[:200]}")
+        # 获取页面内容
+        response = requests.get('https://akjw09d.48489aaa.com:8800/', headers=headers, verify=False)
+        response.encoding = 'utf-8'
         
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('data'):
-                lottery_data = data['data']
-                period = lottery_data.get('period', '')
-                numbers = lottery_data.get('numbers', [])
-                zodiacs = lottery_data.get('zodiacs', [])
+        # 保存原始HTML用于调试
+        with open('debug.html', 'w', encoding='utf-8') as f:
+            f.write(response.text)
+            
+        # 使用BeautifulSoup解析HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 移除style标签
+        for style in soup.find_all('style'):
+            style.decompose()
+            
+        # 获取页面文本
+        text = soup.get_text()
+        
+        # 使用正则表达式提取开奖信息
+        pattern = f'{lottery_mapping[lottery_type]}.*?第(\\d+)期.*?开奖结果.*?((?:\\d+[鼠牛虎兔龙蛇马羊猴鸡狗猪]\\s*)+)'
+        match = re.search(pattern, text, re.DOTALL)
+        
+        if match:
+            period = match.group(1)
+            result_text = match.group(2)
+            
+            # 提取数字和生肖对
+            pairs = re.findall(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', result_text)
+            
+            if pairs:
+                result = (
+                    f"{lottery_mapping[lottery_type]}  第 {period} 开奖结果\n"
+                    f"{' '.join([f'{num}{zodiac}' for num, zodiac in pairs])}\n"
+                )
+                print(f"找到完整结果:\n{result}")
+                return result
                 
-                if period and numbers and zodiacs:
-                    result = (
-                        f"{lottery_mapping[lottery_type]}  第 {period} 开奖结果\n"
-                        f"{' '.join([f'{num}{zodiac}' for num, zodiac in zip(numbers, zodiacs)])}\n"
-                    )
-                    return result
-                    
+        print(f"未找到 {lottery_mapping[lottery_type]} 的完整开奖信息")
+        print(f"页面文本预览:\n{text[:500]}")
         return None
         
     except Exception as e:
