@@ -16,36 +16,45 @@ def setup_driver():
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     
+    # 禁用自动化控制特征
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
     driver = webdriver.Chrome(options=chrome_options)
+    
+    # 修改 webdriver 特征
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    
     return driver
 
 def extract_lottery_info(driver, lottery_name):
     """提取特定彩票的开奖信息"""
     try:
+        # 执行JavaScript来显示内容
+        driver.execute_script("document.body.style.display = 'block';")
+        
         # 等待页面加载
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '开奖结果')]"))
         )
         
-        # 找到包含彩票名称的区域
-        sections = driver.find_elements(By.XPATH, "//div[contains(@class, 'lottery-item') or contains(@class, 'content')]")
+        # 查找所有可能包含开奖信息的元素
+        elements = driver.find_elements(By.XPATH, "//div[contains(text(), '开奖结果')]")
         
-        for section in sections:
-            if lottery_name in section.text:
+        for element in elements:
+            parent = element.find_element(By.XPATH, "./ancestor::div[contains(., '{}')]".format(lottery_name))
+            if parent and lottery_name in parent.text:
                 # 获取期号
-                issue_text = section.find_element(By.XPATH, ".//div[contains(text(), '第') and contains(text(), '开奖结果')]").text
+                issue_text = parent.find_element(By.XPATH, ".//div[contains(text(), '第')]").text
                 issue_number = re.search(r'第\s*(\d+)', issue_text).group(1)
                 
                 # 获取所有数字和生肖
                 numbers = []
-                number_elements = section.find_elements(By.XPATH, ".//div[text()='+']/preceding-sibling::div")
+                number_texts = re.findall(r'(\d+)\s*([猪鼠牛虎兔龙蛇马羊猴鸡狗])', parent.text)
                 
-                for elem in number_elements:
-                    num_text = elem.text.strip()
-                    if re.match(r'\d+', num_text):
-                        number = re.search(r'(\d+)', num_text).group(1)
-                        zodiac = re.search(r'[猪鼠牛虎兔龙蛇马羊猴鸡狗]', elem.text).group(0)
-                        numbers.append(f"{number.zfill(2)}{zodiac}")
+                for num, zodiac in number_texts:
+                    numbers.append(f"{num.zfill(2)}{zodiac}")
                 
                 if numbers:
                     result = f"{lottery_name}  第 {issue_number} 开奖结果\n" + "\n".join(numbers)
@@ -53,6 +62,9 @@ def extract_lottery_info(driver, lottery_name):
                 
     except Exception as e:
         print(f"提取{lottery_name}信息时出错: {str(e)}")
+        # 打印当前页面源码以便调试
+        print("页面源码:")
+        print(driver.page_source)
     return None
 
 def get_lottery_results(driver):
@@ -67,7 +79,18 @@ def get_lottery_results(driver):
     try:
         # 访问页面
         driver.get('https://akjw09d.48489aaa.com:8800/')
-        time.sleep(5)
+        
+        # 等待页面加载
+        time.sleep(10)
+        
+        # 尝试点击任何可能的"确认"或"继续"按钮
+        try:
+            buttons = driver.find_elements(By.XPATH, "//button[contains(text(), '确认') or contains(text(), '继续')]")
+            for button in buttons:
+                button.click()
+                time.sleep(1)
+        except:
+            pass
         
         # 对每种彩票类型进行处理
         for lottery_id, lottery_name in lottery_types.items():
