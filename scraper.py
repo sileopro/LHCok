@@ -9,7 +9,8 @@ def get_lottery_data():
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Referer': 'https://akjw09d.48489aaa.com:8800/'
     }
     
     try:
@@ -20,14 +21,25 @@ def get_lottery_data():
         response = session.get(url, headers=headers, verify=False)
         response.encoding = 'utf-8'
         
-        # 设置背景色cookie
+        # 模拟点击背景色
+        background_data = {
+            'color': '#E9FAFF',  # 默认背景色
+            'text': '默认'
+        }
+        
+        # 发送背景色选择请求
+        bg_url = f'{url}/setBackground'
+        session.post(bg_url, data=background_data, headers=headers, verify=False)
+        
+        # 设置cookie
         cookies = {
             'chaofancookie': '1',
-            'background': 'default'  # 设置默认背景色
+            'background': 'default',
+            'selectedBg': '#E9FAFF'
         }
         session.cookies.update(cookies)
         
-        # 第二次请求获取内容
+        # 再次请求获取内容
         response = session.get(url, headers=headers, cookies=cookies, verify=False)
         response.encoding = 'utf-8'
         
@@ -35,11 +47,7 @@ def get_lottery_data():
         with open('debug.html', 'w', encoding='utf-8') as f:
             f.write(response.text)
             
-        # 使用JavaScript来显示内容
-        script = """
-            document.body.style.display = 'block';
-            return document.documentElement.outerHTML;
-        """
+        print(f"页面内容预览:\n{response.text[:1000]}")
         
         # 使用BeautifulSoup解析HTML
         soup = BeautifulSoup(response.text, 'html.parser')
