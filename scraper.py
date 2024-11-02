@@ -10,7 +10,8 @@ def get_lottery_data():
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Referer': 'https://akjw09d.48489aaa.com:8800/'
+        'Referer': 'https://akjw09d.48489aaa.com:8800/',
+        'X-Requested-With': 'XMLHttpRequest'
     }
     
     try:
@@ -23,19 +24,18 @@ def get_lottery_data():
         
         # 模拟点击背景色
         background_data = {
-            'color': '#E9FAFF',  # 默认背景色
+            'bcolor': '#E9FAFF',  # 默认背景色
             'text': '默认'
         }
         
         # 发送背景色选择请求
-        bg_url = f'{url}/setBackground'
-        session.post(bg_url, data=background_data, headers=headers, verify=False)
+        bg_url = f'{url}/ajax/setBackground'
+        session.post(bg_url, json=background_data, headers=headers, verify=False)
         
         # 设置cookie
         cookies = {
             'chaofancookie': '1',
-            'background': 'default',
-            'selectedBg': '#E9FAFF'
+            'bcolor': '#E9FAFF'
         }
         session.cookies.update(cookies)
         
@@ -51,6 +51,18 @@ def get_lottery_data():
         
         # 使用BeautifulSoup解析HTML
         soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 移除style标签
+        for style in soup.find_all('style'):
+            style.decompose()
+            
+        # 移除script标签
+        for script in soup.find_all('script'):
+            script.decompose()
+            
+        # 获取页面文本
+        text = soup.get_text()
+        print(f"页面文本预览:\n{text[:1000]}")
         
         # 查找所有开奖结果区域
         results = {}
