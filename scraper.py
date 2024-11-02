@@ -20,49 +20,44 @@ def get_lottery_result(lottery_type):
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # 根据彩种类型查找对应区域
-            lottery_names = {
-                'lam': '老澳门六合彩',
-                'xam': '新澳门六合彩',
-                'hk': '六合彩'
-            }
+            # 打印页面内容，用于调试
+            print("页面内容预览:")
+            print(response.text[:1000])
             
-            # 查找开奖结果
-            lottery_sections = soup.find_all('div', class_='lottery-section')
-            for section in lottery_sections:
-                title = section.find('div', class_='lottery-title')
-                if title and lottery_names[lottery_type] in title.text:
-                    # 获取期数
-                    period = section.find('div', text=lambda t: t and '第' in t and '开奖结果' in t)
-                    period = period.text.split('第')[1].split('开奖结果')[0].strip() if period else '未知'
-                    
-                    # 获取号码
-                    numbers = []
-                    number_elements = section.find_all('div', class_=lambda x: x and ('red' in x or 'green' in x or 'blue' in x))
-                    for elem in number_elements:
-                        if elem.text.strip().isdigit():
-                            numbers.append(elem.text.strip())
-                    
-                    # 获取生肖
-                    zodiac_elements = section.find_all('div', text=lambda t: t and any(z in t for z in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']))
-                    zodiacs = [elem.text.strip() for elem in zodiac_elements]
-                    
-                    # 格式化结果
-                    result = (
-                        f"期数: {period}\n"
-                        f"开奖时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                        f"号码: {' '.join(numbers)}\n"
-                        f"生肖: {' '.join(zodiacs)}\n"
-                    )
-                    
-                    # 保存结果
-                    with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
-                        f.write(result)
-                    print(f"成功保存 {lottery_type} 开奖结果:\n{result}")
-                    break
-            else:
-                print(f"未找到 {lottery_type} 的开奖信息")
-                
+            # 打印所有div的class属性
+            print("\n所有div的class:")
+            for div in soup.find_all('div'):
+                if div.get('class'):
+                    print(f"Class: {' '.join(div.get('class'))}")
+            
+            # 打印所有包含数字的元素
+            print("\n包含数字的元素:")
+            for elem in soup.find_all(text=lambda t: t and any(c.isdigit() for c in t)):
+                print(f"Text: {elem.strip()}")
+            
+            # 打印所有包含"期"字的元素
+            print("\n包含'期'的元素:")
+            for elem in soup.find_all(text=lambda t: t and '期' in t):
+                print(f"Text: {elem.strip()}")
+            
+            # 尝试查找开奖结果
+            # 先查找包含期数的元素
+            period_elements = soup.find_all(text=lambda t: t and '期' in t)
+            if period_elements:
+                print("\n找到期数元素:")
+                for elem in period_elements:
+                    print(f"期数文本: {elem.strip()}")
+                    # 查找这个元素附近的数字
+                    parent = elem.parent
+                    if parent:
+                        numbers = parent.find_all(text=lambda t: t and t.strip().isdigit())
+                        print(f"相关数字: {[n.strip() for n in numbers]}")
+            
+            # 保存页面源码用于分析
+            with open(f'debug_{lottery_type}.html', 'w', encoding='utf-8') as f:
+                f.write(response.text)
+            print(f"\n已保存完整页面源码到 debug_{lottery_type}.html")
+            
         else:
             print(f"请求失败，状态码: {response.status_code}")
             print(f"响应内容: {response.text[:200]}")
