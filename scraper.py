@@ -20,73 +20,55 @@ def setup_driver():
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     return driver
 
-def wait_for_element(driver, by, value, timeout=10):
-    """等待元素出现"""
-    try:
-        element = WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((by, value))
-        )
-        return element
-    except Exception:
-        return None
-
 def extract_lottery_info(driver, lottery_name):
     """提取指定彩种的开奖信息"""
     try:
-        # 尝试多种可能的XPath
-        xpaths = [
-            f"//div[contains(text(), '{lottery_name}')]",
-            f"//div[text()='{lottery_name}']",
-            f"//*[contains(text(), '{lottery_name}')]"
-        ]
+        # 查找彩种区域
+        sections = driver.find_elements(By.XPATH, "//div[text()='开奖历史']/parent::div")
         
-        lottery_element = None
-        for xpath in xpaths:
-            elements = driver.find_elements(By.XPATH, xpath)
-            if elements:
-                lottery_element = elements[0]
-                print(f"找到彩种元素: {lottery_name}")
-                break
-        
-        if lottery_element:
-            # 获取父元素
-            parent = lottery_element.find_element(By.XPATH, "./ancestor::div[contains(., '开奖历史')]")
-            
-            # 获取期数
-            period_elements = parent.find_elements(By.XPATH, ".//div[contains(text(), '第') and contains(text(), '期')]")
-            if period_elements:
-                period = period_elements[0].text.split('第')[1].split('开奖')[0].strip()
-                print(f"找到期数: {period}")
+        for section in sections:
+            # 检查这个区域是否包含当前彩种
+            if lottery_name in section.text:
+                print(f"找到 {lottery_name} 区域")
                 
-                # 获取所有数字和生肖
-                result_elements = parent.find_elements(By.XPATH, ".//div")
+                # 获取期数
+                period_text = section.find_element(By.XPATH, ".//div[contains(text(), '第') and contains(text(), '期')]").text
+                period = period_text.split('第')[1].split('开奖')[0].strip()
+                print(f"期数: {period}")
+                
+                # 获取开奖结果
+                result_pairs = []
                 numbers = []
                 zodiacs = []
                 
-                for elem in result_elements:
+                # 获取所有数字和生肖元素
+                elements = section.find_elements(By.XPATH, ".//div[not(contains(text(), '第')) and not(contains(text(), '开奖')) and not(contains(text(), '历史'))]")
+                
+                for elem in elements:
                     text = elem.text.strip()
                     if text.isdigit():
                         numbers.append(text)
                     elif any(zodiac in text for zodiac in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']):
                         zodiacs.append(text)
                 
-                if numbers and zodiacs:
+                # 配对数字和生肖
+                for i in range(min(len(numbers), len(zodiacs))):
+                    result_pairs.append(f"{numbers[i]}{zodiacs[i]}")
+                
+                if result_pairs:
                     result = (
                         f"{lottery_name}  第 {period} 开奖结果\n"
-                        f"{' '.join([f'{num}{zodiac}' for num, zodiac in zip(numbers, zodiacs)])}\n"
+                        f"{' '.join(result_pairs)}\n"
                     )
                     print(f"找到完整结果:\n{result}")
                     return result
-                else:
-                    print(f"未找到完整的号码和生肖: numbers={numbers}, zodiacs={zodiacs}")
-            else:
-                print("未找到期数元素")
-        else:
-            print(f"未找到彩种元素: {lottery_name}")
+                
+        print(f"未找到 {lottery_name} 的完整开奖信息")
+        return None
             
     except Exception as e:
         print(f"提取 {lottery_name} 信息时出错: {str(e)}")
-    return None
+        return None
 
 def get_lottery_results(driver):
     """获取所有彩种开奖结果"""
@@ -107,19 +89,6 @@ def get_lottery_results(driver):
         driver.execute_script("document.body.style.display = 'block';")
         print("页面内容已显示")
         time.sleep(3)
-        
-        # 打印页面标题和URL
-        print(f"页面标题: {driver.title}")
-        print(f"当前URL: {driver.current_url}")
-        
-        # 保存页面源码用于调试
-        with open('debug.html', 'w', encoding='utf-8') as f:
-            f.write(driver.page_source)
-        print("已保存页面源码")
-        
-        # 打印页面文本内容
-        print("\n页面文本内容:")
-        print(driver.find_element(By.TAG_NAME, 'body').text)
         
         # 获取各彩种结果
         for code, name in lottery_mapping.items():
