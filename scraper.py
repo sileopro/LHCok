@@ -21,17 +21,42 @@ def setup_driver():
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     return driver
 
+def select_background(driver):
+    """选择背景色"""
+    try:
+        # 等待页面加载
+        time.sleep(5)
+        
+        # 点击"默认"背景色
+        default_bg = driver.find_element(By.XPATH, "//text()[contains(., '默认')]/parent::*")
+        if default_bg:
+            driver.execute_script("arguments[0].click();", default_bg)
+            print("已选择默认背景色")
+            time.sleep(3)
+            return True
+    except Exception as e:
+        print(f"选择背景色失败: {str(e)}")
+    return False
+
 def extract_lottery_info(driver, lottery_name):
     """提取指定彩种的开奖信息"""
     try:
         # 查找包含开奖结果的文本
-        elements = driver.find_elements(By.XPATH, "//div[contains(text(), '开奖结果')]")
+        script = f"""
+            var results = [];
+            var elements = document.getElementsByTagName('*');
+            for (var elem of elements) {{
+                var text = elem.textContent || '';
+                if (text.includes('{lottery_name}') && text.includes('第') && text.includes('期')) {{
+                    results.push(text);
+                }}
+            }}
+            return results;
+        """
         
-        for element in elements:
-            # 获取父元素的文本内容
-            parent = element.find_element(By.XPATH, "./..")
-            text = parent.text
-            
+        texts = driver.execute_script(script)
+        
+        for text in texts:
             # 检查是否包含期数和生肖
             if ('第' in text and '期' in text and 
                 any(zodiac in text for zodiac in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'])):
@@ -42,11 +67,8 @@ def extract_lottery_info(driver, lottery_name):
                     period = period_match.group(1)
                     
                     # 提取数字和生肖
-                    result_text = text.split('开奖结果')[1].strip()
                     pairs = []
-                    
-                    # 使用正则表达式匹配数字和生肖
-                    matches = re.finditer(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', result_text)
+                    matches = re.finditer(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
                     for match in matches:
                         num, zodiac = match.groups()
                         pairs.append(f"{num}{zodiac}")
@@ -79,8 +101,12 @@ def get_lottery_results(driver):
         # 访问页面
         driver.get('https://akjw09d.48489aaa.com:8800/')
         print("页面加载完成")
-        time.sleep(5)
         
+        # 选择背景色
+        if not select_background(driver):
+            print("选择背景色失败")
+            return
+            
         # 执行JavaScript来显示内容
         driver.execute_script("""
             document.body.style.display = 'block';
