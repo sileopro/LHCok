@@ -16,74 +16,71 @@ def get_lottery_data():
     
     try:
         session = requests.Session()
-        url = 'https://akjw09d.48489aaa.com:8800'
+        base_url = 'https://akjw09d.48489aaa.com:8800'
         
-        # 第一次请求获取页面
-        response = session.get(url, headers=headers, verify=False)
-        response.encoding = 'utf-8'
+        # 尝试不同的URL路径
+        urls_to_try = [
+            f'{base_url}',
+            f'{base_url}/index',
+            f'{base_url}/home',
+            f'{base_url}/lottery',
+            f'{base_url}/kj/index.html',
+            f'{base_url}/lottery/index.html'
+        ]
         
-        # 直接从主页获取内容，不再请求背景色和lottery/list
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 保存原始HTML用于调试
-        with open('debug.html', 'w', encoding='utf-8') as f:
-            f.write(response.text)
-            
-        print(f"页面内容预览:\n{response.text[:1000]}")
-        
-        # 移除style和script标签
-        for tag in soup.find_all(['style', 'script']):
-            tag.decompose()
-            
-        # 获取页面文本
-        text = soup.get_text()
-        print(f"页面文本预览:\n{text[:1000]}")
-        
-        # 查找所有开奖结果区域
         results = {}
-        # 尝试查找包含开奖结果的div元素
-        for section in soup.find_all(['div', 'section'], class_=lambda x: x and ('lottery' in x or 'result' in x)):
-            text = section.get_text(strip=True)
-            if any(name in text for name in lottery_mapping.values()):
-                # 查找期数
-                period_match = re.search(r'第(\d+)期', text)
-                if period_match:
-                    period = period_match.group(1)
+        for url in urls_to_try:
+            try:
+                print(f"\n尝试访问URL: {url}")
+                response = session.get(url, headers=headers, verify=False, timeout=10)
+                response.encoding = 'utf-8'
+                
+                print(f"响应状态码: {response.status_code}")
+                print(f"响应头: {dict(response.headers)}")
+                
+                # 检查是否需要重定向
+                if response.history:
+                    print(f"发生重定向: {response.history}")
+                    print(f"最终URL: {response.url}")
+                
+                # 保存每个URL的响应用于调试
+                with open(f'debug_{url.split("/")[-1]}.html', 'w', encoding='utf-8') as f:
+                    f.write(response.text)
+                
+                # 如果页面包含关键字，进行解析
+                if '六合彩' in response.text:
+                    print(f"在 {url} 找到可能的结果")
+                    soup = BeautifulSoup(response.text, 'html.parser')
                     
-                    # 查找数字和生肖
-                    pairs = re.findall(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
+                    # 查找所有可能包含开奖结果的元素
+                    for section in soup.find_all(['div', 'section', 'article']):
+                        text = section.get_text(strip=True)
+                        
+                        # 调试输出
+                        if '期' in text or '六合彩' in text:
+                            print(f"\n找到相关文本: {text[:200]}")
+                        
+                        if any(name in text for name in lottery_mapping.values()):
+                            period_match = re.search(r'第(\d+)期', text)
+                            if period_match:
+                                period = period_match.group(1)
+                                pairs = re.findall(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
+                                
+                                if pairs:
+                                    for code, name in lottery_mapping.items():
+                                        if name in text:
+                                            result_lines = [f"{name}  第 {period} 开奖结果"]
+                                            for num, zodiac in pairs:
+                                                result_lines.append(f"{num}{zodiac}")
+                                            results[code] = "\n".join(result_lines)
+                                            print(f"成功解析 {name} 开奖结果")
+                
+                if results:  # 如果找到了结果，就不再继续尝试其他URL
+                    break
                     
-                    if pairs:
-                        # 确定彩种名称
-                        for code, name in lottery_mapping.items():
-                            if name in text:
-                                result_lines = [f"{name}  第 {period} 开奖结果"]
-                                for num, zodiac in pairs:
-                                    result_lines.append(f"{num}{zodiac}")
-                                results[code] = "\n".join(result_lines)
-                                print(f"找到 {name} 开奖结果")
-                                break
-        
-        # 如果没有找到结果，尝试其他URL
-        if not results:
-            alternate_urls = [
-                f'{url}/index.html',
-                f'{url}/lottery.html',
-                f'{url}/results.html'
-            ]
-            
-            for alt_url in alternate_urls:
-                try:
-                    response = session.get(alt_url, headers=headers, verify=False)
-                    response.encoding = 'utf-8'
-                    if '六合彩' in response.text:
-                        print(f"在 {alt_url} 找到可能的结果")
-                        soup = BeautifulSoup(response.text, 'html.parser')
-                        # 重复上面的解析逻辑
-                        # ... 
-                except Exception as e:
-                    print(f"尝试访问 {alt_url} 失败: {str(e)}")
-                    continue
+            except requests.exceptions.RequestException as e:
+                print(f"访问 {url} 时出错: {str(e)}")
+                continue
         
         return results
         
@@ -101,23 +98,36 @@ def main():
         'tc': '台湾六合彩'
     }
     
-    try:
-        # 获取所有彩种结果
-        results = get_lottery_data()
-        
-        # 保存结果，每次覆盖写入最新结果
-        for code, result in results.items():
-            with open(f'{code}.txt', 'w', encoding='utf-8') as f:
-                f.write(result)
-            print(f"已保存 {lottery_mapping[code]} 最新开奖结果到 {code}.txt")
+    # 设置最大重试次数
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            print(f"\n第 {retry_count + 1} 次尝试获取数据")
+            results = get_lottery_data()
             
-        # 检查是否有未获取到的彩种
-        for code, name in lottery_mapping.items():
-            if code not in results:
-                print(f"未找到 {name} 开奖结果")
+            if results:
+                # 保存结果
+                for code, result in results.items():
+                    with open(f'{code}.txt', 'w', encoding='utf-8') as f:
+                        f.write(result)
+                    print(f"已保存 {lottery_mapping[code]} 最新开奖结果到 {code}.txt")
+                break  # 如果成功获取数据，跳出重试循环
+            else:
+                print("未找到任何开奖结果，准备重试...")
+                retry_count += 1
+                time.sleep(5)  # 等待5秒后重试
                 
-    except Exception as e:
-        print(f"运行出错: {str(e)}")
+        except Exception as e:
+            print(f"运行出错: {str(e)}")
+            retry_count += 1
+            time.sleep(5)
+    
+    # 检查未获取到的彩种
+    for code, name in lottery_mapping.items():
+        if code not in results:
+            print(f"未找到 {name} 开奖结果")
 
 if __name__ == '__main__':
     # 禁用SSL警告
