@@ -1,6 +1,7 @@
 import requests
 import re
 import time
+import json
 from datetime import datetime
 from bs4 import BeautifulSoup
 
@@ -11,58 +12,93 @@ def get_lottery_data():
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         'Referer': 'https://akjw09d.48489aaa.com:8800/',
+        'X-Requested-With': 'XMLHttpRequest'
     }
     
     try:
         session = requests.Session()
-        url = 'https://akjw09d.48489aaa.com:8800'
+        base_url = 'https://akjw09d.48489aaa.com:8800'
         
-        # 获取页面
-        response = session.get(url, headers=headers, verify=False, timeout=10)
-        response.encoding = 'utf-8'
+        # 第一步：获取初始页面和cookie
+        response = session.get(base_url, headers=headers, verify=False, timeout=10)
+        print("初始页面状态码:", response.status_code)
         
-        # 保存原始HTML用于调试
-        with open('debug.html', 'w', encoding='utf-8') as f:
-            f.write(response.text)
-            
-        print(f"页面内容预览:\n{response.text[:1000]}")
+        # 第二步：设置必要的cookie
+        session.cookies.update({
+            'bcolor': '#E9FAFF',
+            'selectedBg': 'default'
+        })
         
-        # 使用BeautifulSoup解析HTML
-        soup = BeautifulSoup(response.text, 'html.parser')
+        # 第三步：尝试获取实际数据的API端点
+        api_endpoints = [
+            f'{base_url}/api/lottery/latest',
+            f'{base_url}/api/lottery/current',
+            f'{base_url}/lottery/data',
+            f'{base_url}/ajax/getLotteryResults'
+        ]
         
         results = {}
-        # 查找所有可能的开奖结果区域
-        sections = soup.find_all('div', recursive=True)
+        for endpoint in api_endpoints:
+            try:
+                print(f"\n尝试访问API: {endpoint}")
+                headers['Content-Type'] = 'application/json'
+                response = session.get(endpoint, headers=headers, verify=False, timeout=10)
+                print(f"API响应状态码: {response.status_code}")
+                print(f"API响应头: {dict(response.headers)}")
+                
+                if response.status_code == 200:
+                    try:
+                        data = response.json()
+                        print(f"API返回数据: {json.dumps(data, ensure_ascii=False)[:200]}")
+                    except:
+                        print("非JSON响应")
+                        
+                    # 尝试解析返回的内容
+                    if '六合彩' in response.text:
+                        soup = BeautifulSoup(response.text, 'html.parser')
+                        for section in soup.find_all(['div', 'section']):
+                            text = section.get_text()
+                            for code, name in lottery_mapping.items():
+                                if name in text:
+                                    period_match = re.search(r'第\s*(\d+)\s*期', text)
+                                    if period_match:
+                                        period = period_match.group(1)
+                                        pairs = re.findall(r'(\d+)\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
+                                        if len(pairs) >= 7:
+                                            result_lines = [f"{name}  第 {period} 开奖结果"]
+                                            for num, zodiac in pairs[:7]:
+                                                result_lines.append(f"{num.zfill(2)}{zodiac}")
+                                            results[code] = "\n".join(result_lines)
+                                            print(f"找到 {name} 开奖结果：\n{results[code]}")
+            except Exception as e:
+                print(f"访问 {endpoint} 出错: {str(e)}")
+                continue
         
-        for section in sections:
-            # 查找包含彩种名称的文本
-            for code, name in lottery_mapping.items():
-                if name in section.get_text():
-                    # 在同一区域内查找期号
-                    period_text = section.find(string=re.compile(r'第.*期'))
-                    if period_text:
-                        period_match = re.search(r'第\s*(\d+)\s*期', period_text)
+        # 如果API方式未获取到数据，尝试直接解析HTML
+        if not results:
+            print("\n尝试解析主页HTML...")
+            response = session.get(f'{base_url}/index.html', headers=headers, verify=False)
+            response.encoding = 'utf-8'
+            
+            # 保存HTML用于调试
+            with open('debug.html', 'w', encoding='utf-8') as f:
+                f.write(response.text)
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for section in soup.find_all(['div', 'section']):
+                text = section.get_text()
+                for code, name in lottery_mapping.items():
+                    if name in text:
+                        period_match = re.search(r'第\s*(\d+)\s*期', text)
                         if period_match:
                             period = period_match.group(1)
-                            
-                            # 查找所有数字和生肖
-                            text = section.get_text()
-                            pairs = []
-                            
-                            # 使用正则表达式查找所有数字和生肖对
-                            all_matches = re.finditer(r'(\d+)\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
-                            for match in all_matches:
-                                num, zodiac = match.groups()
-                                pairs.append((num, zodiac))
-                            
-                            if len(pairs) >= 7:  # 确保找到足够的数字和生肖对
+                            pairs = re.findall(r'(\d+)\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
+                            if len(pairs) >= 7:
                                 result_lines = [f"{name}  第 {period} 开奖结果"]
-                                for num, zodiac in pairs[:7]:  # 只取前7个
+                                for num, zodiac in pairs[:7]:
                                     result_lines.append(f"{num.zfill(2)}{zodiac}")
                                 results[code] = "\n".join(result_lines)
                                 print(f"找到 {name} 开奖结果：\n{results[code]}")
-                            
-                            break
         
         return results
         
