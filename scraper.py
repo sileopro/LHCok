@@ -39,19 +39,21 @@ def select_background(driver):
                 view: window
             });
             
-            // 查找并点击"默认"文本
-            var elements = document.getElementsByTagName('*');
-            for (var elem of elements) {
-                if (elem.textContent.trim() === '默认') {
-                    elem.dispatchEvent(clickEvent);
-                    return true;
-                }
-            }
+            // 查找包含背景色的文本节点
+            var textNodes = document.evaluate(
+                "//text()[contains(., '背景') and contains(., '默认')]",
+                document,
+                null,
+                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                null
+            );
             
-            // 如果找不到"默认"，尝试点击"白雪"
-            for (var elem of elements) {
-                if (elem.textContent.trim() === '白雪') {
-                    elem.dispatchEvent(clickEvent);
+            // 如果找到节点，点击其父元素
+            if (textNodes.snapshotLength > 0) {
+                var node = textNodes.snapshotItem(0);
+                var parent = node.parentElement;
+                if (parent) {
+                    parent.dispatchEvent(clickEvent);
                     return true;
                 }
             }
@@ -78,13 +80,19 @@ def extract_lottery_info(driver, lottery_name):
         # 查找包含开奖结果的文本
         script = f"""
             var results = [];
-            var elements = document.getElementsByTagName('*');
-            for (var elem of elements) {{
-                var text = elem.textContent || '';
-                if (text.includes('{lottery_name}') && text.includes('第') && text.includes('期')) {{
-                    results.push(text);
-                }}
+            var textNodes = document.evaluate(
+                "//text()[contains(., '{lottery_name}') and contains(., '第') and contains(., '期')]",
+                document,
+                null,
+                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                null
+            );
+            
+            for (var i = 0; i < textNodes.snapshotLength; i++) {{
+                var node = textNodes.snapshotItem(i);
+                results.push(node.textContent);
             }}
+            
             return results;
         """
         
@@ -144,10 +152,6 @@ def get_lottery_results(driver):
             
         # 等待内容加载
         time.sleep(5)
-        
-        # 打印页面源码用于调试
-        print("页面内容:")
-        print(driver.page_source[:1000])
         
         # 获取各彩种结果
         for code, name in lottery_mapping.items():
