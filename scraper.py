@@ -3,9 +3,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import Select
 import time
 from datetime import datetime
+import re
 
 def setup_driver():
     """设置Chrome浏览器"""
@@ -21,87 +21,40 @@ def setup_driver():
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     return driver
 
-def select_background(driver):
-    """选择背景色"""
-    try:
-        # 等待页面加载
-        time.sleep(5)
-        
-        # 执行JavaScript来选择背景色
-        driver.execute_script("""
-            // 移除body的display:none
-            document.body.style.display = 'block';
-            
-            // 创建并触发点击事件
-            var clickEvent = new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                view: window
-            });
-            
-            // 选择默认背景色
-            var options = document.querySelectorAll('option');
-            for (var option of options) {
-                if (option.textContent.includes('默认')) {
-                    option.selected = true;
-                    option.dispatchEvent(clickEvent);
-                    break;
-                }
-            }
-        """)
-        
-        time.sleep(3)  # 等待背景色生效
-        return True
-    except Exception as e:
-        print(f"选择背景色失败: {str(e)}")
-        return False
-
 def extract_lottery_info(driver, lottery_name):
     """提取指定彩种的开奖信息"""
     try:
-        # 查找开奖结果
-        script = f"""
-            var results = [];
-            var elements = document.getElementsByTagName('*');
-            for (var elem of elements) {{
-                if (elem.textContent.includes('{lottery_name}') && 
-                    elem.textContent.includes('第') && 
-                    elem.textContent.includes('期')) {{
-                    results.push({{
-                        text: elem.textContent,
-                        html: elem.innerHTML
-                    }});
-                }}
-            }}
-            return results;
-        """
+        # 查找包含开奖结果的文本
+        elements = driver.find_elements(By.XPATH, "//div[contains(text(), '开奖结果')]")
         
-        lottery_elements = driver.execute_script(script)
-        
-        if lottery_elements:
-            for element in lottery_elements:
-                text = element['text']
+        for element in elements:
+            # 获取父元素的文本内容
+            parent = element.find_element(By.XPATH, "./..")
+            text = parent.text
+            
+            # 检查是否包含期数和生肖
+            if ('第' in text and '期' in text and 
+                any(zodiac in text for zodiac in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'])):
                 
                 # 提取期数
-                if '第' in text and '期' in text:
-                    period = text.split('第')[1].split('期')[0].strip()
-                    print(f"找到期数: {period}")
+                period_match = re.search(r'第(\d+)期', text)
+                if period_match:
+                    period = period_match.group(1)
                     
                     # 提取数字和生肖
-                    numbers = []
-                    zodiacs = []
+                    result_text = text.split('开奖结果')[1].strip()
+                    pairs = []
                     
-                    # 分析文本内容
-                    parts = text.split()
-                    for i in range(0, len(parts)-1, 2):
-                        if parts[i].isdigit() and any(zodiac in parts[i+1] for zodiac in ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']):
-                            numbers.append(parts[i])
-                            zodiacs.append(parts[i+1])
+                    # 使用正则表达式匹配数字和生肖
+                    matches = re.finditer(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', result_text)
+                    for match in matches:
+                        num, zodiac = match.groups()
+                        pairs.append(f"{num}{zodiac}")
                     
-                    if numbers and zodiacs:
+                    if pairs:
                         result = (
                             f"{lottery_name}  第 {period} 开奖结果\n"
-                            f"{' '.join([f'{num}{zodiac}' for num, zodiac in zip(numbers, zodiacs)])}\n"
+                            f"{' '.join(pairs)}\n"
                         )
                         print(f"找到完整结果:\n{result}")
                         return result
@@ -126,11 +79,15 @@ def get_lottery_results(driver):
         # 访问页面
         driver.get('https://akjw09d.48489aaa.com:8800/')
         print("页面加载完成")
+        time.sleep(5)
         
-        # 选择背景色
-        if not select_background(driver):
-            print("选择背景色失败")
-            return
+        # 执行JavaScript来显示内容
+        driver.execute_script("""
+            document.body.style.display = 'block';
+            // 移除所有style标签
+            document.querySelectorAll('style').forEach(s => s.remove());
+        """)
+        time.sleep(3)
         
         # 获取各彩种结果
         for code, name in lottery_mapping.items():
