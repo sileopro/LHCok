@@ -10,22 +10,32 @@ def get_lottery_data(lottery_type):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Cookie': 'chaofancookie=1'  # 添加cookie来跳过背景色选择
+        'Cookie': 'chaofancookie=1'
+    }
+    
+    # 彩种URL映射
+    urls = {
+        'lam': '/lottery/macau',  # 老澳门
+        'xam': '/lottery/newmacau',  # 新澳门
+        'hk': '/lottery/hongkong',  # 港彩
+        'tc': '/lottery/taiwan'  # 台湾
     }
     
     try:
-        # 获取页面内容
         session = requests.Session()
+        base_url = 'https://akjw09d.48489aaa.com:8800'
         
-        # 先访问主页设置cookie
-        session.get('https://akjw09d.48489aaa.com:8800/', headers=headers, verify=False)
+        # 先访问主页
+        session.get(base_url, headers=headers, verify=False)
         
-        # 再次访问获取内容
-        response = session.get('https://akjw09d.48489aaa.com:8800/', headers=headers, verify=False)
+        # 访问具体彩种页面
+        url = f"{base_url}{urls[lottery_type]}"
+        print(f"访问URL: {url}")
+        response = session.get(url, headers=headers, verify=False)
         response.encoding = 'utf-8'
         
         # 保存原始HTML用于调试
-        with open('debug.html', 'w', encoding='utf-8') as f:
+        with open(f'debug_{lottery_type}.html', 'w', encoding='utf-8') as f:
             f.write(response.text)
             
         # 使用BeautifulSoup解析HTML
@@ -37,10 +47,10 @@ def get_lottery_data(lottery_type):
             
         # 获取页面文本
         text = soup.get_text()
-        print(f"页面文本预览:\n{text[:1000]}")
+        print(f"页面文本预览:\n{text[:500]}")
         
         # 使用正则表达式提取开奖信息
-        pattern = f'{lottery_mapping[lottery_type]}.*?第(\\d+)期.*?开奖结果.*?((?:\\d+[鼠牛虎兔龙蛇马羊猴鸡狗猪]\\s*)+)'
+        pattern = r'第(\d+)期.*?开奖结果.*?((?:\d+[鼠牛虎兔龙蛇马羊猴鸡狗猪]\s*)+)'
         match = re.search(pattern, text, re.DOTALL)
         
         if match:
