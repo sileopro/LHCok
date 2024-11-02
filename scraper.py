@@ -22,25 +22,35 @@ def setup_driver():
 def extract_lottery_info(driver, lottery_name):
     """提取特定彩票的开奖信息"""
     try:
+        # 等待页面加载
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '开奖结果')]"))
+        )
+        
         # 找到包含彩票名称的区域
-        section = driver.find_element(By.XPATH, f"//div[contains(text(), '{lottery_name}')]/ancestor::div[contains(., '开奖结果')][1]")
+        sections = driver.find_elements(By.XPATH, "//div[contains(@class, 'lottery-item') or contains(@class, 'content')]")
         
-        # 获取期号
-        issue_text = section.find_element(By.XPATH, ".//div[starts-with(text(), '第')]").text
-        issue_number = re.search(r'第\s*(\d+)', issue_text).group(1)
-        
-        # 获取所有数字和生肖对
-        numbers_text = section.find_element(By.XPATH, ".//div[contains(@class, 'lottery-numbers') or contains(@style, 'display: flex')]").text
-        number_pairs = re.findall(r'(\d+)\s*([猪鼠牛虎兔龙蛇马羊猴鸡狗])', numbers_text)
-        
-        if number_pairs:
-            formatted_numbers = []
-            for num, zodiac in number_pairs:
-                formatted_numbers.append(f"{num.zfill(2)}{zodiac}")
-            
-            result = f"{lottery_name}  第 {issue_number} 开奖结果\n" + "\n".join(formatted_numbers)
-            return result
-            
+        for section in sections:
+            if lottery_name in section.text:
+                # 获取期号
+                issue_text = section.find_element(By.XPATH, ".//div[contains(text(), '第') and contains(text(), '开奖结果')]").text
+                issue_number = re.search(r'第\s*(\d+)', issue_text).group(1)
+                
+                # 获取所有数字和生肖
+                numbers = []
+                number_elements = section.find_elements(By.XPATH, ".//div[text()='+']/preceding-sibling::div")
+                
+                for elem in number_elements:
+                    num_text = elem.text.strip()
+                    if re.match(r'\d+', num_text):
+                        number = re.search(r'(\d+)', num_text).group(1)
+                        zodiac = re.search(r'[猪鼠牛虎兔龙蛇马羊猴鸡狗]', elem.text).group(0)
+                        numbers.append(f"{number.zfill(2)}{zodiac}")
+                
+                if numbers:
+                    result = f"{lottery_name}  第 {issue_number} 开奖结果\n" + "\n".join(numbers)
+                    return result
+                
     except Exception as e:
         print(f"提取{lottery_name}信息时出错: {str(e)}")
     return None
@@ -58,10 +68,6 @@ def get_lottery_results(driver):
         # 访问页面
         driver.get('https://akjw09d.48489aaa.com:8800/')
         time.sleep(5)
-        
-        # 打印页面源码以便调试
-        print("页面源码:")
-        print(driver.page_source[:500])  # 只打印前500个字符
         
         # 对每种彩票类型进行处理
         for lottery_id, lottery_name in lottery_types.items():
