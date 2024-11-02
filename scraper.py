@@ -1,132 +1,111 @@
-import requests
-import re
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 import time
 from datetime import datetime
-from bs4 import BeautifulSoup
 
-def get_lottery_data():
-    """获取彩票数据"""
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Referer': 'https://akjw09d.48489aaa.com:8800/',
-        'X-Requested-With': 'XMLHttpRequest'
-    }
+def setup_driver():
+    """设置Chrome浏览器"""
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     
+    # 禁用JavaScript检测
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    driver = webdriver.Chrome(options=chrome_options)
+    
+    # 修改 navigator.webdriver
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    
+    return driver
+
+def get_lottery_result(driver, lottery_type):
     try:
-        session = requests.Session()
-        url = 'https://akjw09d.48489aaa.com:8800'
+        print(f"\n正在获取 {lottery_type} 的开奖结果...")
         
-        # 第一次请求获取页面
-        response = session.get(url, headers=headers, verify=False)
-        response.encoding = 'utf-8'
+        # 访问页面
+        driver.get('https://akjw09d.48489aaa.com:8800/')
         
-        # 模拟点击背景色
-        background_data = {
-            'bcolor': '#E9FAFF',  # 默认背景色
-            'text': '默认',
-            'type': 'background'
-        }
+        # 等待页面加载
+        time.sleep(5)
         
-        # 发送背景色选择请求
-        bg_url = f'{url}/ajax/setBackground'
-        headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        response = session.post(bg_url, data=background_data, headers=headers, verify=False)
-        print(f"背景色设置响应: {response.text[:200]}")
+        # 执行JavaScript来显示内容
+        driver.execute_script("document.body.style.display = 'block';")
         
-        # 设置cookie
-        cookies = {
-            'chaofancookie': '1',
-            'bcolor': '#E9FAFF',
-            'selectedBg': 'default',
-            'JSESSIONID': session.cookies.get('JSESSIONID', '')
-        }
-        session.cookies.update(cookies)
+        # 再等待一下确保内容加载
+        time.sleep(3)
         
-        # 获取内容
-        headers['Accept'] = '*/*'
-        response = session.get(f'{url}/lottery/list', headers=headers, cookies=cookies, verify=False)
-        response.encoding = 'utf-8'
+        # 保存页面源码和截图用于调试
+        driver.save_screenshot(f'screenshot_{lottery_type}.png')
+        with open(f'debug_{lottery_type}.html', 'w', encoding='utf-8') as f:
+            f.write(driver.page_source)
         
-        # 保存原始HTML用于调试
-        with open('debug.html', 'w', encoding='utf-8') as f:
-            f.write(response.text)
+        # 打印页面标题和URL
+        print(f"页面标题: {driver.title}")
+        print(f"当前URL: {driver.current_url}")
+        
+        # 打印页面文本内容
+        print("页面内容:")
+        print(driver.find_element(By.TAG_NAME, 'body').text)
+        
+        # 查找开奖信息
+        try:
+            # 等待内容加载
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
             
-        print(f"页面内容预览:\n{response.text[:1000]}")
-        
-        # 使用BeautifulSoup解析HTML
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 移除style和script标签
-        for tag in soup.find_all(['style', 'script']):
-            tag.decompose()
+            # 获取所有文本内容
+            page_text = driver.execute_script("return document.body.innerText")
+            print("\n页面文本内容:")
+            print(page_text)
             
-        # 获取页面文本
-        text = soup.get_text()
-        print(f"页面文本预览:\n{text[:1000]}")
-        
-        # 查找所有开奖结果区域
-        results = {}
-        for section in soup.find_all('div', recursive=True):
-            text = section.get_text(strip=True)
-            if any(name in text for name in lottery_mapping.values()):
-                # 查找期数
-                period_match = re.search(r'第(\d+)期', text)
-                if period_match:
-                    period = period_match.group(1)
+            # 查找包含期数的文本
+            elements = driver.find_elements(By.XPATH, "//*[contains(text(), '期')]")
+            if elements:
+                print("\n找到期数元素:")
+                for elem in elements:
+                    print(elem.text)
+            
+            # 查找数字
+            number_elements = driver.find_elements(By.XPATH, "//div[contains(text(), '12') or contains(text(), '05') or contains(text(), '39')]")
+            if number_elements:
+                print("\n找到数字元素:")
+                for elem in number_elements:
+                    print(elem.text)
                     
-                    # 查找数字和生肖
-                    pairs = re.findall(r'(\d+)([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
-                    
-                    if pairs:
-                        # 确定彩种名称
-                        for code, name in lottery_mapping.items():
-                            if name in text:
-                                result = (
-                                    f"{name}  第 {period} 开奖结果\n"
-                                    f"{' '.join([f'{num}{zodiac}' for num, zodiac in pairs])}\n"
-                                )
-                                results[code] = result
-                                print(f"找到 {name} 开奖结果")
-                                break
-        
-        return results
-        
+        except Exception as e:
+            print(f"解析元素时出错: {str(e)}")
+            
     except Exception as e:
-        print(f"获取数据失败: {str(e)}")
-        return {}
+        print(f"访问页面出错: {str(e)}")
 
 def main():
-    """主函数"""
-    global lottery_mapping
-    lottery_mapping = {
-        'lam': '老澳门六合彩',
-        'xam': '新澳门六合彩',
-        'hk': '六合彩',
-        'tc': '台湾六合彩'
-    }
+    lottery_types = ['lam', 'xam', 'hk']
     
     try:
-        # 获取所有彩种结果
-        results = get_lottery_data()
+        driver = setup_driver()
+        print("浏览器初始化成功")
         
-        # 保存结果
-        for code, result in results.items():
-            with open(f'{code}.txt', 'w', encoding='utf-8') as f:
-                f.write(result)
-            print(f"已保存 {lottery_mapping[code]} 开奖结果到 {code}.txt")
+        for lottery_type in lottery_types:
+            get_lottery_result(driver, lottery_type)
+            time.sleep(3)
             
-        # 检查是否有未获取到的彩种
-        for code, name in lottery_mapping.items():
-            if code not in results:
-                print(f"未找到 {name} 开奖结果")
-                
     except Exception as e:
         print(f"运行出错: {str(e)}")
+    finally:
+        if 'driver' in locals():
+            driver.quit()
+            print("浏览器已关闭")
 
 if __name__ == '__main__':
-    # 禁用SSL警告
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     main()
