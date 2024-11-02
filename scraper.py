@@ -21,48 +21,48 @@ def get_lottery_data():
         response = session.get(url, headers=headers, verify=False, timeout=10)
         response.encoding = 'utf-8'
         
+        # 保存原始HTML用于调试
+        with open('debug.html', 'w', encoding='utf-8') as f:
+            f.write(response.text)
+            
+        print(f"页面内容预览:\n{response.text[:1000]}")
+        
         # 使用BeautifulSoup解析HTML
         soup = BeautifulSoup(response.text, 'html.parser')
         
         results = {}
-        # 遍历所有开奖结果区域
-        for section in soup.find_all('div', class_=lambda x: x and ('lottery' in str(x).lower() or '六合彩' in str(x))):
-            # 获取标题文本
-            title = section.find(string=lambda text: text and any(name in str(text) for name in lottery_mapping.values()))
-            if not title:
-                continue
-                
-            # 获取期号
-            period_div = section.find(string=lambda text: text and '第' in str(text) and '期' in str(text))
-            if not period_div:
-                continue
-                
-            period_match = re.search(r'第\s*(\d+)\s*期', str(period_div))
-            if not period_match:
-                continue
-                
-            period = period_match.group(1)
-            
-            # 查找数字和生肖
-            number_divs = section.find_all(['div', 'span'], string=re.compile(r'\d+'))
-            zodiac_divs = section.find_all(['div', 'span'], string=re.compile(r'[鼠牛虎兔龙蛇马羊猴鸡狗猪]'))
-            
-            pairs = []
-            for num_div, zodiac_div in zip(number_divs, zodiac_divs):
-                num = re.search(r'\d+', num_div.get_text()).group()
-                zodiac = re.search(r'[鼠牛虎兔龙蛇马羊猴鸡狗猪]', zodiac_div.get_text()).group()
-                pairs.append((num, zodiac))
-            
-            if pairs:
-                # 确定彩种并保存结果
-                for code, name in lottery_mapping.items():
-                    if name in str(title):
-                        result_lines = [f"{name}  第 {period} 开奖结果"]
-                        for num, zodiac in pairs:
-                            result_lines.append(f"{num.zfill(2)}{zodiac}")
-                        results[code] = "\n".join(result_lines)
-                        print(f"找到 {name} 开奖结果")
-                        break
+        # 查找所有可能的开奖结果区域
+        sections = soup.find_all('div', recursive=True)
+        
+        for section in sections:
+            # 查找包含彩种名称的文本
+            for code, name in lottery_mapping.items():
+                if name in section.get_text():
+                    # 在同一区域内查找期号
+                    period_text = section.find(string=re.compile(r'第.*期'))
+                    if period_text:
+                        period_match = re.search(r'第\s*(\d+)\s*期', period_text)
+                        if period_match:
+                            period = period_match.group(1)
+                            
+                            # 查找所有数字和生肖
+                            text = section.get_text()
+                            pairs = []
+                            
+                            # 使用正则表达式查找所有数字和生肖对
+                            all_matches = re.finditer(r'(\d+)\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])', text)
+                            for match in all_matches:
+                                num, zodiac = match.groups()
+                                pairs.append((num, zodiac))
+                            
+                            if len(pairs) >= 7:  # 确保找到足够的数字和生肖对
+                                result_lines = [f"{name}  第 {period} 开奖结果"]
+                                for num, zodiac in pairs[:7]:  # 只取前7个
+                                    result_lines.append(f"{num.zfill(2)}{zodiac}")
+                                results[code] = "\n".join(result_lines)
+                                print(f"找到 {name} 开奖结果：\n{results[code]}")
+                            
+                            break
         
         return results
         
