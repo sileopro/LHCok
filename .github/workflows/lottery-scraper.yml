@@ -1,9 +1,9 @@
 name: 彩票开奖结果抓取
 on:
   schedule:
-    - cron: '*/1 9 * * *'    # UTC 09:00-09:59
-    - cron: '*/1 10 * * *'   # UTC 10:00-10:59
-    - cron: '*/1 11 * * *'   # UTC 11:00-11:59
+    # 北京时间 21:30-22:30 每分钟运行一次 (UTC 13:30-14:30)
+    - cron: '* 13 * * *'  # UTC 13:00-13:59
+    - cron: '0-30 14 * * *'  # UTC 14:00-14:30
   push:
     branches: [ main ]  # 当推送到main分支时也触发
   workflow_dispatch:  # 允许手动触发
@@ -60,11 +60,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add *.txt
-          # 添加时间戳到一个日志文件，确保每次都有变化
-          echo "Last run: $(date '+%Y-%m-%d %H:%M:%S')" > last_run.log
-          git add last_run.log
-          git commit -m "自动更新开奖结果 $(date '+%Y-%m-%d %H:%M:%S')"
-          git push
+          git diff --quiet && git diff --staged --quiet || (git commit -m "自动更新开奖结果 $(date '+%Y-%m-%d %H:%M:%S')" && git push)
         
       # 添加工作流清理步骤
       - name: 删除旧的工作流运行记录
