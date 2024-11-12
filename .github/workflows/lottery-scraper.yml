@@ -27,9 +27,6 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 设置时区
-        run: echo "Asia/Shanghai" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
-
       - name: 设置Python
         uses: actions/setup-python@v2
         with:
@@ -53,7 +50,7 @@ jobs:
           chromedriver --version
           python scraper.py
         env:
-          TZ: Asia/Shanghai
+          TZ: Asia/Shanghai  # 使用环境变量设置时区
 
       - name: 提交更新
         run: |
