@@ -1,17 +1,9 @@
 {
     "enableUpdate": true,
-    "currentVersion": "1.0.0",
-    "latestVersion": "1.0.1",
-    "promptInterval": 60000,
+    "currentVersion": "1.0.1",
+    "latestVersion": "1.0.2",
+    "promptInterval": 0,
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
     "forceUpdate": false,
-    "minVersion": "1.0.0",
-    "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
-    "retryConfig": {
-        "maxRetries": 3,
-        "retryInterval": 5000,
-        "showRetryPrompt": true
-    },
-    "networkErrorMessage": "网络连接失败，请检查网络后重试",
-    "retryButtonText": "重新下载"
+    "minVersion": "1.0.0"
 }
