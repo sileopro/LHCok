@@ -12,12 +12,31 @@
         "runtime": "python3.9",
         "maxLambdaSize": "15mb"
       }
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/cron",
       "dest": "/api/cron.js"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/cron.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "build": {
+    "env": {
+      "VERCEL_FORCE_NO_BUILD_CACHE": "1"
+    }
+  }
 } 
