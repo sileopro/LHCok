@@ -1,11 +1,14 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   if (req.method === 'POST' || req.method === 'GET') {
     try {
       console.log('开始执行爬虫脚本...');
       
-      const response = await fetch(`${req.headers.host}/api/run`);
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const baseUrl = `${protocol}://${req.headers.host}`;
+      
+      const response = await fetch(`${baseUrl}/api/run`);
       const data = await response.json();
       
       res.status(200).json(data);
