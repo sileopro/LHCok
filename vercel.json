@@ -4,12 +4,22 @@
     {
       "src": "api/cron.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "*.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/cron",
-      "dest": "api/cron.js"
+      "dest": "/api/cron.js"
     }
-  ]
+  ],
+  "functions": {
+    "api/cron.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
 } 
