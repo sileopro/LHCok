@@ -1,4 +1,4 @@
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
 
 export default async function handler(req, res) {
@@ -9,24 +9,30 @@ export default async function handler(req, res) {
       console.log('开始执行爬虫脚本...');
       const scriptPath = path.join(process.cwd(), 'scraper.py');
       
-      exec(`python ${scriptPath}`, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`执行错误: ${error}`);
-          return res.status(500).json({ 
-            error: error.message,
-            details: stderr
-          });
-        }
-        
-        console.log(`脚本输出: ${stdout}`);
-        
-        res.status(200).json({ 
-          status: 'success',
-          message: '爬虫执行完成',
-          output: stdout,
-          error: stderr || null
+      const python = spawn('python3', [scriptPath]);
+      
+      let dataString = '';
+      let errorString = '';
+
+      python.stdout.on('data', (data) => {
+        dataString += data.toString();
+        console.log(`输出: ${data}`);
+      });
+
+      python.stderr.on('data', (data) => {
+        errorString += data.toString();
+        console.error(`错误: ${data}`);
+      });
+
+      python.on('close', (code) => {
+        console.log(`子进程退出码：${code}`);
+        res.status(200).json({
+          status: code === 0 ? 'success' : 'error',
+          output: dataString,
+          error: errorString || null
         });
       });
+
     } catch (error) {
       console.error('执行过程中出错:', error);
       res.status(500).json({ 
