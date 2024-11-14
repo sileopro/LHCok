@@ -1,9 +1,8 @@
 services:
   - type: web
     name: lottery-scraper
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python scraper.py
+    env: docker
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1" 
