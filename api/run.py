@@ -3,6 +3,8 @@ import sys
 import os
 import json
 import requests
+import time
+import re
 try:
     from bs4 import BeautifulSoup
 except ImportError:
@@ -23,13 +25,31 @@ def scrape_lottery():
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-User': '?1',
+            'Sec-Fetch-Dest': 'document',
+            'sec-ch-ua': '"Google Chrome";v="119"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"'
         }
         
-        print(f"开始请求 URL: {url}")
-        response = requests.get(url, headers=headers, verify=False, timeout=30)
-        print(f"请求状态码: {response.status_code}")
-        response.raise_for_status()
+        session = requests.Session()
+        
+        # 首先访问一次获取cookies
+        print("第一次访问获取cookies...")
+        response = session.get(url, headers=headers, verify=False, timeout=30)
+        print(f"初始请求状态码: {response.status_code}")
+        
+        # 等待一下模拟真实浏览器行为
+        time.sleep(2)
+        
+        # 再次访问
+        print("第二次访问获取实际内容...")
+        response = session.get(url, headers=headers, verify=False, timeout=30)
+        print(f"第二次请求状态码: {response.status_code}")
         
         if not response.text:
             print("服务器返回空响应")
@@ -40,54 +60,49 @@ def scrape_lottery():
         
         # 检查页面内容
         print("页面标题:", soup.title.string if soup.title else "无标题")
+        print("页面内容预览:", response.text[:200])
         
-        results = {}
-        lottery_types = {
-            'lam': ('AMLHC2', '老澳门六合彩'),
-            'xam': ('AMLHC3', '新澳门六合彩'),
-            'hk': ('LHC', '六合彩'),
-            'tc': ('TWLHC', '台湾六合彩')
-        }
-        
-        for lottery_id, (code, name) in lottery_types.items():
-            try:
-                print(f"\n处理 {name} ({code})")
-                div = soup.find('div', id=code)
-                if not div:
-                    print(f"未找到 {code} 的div元素")
-                    continue
-                    
-                print(f"找到 {code} 的div元素")
-                issue = div.find('div', class_='preDrawIssue')
-                if not issue:
-                    print(f"未找到期号元素")
-                    continue
-                    
-                issue_text = issue.text.strip()
-                print(f"期号: {issue_text}")
-                
-                numbers = div.find_all('li', class_='ball')
-                if not numbers:
-                    print(f"未找到号码元素")
-                    continue
-                    
-                print(f"找到 {len(numbers)} 个号码")
-                result = f"第{issue_text[-3:]}期：" + " ".join([num.text.strip().zfill(2) for num in numbers[:-1]])
-                result += f" 特码 {numbers[-1].text.strip().zfill(2)}"
-                results[lottery_id] = result
-                print(f"结果: {result}")
-            except Exception as e:
-                print(f"处理 {name} 时出错: {str(e)}")
-                continue
-                
-        if not results:
-            print("未找到任何彩票结果")
-            # 打印页面结构以便调试
-            print("\n页面结构:")
-            print(soup.prettify()[:1000])  # 只打印前1000个字符
-            return {"error": "No lottery results found"}
+        # 检查是否有反爬虫JavaScript
+        if 'display:none' in response.text:
+            print("检测到反爬虫JavaScript，尝试绕过...")
+            # 直接从响应文本中提取数据
+            content = response.text
+            results = {}
             
-        return results
+            lottery_types = {
+                'lam': ('AMLHC2', '老澳门六合彩'),
+                'xam': ('AMLHC3', '新澳门六合彩'),
+                'hk': ('LHC', '六合彩'),
+                'tc': ('TWLHC', '台湾六合彩')
+            }
+            
+            for lottery_id, (code, name) in lottery_types.items():
+                try:
+                    # 使用正则表达式直接从HTML中提取数据
+                    pattern = f'id="{code}".*?class="preDrawIssue">(.*?)</div>.*?class="number-box">(.*?)</div>'
+                    match = re.search(pattern, content, re.DOTALL)
+                    if match:
+                        issue = match.group(1).strip()
+                        numbers_html = match.group(2)
+                        
+                        # 提取号码
+                        number_pattern = r'<span.*?>(.*?)</span>'
+                        numbers = re.findall(number_pattern, numbers_html)
+                        
+                        if numbers:
+                            result = f"第{issue[-3:]}期：{' '.join(num.zfill(2) for num in numbers[:-1])} 特码 {numbers[-1].zfill(2)}"
+                            results[lottery_id] = result
+                            print(f"成功提取 {name}: {result}")
+                except Exception as e:
+                    print(f"处理 {name} 时出错: {str(e)}")
+                    continue
+            
+            if results:
+                return results
+                
+        # 如果没有找到结果，返回错误
+        print("未找到任何彩票结果")
+        return {"error": "No lottery results found"}
         
     except requests.RequestException as e:
         print(f"请求错误: {str(e)}")
