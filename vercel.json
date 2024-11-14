@@ -11,9 +11,6 @@
       "use": "@vercel/python"
     }
   ],
-  ...
-}
-  ],
   "routes": [
     {
       "src": "/api/cron",
