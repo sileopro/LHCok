@@ -2,11 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/**/*.js",
+      "src": "api/cron.js",
       "use": "@vercel/node"
     },
     {
-      "src": "requirements.txt",
+      "src": "api/run.py",
       "use": "@vercel/python",
       "config": {
         "runtime": "python3.9",
@@ -20,8 +20,12 @@
   ],
   "routes": [
     {
+      "src": "/api/run",
+      "dest": "api/run.py"
+    },
+    {
       "src": "/api/cron",
-      "dest": "/api/cron.js"
+      "dest": "api/cron.js"
     },
     {
       "src": "/",
