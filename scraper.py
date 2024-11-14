@@ -16,18 +16,24 @@ def setup_driver():
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
+    chrome_options.binary_location = os.environ.get('CHROME_BIN', '/usr/bin/google-chrome')
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     
-    if os.environ.get('VERCEL_ENV'):
-        # Vercel 环境使用指定的 ChromeDriver 路径
-        service = Service('/usr/local/bin/chromedriver')
-    else:
-        # GitHub Actions 环境使用 webdriver_manager
-        service = Service(ChromeDriverManager().install())
-    
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
+    try:
+        service = Service(os.environ.get('CHROMEDRIVER_PATH', '/usr/bin/chromedriver'))
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        return driver
+    except Exception as e:
+        print(f"设置Chrome驱动时出错: {str(e)}")
+        # 尝试使用 webdriver_manager
+        try:
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            return driver
+        except Exception as e:
+            print(f"使用 webdriver_manager 时出错: {str(e)}")
+            raise
 
 def extract_lottery_info(driver, lottery_code, lottery_name):
     """提取特定彩票的开奖信息"""
