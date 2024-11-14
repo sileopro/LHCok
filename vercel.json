@@ -13,10 +13,6 @@
         "maxLambdaSize": "15mb",
         "includeFiles": ["requirements.txt"]
       }
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -27,15 +23,6 @@
     {
       "src": "/api/cron",
       "dest": "api/cron.js"
-    },
-    {
-      "src": "/",
-      "dest": "/index.html"
     }
-  ],
-  "build": {
-    "env": {
-      "PYTHONUNBUFFERED": "1"
-    }
-  }
+  ]
 } 
