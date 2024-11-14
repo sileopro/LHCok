@@ -6,30 +6,53 @@ export default async function handler(req, res) {
     try {
       console.log('开始执行爬虫脚本...');
       const scriptPath = path.join(process.cwd(), 'scraper.py');
-      const pythonPath = process.env.PYTHON_PATH || '/usr/local/bin/python3';
       
-      console.log(`使用 Python 路径: ${pythonPath}`);
-      console.log(`脚本路径: ${scriptPath}`);
+      // 尝试多个可能的 Python 路径
+      const pythonCommands = [
+        'python3',
+        'python',
+        '/opt/python/bin/python3',
+        '/usr/bin/python3',
+        'python3.9'
+      ];
+
+      let executed = false;
       
-      exec(`${pythonPath} ${scriptPath}`, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`执行错误: ${error}`);
-          return res.status(500).json({ 
-            error: error.message,
-            details: stderr,
-            pythonPath: pythonPath,
-            scriptPath: scriptPath
+      for (const cmd of pythonCommands) {
+        try {
+          console.log(`尝试使用命令: ${cmd}`);
+          exec(`${cmd} ${scriptPath}`, (error, stdout, stderr) => {
+            if (!executed) {
+              if (error) {
+                console.error(`使用 ${cmd} 失败:`, error);
+                return;
+              }
+              executed = true;
+              console.log(`使用 ${cmd} 成功`);
+              res.status(200).json({ 
+                status: 'success',
+                command: cmd,
+                output: stdout,
+                error: stderr || null
+              });
+            }
+          });
+        } catch (e) {
+          console.error(`尝试 ${cmd} 时出错:`, e);
+          continue;
+        }
+      }
+
+      // 如果所有命令都失败
+      setTimeout(() => {
+        if (!executed) {
+          res.status(500).json({ 
+            error: 'No Python command available',
+            attempted: pythonCommands
           });
         }
-        
-        console.log(`输出: ${stdout}`);
-        res.status(200).json({ 
-          status: 'success',
-          output: stdout,
-          error: stderr || null
-        });
-      });
-      
+      }, 5000);
+
     } catch (error) {
       console.error('执行过程中出错:', error);
       res.status(500).json({ 
