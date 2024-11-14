@@ -19,16 +19,27 @@ def scrape_lottery():
     try:
         url = 'https://akjw09d.48489aaa.com:8800/'
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         }
         
+        print(f"开始请求 URL: {url}")
         response = requests.get(url, headers=headers, verify=False, timeout=30)
-        response.raise_for_status()  # 检查响应状态
+        print(f"请求状态码: {response.status_code}")
+        response.raise_for_status()
         
         if not response.text:
+            print("服务器返回空响应")
             return {"error": "Empty response from server"}
             
+        print(f"响应内容长度: {len(response.text)}")
         soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 检查页面内容
+        print("页面标题:", soup.title.string if soup.title else "无标题")
         
         results = {}
         lottery_types = {
@@ -40,25 +51,43 @@ def scrape_lottery():
         
         for lottery_id, (code, name) in lottery_types.items():
             try:
+                print(f"\n处理 {name} ({code})")
                 div = soup.find('div', id=code)
-                if div:
-                    issue = div.find('div', class_='preDrawIssue')
-                    if not issue:
-                        continue
-                    issue_text = issue.text.strip()
+                if not div:
+                    print(f"未找到 {code} 的div元素")
+                    continue
                     
-                    numbers = div.find_all('li', class_='ball')
-                    if not numbers:
-                        continue
-                        
-                    result = f"第{issue_text[-3:]}期：" + " ".join([num.text.strip().zfill(2) for num in numbers[:-1]])
-                    result += f" 特码 {numbers[-1].text.strip().zfill(2)}"
-                    results[lottery_id] = result
+                print(f"找到 {code} 的div元素")
+                issue = div.find('div', class_='preDrawIssue')
+                if not issue:
+                    print(f"未找到期号元素")
+                    continue
+                    
+                issue_text = issue.text.strip()
+                print(f"期号: {issue_text}")
+                
+                numbers = div.find_all('li', class_='ball')
+                if not numbers:
+                    print(f"未找到号码元素")
+                    continue
+                    
+                print(f"找到 {len(numbers)} 个号码")
+                result = f"第{issue_text[-3:]}期：" + " ".join([num.text.strip().zfill(2) for num in numbers[:-1]])
+                result += f" 特码 {numbers[-1].text.strip().zfill(2)}"
+                results[lottery_id] = result
+                print(f"结果: {result}")
             except Exception as e:
                 print(f"处理 {name} 时出错: {str(e)}")
                 continue
                 
-        return results if results else {"error": "No lottery results found"}
+        if not results:
+            print("未找到任何彩票结果")
+            # 打印页面结构以便调试
+            print("\n页面结构:")
+            print(soup.prettify()[:1000])  # 只打印前1000个字符
+            return {"error": "No lottery results found"}
+            
+        return results
         
     except requests.RequestException as e:
         print(f"请求错误: {str(e)}")
