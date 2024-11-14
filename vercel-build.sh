@@ -1,14 +1,27 @@
 #!/bin/bash
 
-# 安装 Python
-apt-get update
-apt-get install -y python3 python3-pip
+# 安装 Python 和依赖
+curl -o python.tar.gz https://www.python.org/ftp/python/3.9.7/Python-3.9.7.tgz
+tar -xzf python.tar.gz
+cd Python-3.9.7
+./configure --enable-optimizations
+make -j $(nproc)
+make install
 
-# 安装系统依赖
+# 验证 Python 安装
+python3 --version
+which python3
+
+# 安装 pip
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py
+
+# 安装项目依赖
+pip3 install -r requirements.txt
+
+# 安装 Chrome 和 ChromeDriver
 apt-get update
 apt-get install -y wget gnupg2 unzip
-
-# 安装 Chrome
 wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
 echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
 apt-get update
@@ -22,6 +35,3 @@ wget https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromed
 unzip chromedriver_linux64.zip
 mv chromedriver /usr/local/bin/
 chmod +x /usr/local/bin/chromedriver
-
-# 安装 Python 依赖
-pip3 install -r requirements.txt
