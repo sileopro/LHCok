@@ -6,11 +6,11 @@
       "use": "@vercel/node"
     },
     {
-      "src": "requirements.txt",
+      "src": "*.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "15mb",
-        "runtime": "python3.9"
+        "runtime": "python3.9",
+        "maxLambdaSize": "15mb"
       }
     }
   ],
@@ -20,10 +20,7 @@
       "dest": "/api/cron.js"
     }
   ],
-  "functions": {
-    "api/cron.js": {
-      "memory": 3008,
-      "maxDuration": 60
-    }
+  "env": {
+    "PYTHON_PATH": "/usr/local/bin/python3"
   }
 } 
