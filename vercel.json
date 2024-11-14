@@ -10,8 +10,7 @@
       "use": "@vercel/python",
       "config": {
         "runtime": "python3.9",
-        "maxLambdaSize": "15mb",
-        "buildCommand": "apt-get update && apt-get install -y wget gnupg2 && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google.list && apt-get update && apt-get install -y google-chrome-stable chromium-chromedriver"
+        "maxLambdaSize": "15mb"
       }
     },
     {
@@ -33,11 +32,14 @@
       "dest": "/index.html"
     }
   ],
+  "functions": {
+    "api/run.py": {
+      "includeFiles": "requirements.txt"
+    }
+  },
   "build": {
     "env": {
-      "PYTHONUNBUFFERED": "1",
-      "CHROME_BIN": "/usr/bin/google-chrome",
-      "CHROMEDRIVER_PATH": "/usr/bin/chromedriver"
+      "PYTHONUNBUFFERED": "1"
     }
   }
 } 
