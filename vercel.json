@@ -6,8 +6,12 @@
       "use": "@vercel/node"
     },
     {
-      "src": "api/**/*.py",
-      "use": "@vercel/python"
+      "src": "requirements.txt",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.9",
+        "maxLambdaSize": "15mb"
+      }
     },
     {
       "src": "index.html",
@@ -23,5 +27,10 @@
       "src": "/",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "PYTHONUNBUFFERED": "1"
+    }
+  }
 } 
