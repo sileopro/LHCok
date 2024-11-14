@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "name": "lotterybot",
   "builds": [
     {
       "src": "api/cron.js",
@@ -9,6 +10,9 @@
       "src": "*.py",
       "use": "@vercel/python"
     }
+  ],
+  ...
+}
   ],
   "routes": [
     {
