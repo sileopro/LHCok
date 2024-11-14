@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# 安装 Python
+apt-get update
+apt-get install -y python3 python3-pip
+
 # 安装系统依赖
 apt-get update
 apt-get install -y wget gnupg2 unzip
@@ -20,4 +24,4 @@ mv chromedriver /usr/local/bin/
 chmod +x /usr/local/bin/chromedriver
 
 # 安装 Python 依赖
-pip install -r requirements.txt
+pip3 install -r requirements.txt
