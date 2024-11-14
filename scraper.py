@@ -6,6 +6,8 @@ from selenium.webdriver.chrome.options import Options
 import time
 import re
 import os
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 
 def setup_driver():
     """设置Chrome浏览器"""
@@ -17,7 +19,9 @@ def setup_driver():
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     
-    driver = webdriver.Chrome(options=chrome_options)
+    # 使用 webdriver_manager 自动管理 ChromeDriver
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
 def extract_lottery_info(driver, lottery_code, lottery_name):
