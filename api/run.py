@@ -2,23 +2,55 @@ from http.server import BaseHTTPRequestHandler
 import sys
 import os
 import json
+import requests
+from bs4 import BeautifulSoup
 
-# 添加项目根目录到 Python 路径
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from scraper import main
+def scrape_lottery():
+    """使用 requests 和 BeautifulSoup 替代 Selenium"""
+    try:
+        url = 'https://akjw09d.48489aaa.com:8800/'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, verify=False)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        results = {}
+        lottery_types = {
+            'lam': ('AMLHC2', '老澳门六合彩'),
+            'xam': ('AMLHC3', '新澳门六合彩'),
+            'hk': ('LHC', '六合彩'),
+            'tc': ('TWLHC', '台湾六合彩')
+        }
+        
+        for lottery_id, (code, name) in lottery_types.items():
+            try:
+                div = soup.find('div', id=code)
+                if div:
+                    issue = div.find('div', class_='preDrawIssue').text.strip()
+                    numbers = div.find_all('li', class_='ball')
+                    result = f"第{issue[-3:]}期：" + " ".join([num.text.strip().zfill(2) for num in numbers[:-1]])
+                    result += f" 特码 {numbers[-1].text.strip().zfill(2)}"
+                    results[lottery_id] = result
+            except Exception as e:
+                print(f"处理 {name} 时出错: {str(e)}")
+                
+        return results
+    except Exception as e:
+        print(f"爬取过程出错: {str(e)}")
+        return {"error": str(e)}
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             print("开始执行爬虫...")
-            results = main()  # 运行爬虫
+            results = scrape_lottery()
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             
-            # 检查结果是否为错误信息
             if isinstance(results, dict) and 'error' in results:
                 error_response = {
                     "status": "error",
@@ -27,16 +59,6 @@ class handler(BaseHTTPRequestHandler):
                 }
                 self.wfile.write(json.dumps(error_response).encode('utf-8'))
                 return
-            
-            # 如果没有结果，尝试从文件读取
-            if not results:
-                results = {}
-                for lottery_id in ['lam', 'xam', 'hk', 'tc']:
-                    try:
-                        with open(f'{lottery_id}.txt', 'r', encoding='utf-8') as f:
-                            results[lottery_id] = f.read().strip()
-                    except Exception as e:
-                        print(f"读取 {lottery_id}.txt 失败: {e}")
             
             response_data = {
                 "status": "success",
