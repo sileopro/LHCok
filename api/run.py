@@ -3,7 +3,12 @@ import sys
 import os
 import json
 import requests
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    import pip
+    pip.main(['install', 'beautifulsoup4'])
+    from bs4 import BeautifulSoup
 import urllib3
 
 # 禁用 SSL 警告
