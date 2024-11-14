@@ -1,32 +1,15 @@
 {
   "version": 2,
-  "name": "lotterybot",
   "builds": [
     {
       "src": "api/cron.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "*.py",
-      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/cron",
-      "dest": "/api/cron.js",
-      "methods": ["GET", "POST"]
+      "dest": "api/cron.js"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "*/5 * * * *"
-    }
-  ],
-  "build": {
-    "env": {
-      "PYTHONUNBUFFERED": "1"
-    }
-  }
+  ]
 } 
