@@ -10,7 +10,8 @@
       "use": "@vercel/python",
       "config": {
         "runtime": "python3.9",
-        "maxLambdaSize": "15mb"
+        "maxLambdaSize": "15mb",
+        "includeFiles": ["requirements.txt"]
       }
     },
     {
@@ -32,11 +33,6 @@
       "dest": "/index.html"
     }
   ],
-  "functions": {
-    "api/run.py": {
-      "includeFiles": "requirements.txt"
-    }
-  },
   "build": {
     "env": {
       "PYTHONUNBUFFERED": "1"
