@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: lottery-scraper
-    env: docker
-    dockerfilePath: ./Dockerfile
-    envVars:
-      - key: PYTHONUNBUFFERED
-        value: "1" 
