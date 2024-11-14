@@ -1,42 +1,38 @@
 const { exec } = require('child_process');
+const path = require('path');
 
 export default async function handler(req, res) {
+  console.log('API endpoint hit');
+  
   if (req.method === 'POST' || req.method === 'GET') {
     try {
       console.log('开始执行爬虫脚本...');
+      const scriptPath = path.join(process.cwd(), 'scraper.py');
       
-      exec('python scraper.py', (error, stdout, stderr) => {
+      exec(`python ${scriptPath}`, (error, stdout, stderr) => {
         if (error) {
           console.error(`执行错误: ${error}`);
-          return res.status(500).json({ error: error.message });
+          return res.status(500).json({ 
+            error: error.message,
+            details: stderr
+          });
         }
         
-        console.log(`标准输出: ${stdout}`);
-        if (stderr) {
-          console.error(`标准错误: ${stderr}`);
-        }
-        
-        // 尝试读取结果文件
-        const results = {};
-        ['lam', 'xam', 'hk', 'tc'].forEach(type => {
-          try {
-            const result = require('fs').readFileSync(`${type}.txt`, 'utf8');
-            results[type] = result;
-          } catch (e) {
-            console.error(`读取${type}.txt失败:`, e);
-            results[type] = null;
-          }
-        });
+        console.log(`脚本输出: ${stdout}`);
         
         res.status(200).json({ 
-          message: '执行成功', 
+          status: 'success',
+          message: '爬虫执行完成',
           output: stdout,
-          results: results 
+          error: stderr || null
         });
       });
     } catch (error) {
       console.error('执行过程中出错:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ 
+        error: error.message,
+        stack: error.stack 
+      });
     }
   } else {
     res.status(405).json({ error: '方法不允许' });
