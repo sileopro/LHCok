@@ -18,10 +18,29 @@ class handler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             
-            # 确保返回的是有效的 JSON
+            # 检查结果是否为错误信息
+            if isinstance(results, dict) and 'error' in results:
+                error_response = {
+                    "status": "error",
+                    "error": results['error'],
+                    "message": "Scraper execution failed"
+                }
+                self.wfile.write(json.dumps(error_response).encode('utf-8'))
+                return
+            
+            # 如果没有结果，尝试从文件读取
+            if not results:
+                results = {}
+                for lottery_id in ['lam', 'xam', 'hk', 'tc']:
+                    try:
+                        with open(f'{lottery_id}.txt', 'r', encoding='utf-8') as f:
+                            results[lottery_id] = f.read().strip()
+                    except Exception as e:
+                        print(f"读取 {lottery_id}.txt 失败: {e}")
+            
             response_data = {
                 "status": "success",
-                "data": results if results else {},
+                "data": results,
                 "message": "Scraper executed successfully"
             }
             
