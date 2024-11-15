@@ -7,9 +7,7 @@ from bs4 import BeautifulSoup
 import re
 import time
 import urllib3
-import ssl
 
-# 禁用 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_lottery_data():
@@ -21,97 +19,75 @@ def get_lottery_data():
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0',
-            'Referer': 'https://akjw09d.48489aaa.com:8800/'
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
         }
         
-        # 创建自定义的 SSL 上下文
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        
-        # 尝试多次请求
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                print(f"尝试第 {attempt + 1} 次请求...")
-                response = session.get(
-                    'https://akjw09d.48489aaa.com:8800/',
-                    headers=headers,
-                    timeout=30,
-                    allow_redirects=True
-                )
-                response.raise_for_status()
-                print(f"请求成功，状态码: {response.status_code}")
-                break
-            except requests.RequestException as e:
-                print(f"请求失败: {str(e)}")
-                if attempt == max_retries - 1:
-                    raise
-                time.sleep(2)
+        response = session.get(
+            'https://akjw09d.48489aaa.com:8800/',
+            headers=headers,
+            timeout=30
+        )
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        lottery_types = {
-            'lam': ('AMLHC2', '老澳门六合彩'),
-            'xam': ('AMLHC3', '新澳门六合彩'),
-            'hk': ('LHC', '六合彩'),
-            'tc': ('TWLHC', '台湾六合彩')
-        }
-        
         results = {}
-        for lottery_id, (code, name) in lottery_types.items():
+        
+        # 查找所有包含开奖结果的区块
+        lottery_blocks = soup.find_all('div', class_=lambda x: x and '六合彩' in x.get_text())
+        
+        for block in lottery_blocks:
             try:
-                lottery_div = soup.find(id=code)
-                if not lottery_div:
-                    print(f"未找到 {name} 区块")
-                    continue
-                    
-                issue_element = lottery_div.find(class_="preDrawIssue")
-                if not issue_element:
-                    print(f"未找到 {name} 期号")
-                    continue
-                    
-                issue_number = issue_element.text.strip()
-                match = re.search(r'(\d+)$', issue_number)
-                if not match:
-                    print(f"{name} 期号格式错误")
-                    continue
-                issue_short = match.group(1)[-3:]
+                # 获取彩票名称
+                title = block.find_previous('div', text=re.compile('.*六合彩.*')).text.strip()
                 
-                number_box = lottery_div.find(class_="number-box")
-                if not number_box:
-                    print(f"未找到 {name} 号码区块")
+                # 确定彩票类型
+                lottery_id = None
+                if '新澳门' in title:
+                    lottery_id = 'xam'
+                elif '老澳门' in title:
+                    lottery_id = 'lam'
+                elif '台湾' in title:
+                    lottery_id = 'tc'
+                elif '六合彩' in title:
+                    lottery_id = 'hk'
+                
+                if not lottery_id:
+                    continue
+                
+                # 获取期号
+                issue_text = block.find(string=re.compile('第.*期'))
+                if not issue_text:
                     continue
                     
+                issue_match = re.search(r'第(\d+)期', issue_text)
+                if not issue_match:
+                    continue
+                    
+                issue_short = issue_match.group(1)[-3:]
+                
+                # 获取号码
                 numbers = []
                 special_number = None
                 special_zodiac = None
                 
-                number_elements = [li for li in number_box.find_all('li') 
-                                 if 'xgcaddF1' not in li.get('class', [])]
-                
-                print(f"找到 {len(number_elements)} 个号码元素")
+                number_elements = block.find_all(['span', 'div'], class_=lambda x: x and ('number' in x or '号码' in x))
                 
                 for i, elem in enumerate(number_elements):
-                    number = elem.find('span').text.strip().zfill(2)
-                    zodiac = elem.find(class_="animal").text.strip()
+                    number = elem.text.strip().zfill(2)
+                    zodiac = elem.find_next(string=re.compile('[鼠牛虎兔龙蛇马羊猴鸡狗猪]'))
                     
                     if i == len(number_elements) - 1:
                         special_number = number
-                        special_zodiac = zodiac
+                        special_zodiac = zodiac.strip() if zodiac else ''
                     else:
                         numbers.append(number)
                 
                 if numbers and special_number:
                     results[lottery_id] = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
-                    print(f"成功获取 {name} 结果")
-                    
+                    print(f"成功获取 {title} 结果")
+                
             except Exception as e:
-                print(f"处理 {name} 时出错: {str(e)}")
+                print(f"处理彩票区块时出错: {str(e)}")
                 continue
                 
         return results
