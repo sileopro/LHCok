@@ -2,26 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/cron.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/run.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "api/scraper.js",
+      "src": "api/**/*.*",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/run",
-      "dest": "api/run.py"
-    },
-    {
-      "src": "/api/cron",
-      "dest": "api/cron.js"
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
     }
   ]
 } 
