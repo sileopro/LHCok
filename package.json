@@ -4,6 +4,7 @@
   "description": "Lottery scraper service",
   "main": "api/cron.js",
   "dependencies": {
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "puppeteer": "^21.5.0"
   }
 } 
