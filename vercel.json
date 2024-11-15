@@ -11,7 +11,8 @@
       "config": {
         "runtime": "python3.9",
         "maxLambdaSize": "15mb",
-        "includeFiles": ["requirements.txt", "scraper.py"]
+        "includeFiles": ["requirements.txt", "scraper.py"],
+        "buildCommand": "apt-get update && apt-get install -y wget gnupg2 && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google.list && apt-get update && apt-get install -y google-chrome-stable chromium-chromedriver && pip install -r requirements.txt"
       }
     }
   ],
@@ -27,6 +28,11 @@
   ],
   "env": {
     "PYTHONPATH": ".",
-    "PYTHONUNBUFFERED": "1"
+    "PYTHONUNBUFFERED": "1",
+    "CHROME_BIN": "/usr/bin/google-chrome",
+    "CHROMEDRIVER_PATH": "/usr/bin/chromedriver",
+    "DISPLAY": ":99",
+    "SELENIUM_CACHE_PATH": "/tmp/.cache/selenium",
+    "WEBDRIVER_MANAGER_PATH": "/tmp/.wdm"
   }
 } 

@@ -1,42 +1,30 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import requests
-from bs4 import BeautifulSoup
+from selenium.webdriver.chrome.service import Service
 import time
 import re
 import os
 
-def setup_driver():
-    """设置Chrome浏览器"""
+def get_driver():
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     
     try:
-        if os.environ.get('VERCEL_ENV'):
-            # Vercel 环境
-            chrome_options.binary_location = '/usr/bin/chromium-browser'
-            driver_path = '/usr/bin/chromedriver'
-            service = Service(executable_path=driver_path)
-        else:
-            # GitHub Actions 环境
-            service = Service(ChromeDriverManager().install())
-            
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(
+            service=service,
+            options=chrome_options
+        )
         return driver
     except Exception as e:
         print(f"设置Chrome驱动时出错: {str(e)}")
-        if os.environ.get('VERCEL_ENV'):
-            raise Exception("Vercel环境中无法初始化Chrome驱动")
-        else:
-            raise
+        return None
 
 def extract_lottery_info(driver, lottery_code, lottery_name):
     """提取特定彩票的开奖信息"""
@@ -60,21 +48,19 @@ def extract_lottery_info(driver, lottery_code, lottery_name):
                 return None
                 
             issue_number = issue_number.strip()
-            print(f"获取到期号: {issue_number}")  # 调试信息
+            print(f"获取到期号: {issue_number}")
             
-            # 提取期号中的最后三位数字
             match = re.search(r'(\d+)$', issue_number)
             if not match:
                 print(f"无法从 {issue_number} 提取期号")
                 return None
             issue_short = match.group(1)[-3:]
-            print(f"提取的短期号: {issue_short}")  # 调试信息
+            print(f"提取的短期号: {issue_short}")
         except Exception as e:
             print(f"处理期号时出错: {str(e)}")
             return None
         
         try:
-            # 获取开奖号码
             number_box = lottery_div.find_element(By.CLASS_NAME, "number-box")
             if not number_box:
                 print(f"未找到号码区块")
@@ -90,7 +76,7 @@ def extract_lottery_info(driver, lottery_code, lottery_name):
             special_zodiac = None
             
             valid_elements = [elem for elem in number_elements if "xgcaddF1" not in elem.get_attribute("class")]
-            print(f"找到 {len(valid_elements)} 个有效号码元素")  # 调试信息
+            print(f"找到 {len(valid_elements)} 个有效号码元素")
             
             for i, elem in enumerate(valid_elements):
                 try:
@@ -98,16 +84,16 @@ def extract_lottery_info(driver, lottery_code, lottery_name):
                     if not number:
                         print(f"号码为空")
                         continue
-                    number = number.zfill(2)  # 确保数字是两位
+                    number = number.zfill(2)
                     
                     zodiac = elem.find_element(By.CLASS_NAME, "animal").text
                     if not zodiac:
                         print(f"生肖为空")
                         continue
                         
-                    print(f"处理第 {i+1} 个号码: {number} {zodiac}")  # 调试信息
+                    print(f"处理第 {i+1} 个号码: {number} {zodiac}")
                     
-                    if i == len(valid_elements) - 1:  # 最后一个数字是特码
+                    if i == len(valid_elements) - 1:
                         special_number = number
                         special_zodiac = zodiac
                     else:
@@ -117,9 +103,8 @@ def extract_lottery_info(driver, lottery_code, lottery_name):
                     continue
             
             if numbers and special_number:
-                # 格式化输出
                 result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
-                print(f"成功生成结果: {result}")  # 调试信息
+                print(f"成功生成结果: {result}")
                 return result
             else:
                 print(f"号码数据不完整: numbers={numbers}, special_number={special_number}")
@@ -151,12 +136,10 @@ def get_lottery_results(driver):
             try:
                 result = extract_lottery_info(driver, code, name)
                 if result:
-                    if not os.environ.get('VERCEL_ENV'):
-                        # 只在非Vercel环境下写入文件
-                        with open(f'{lottery_id}.txt', 'w', encoding='utf-8') as f:
-                            f.write(result)
+                    with open(f'{lottery_id}.txt', 'w', encoding='utf-8') as f:
+                        f.write(result)
                     results[lottery_id] = result
-                    print(f"已处理 {lottery_id} 开奖结果")
+                    print(f"已保存 {lottery_id} 开奖结果")
                 else:
                     print(f"未找到 {name} 的开奖结果")
             except Exception as e:
@@ -168,97 +151,24 @@ def get_lottery_results(driver):
         print(f"获取开奖结果时出错: {str(e)}")
         return None
 
-def get_data_with_requests():
-    """使用 requests 获取数据（Vercel环境）"""
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get('https://akjw09d.48489aaa.com:8800/', headers=headers, verify=False)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        lottery_types = {
-            'lam': ('AMLHC2', '老澳门六合彩'),
-            'xam': ('AMLHC3', '新澳门六合彩'),
-            'hk': ('LHC', '六合彩'),
-            'tc': ('TWLHC', '台湾六合彩')
-        }
-        
-        results = {}
-        for lottery_id, (code, name) in lottery_types.items():
-            try:
-                lottery_div = soup.find(id=code)
-                if not lottery_div:
-                    print(f"未找到彩票区块: {code}")
-                    continue
-                    
-                issue_element = lottery_div.find(class_="preDrawIssue")
-                if not issue_element:
-                    continue
-                    
-                issue_number = issue_element.text.strip()
-                match = re.search(r'(\d+)$', issue_number)
-                if not match:
-                    continue
-                issue_short = match.group(1)[-3:]
-                
-                number_box = lottery_div.find(class_="number-box")
-                if not number_box:
-                    continue
-                    
-                numbers = []
-                special_number = None
-                special_zodiac = None
-                
-                number_elements = [li for li in number_box.find_all('li') 
-                                 if 'xgcaddF1' not in li.get('class', [])]
-                
-                for i, elem in enumerate(number_elements):
-                    number = elem.find('span').text.strip().zfill(2)
-                    zodiac = elem.find(class_="animal").text.strip()
-                    
-                    if i == len(number_elements) - 1:
-                        special_number = number
-                        special_zodiac = zodiac
-                    else:
-                        numbers.append(number)
-                
-                if numbers and special_number:
-                    result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
-                    results[lottery_id] = result
-                    print(f"已处理 {lottery_id} 开奖结果")
-                    
-            except Exception as e:
-                print(f"处理 {name} 时出错: {str(e)}")
-                
-        return results
-        
-    except Exception as e:
-        print(f"请求数据时出错: {str(e)}")
-        return None
-
 def main():
     try:
+        driver = get_driver()
+        print("浏览器初始化成功")
+        
+        results = get_lottery_results(driver)
+        
         if os.environ.get('VERCEL_ENV'):
-            # Vercel 环境使用 requests
-            print("使用 requests 获取数据...")
-            results = get_data_with_requests()
-            return results
-        else:
-            # GitHub Actions 环境使用原有的 Selenium 方案
-            driver = setup_driver()
-            print("浏览器初始化成功")
-            results = get_lottery_results(driver)
-            if 'driver' in locals():
-                driver.quit()
-                print("浏览器已关闭")
             return results
             
     except Exception as e:
         print(f"运行出错: {str(e)}")
         if os.environ.get('VERCEL_ENV'):
             return {"error": str(e)}
-        return None
+    finally:
+        if 'driver' in locals():
+            driver.quit()
+            print("浏览器已关闭")
 
 if __name__ == '__main__':
     main()
