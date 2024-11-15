@@ -11,8 +11,7 @@
       "config": {
         "runtime": "python3.9",
         "maxLambdaSize": "15mb",
-        "includeFiles": ["requirements.txt", "scraper.py"],
-        "buildCommand": "apt-get update && apt-get install -y chromium-browser chromium-chromedriver && pip install -r requirements.txt"
+        "includeFiles": ["requirements.txt", "scraper.py"]
       }
     }
   ],
@@ -28,8 +27,6 @@
   ],
   "env": {
     "PYTHONPATH": ".",
-    "CHROME_BIN": "/usr/bin/chromium-browser",
-    "CHROMEDRIVER_PATH": "/usr/bin/chromedriver",
     "PYTHONUNBUFFERED": "1"
   }
 } 
