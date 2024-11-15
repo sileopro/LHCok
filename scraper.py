@@ -14,10 +14,14 @@ def get_driver():
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.binary_location = '/usr/bin/chromium-browser'
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-software-rasterizer')
+    chrome_options.add_argument('--disable-extensions')
     
     try:
-        service = Service()
+        # 使用 ChromeDriverManager 的无缓存模式
+        driver_path = ChromeDriverManager(path="/tmp").install()
+        service = Service(executable_path=driver_path)
         driver = webdriver.Chrome(
             service=service,
             options=chrome_options
@@ -157,23 +161,29 @@ def get_lottery_results(driver):
         return None
 
 def main():
+    driver = None
     try:
         driver = get_driver()
+        if not driver:
+            raise Exception("无法初始化浏览器驱动")
+            
         print("浏览器初始化成功")
-        
         results = get_lottery_results(driver)
         
         if os.environ.get('VERCEL_ENV'):
-            return results  # Vercel 环境返回结果
+            return results
             
     except Exception as e:
         print(f"运行出错: {str(e)}")
         if os.environ.get('VERCEL_ENV'):
             return {"error": str(e)}
     finally:
-        if 'driver' in locals():
-            driver.quit()
-            print("浏览器已关闭")
+        if driver:
+            try:
+                driver.quit()
+                print("浏览器已关闭")
+            except Exception as e:
+                print(f"关闭浏览器时出错: {str(e)}")
 
 if __name__ == '__main__':
     main()
