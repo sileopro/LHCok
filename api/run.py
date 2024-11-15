@@ -5,14 +5,44 @@ import json
 import requests
 from bs4 import BeautifulSoup
 import re
+import urllib3
+import time
+
+# 禁用 SSL 警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_lottery_data():
     """使用 requests 获取数据"""
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         }
-        response = requests.get('https://akjw09d.48489aaa.com:8800/', headers=headers, verify=False)
+        
+        # 尝试多次请求
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"尝试第 {attempt + 1} 次请求...")
+                response = requests.get(
+                    'https://akjw09d.48489aaa.com:8800/',
+                    headers=headers,
+                    verify=False,
+                    timeout=30
+                )
+                response.raise_for_status()  # 检查响应状态
+                print("请求成功")
+                break
+            except requests.RequestException as e:
+                print(f"请求失败: {str(e)}")
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(2)  # 等待2秒后重试
+        
+        print("开始解析HTML...")
         soup = BeautifulSoup(response.text, 'html.parser')
         
         lottery_types = {
@@ -25,22 +55,27 @@ def get_lottery_data():
         results = {}
         for lottery_id, (code, name) in lottery_types.items():
             try:
+                print(f"处理 {name}...")
                 lottery_div = soup.find(id=code)
                 if not lottery_div:
+                    print(f"未找到 {name} 区块")
                     continue
                     
                 issue_element = lottery_div.find(class_="preDrawIssue")
                 if not issue_element:
+                    print(f"未找到 {name} 期号")
                     continue
                     
                 issue_number = issue_element.text.strip()
                 match = re.search(r'(\d+)$', issue_number)
                 if not match:
+                    print(f"{name} 期号格式错误")
                     continue
                 issue_short = match.group(1)[-3:]
                 
                 number_box = lottery_div.find(class_="number-box")
                 if not number_box:
+                    print(f"未找到 {name} 号码区块")
                     continue
                     
                 numbers = []
@@ -49,6 +84,8 @@ def get_lottery_data():
                 
                 number_elements = [li for li in number_box.find_all('li') 
                                  if 'xgcaddF1' not in li.get('class', [])]
+                
+                print(f"找到 {len(number_elements)} 个号码元素")
                 
                 for i, elem in enumerate(number_elements):
                     number = elem.find('span').text.strip().zfill(2)
@@ -63,6 +100,7 @@ def get_lottery_data():
                 if numbers and special_number:
                     result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
                     results[lottery_id] = result
+                    print(f"成功获取 {name} 结果")
                     
             except Exception as e:
                 print(f"处理 {name} 时出错: {str(e)}")
@@ -86,7 +124,7 @@ class handler(BaseHTTPRequestHandler):
             
             response_data = {
                 "status": "success" if results else "error",
-                "data": results,
+                "data": results if results else {},
                 "message": "Data fetched successfully" if results else "Failed to fetch data"
             }
             
