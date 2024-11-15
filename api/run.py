@@ -11,7 +11,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_lottery_data():
-    """使用 requests 获取数据"""
+    """使用与 scraper.py 相同的方式获取数据"""
     try:
         session = requests.Session()
         session.verify = False
@@ -30,64 +30,71 @@ def get_lottery_data():
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
+        lottery_types = {
+            'lam': ('AMLHC2', '老澳门六合彩'),
+            'xam': ('AMLHC3', '新澳门六合彩'),
+            'hk': ('LHC', '六合彩'),
+            'tc': ('TWLHC', '台湾六合彩')
+        }
+        
         results = {}
-        
-        # 查找所有包含开奖结果的区块
-        lottery_blocks = soup.find_all('div', class_=lambda x: x and '六合彩' in x.get_text())
-        
-        for block in lottery_blocks:
+        for lottery_id, (code, name) in lottery_types.items():
             try:
-                # 获取彩票名称
-                title = block.find_previous('div', text=re.compile('.*六合彩.*')).text.strip()
-                
-                # 确定彩票类型
-                lottery_id = None
-                if '新澳门' in title:
-                    lottery_id = 'xam'
-                elif '老澳门' in title:
-                    lottery_id = 'lam'
-                elif '台湾' in title:
-                    lottery_id = 'tc'
-                elif '六合彩' in title:
-                    lottery_id = 'hk'
-                
-                if not lottery_id:
+                # 使用与 scraper.py 相同的选择器
+                lottery_div = soup.find('div', id=code)
+                if not lottery_div:
+                    print(f"未找到彩票区块: {code}")
                     continue
                 
                 # 获取期号
-                issue_text = block.find(string=re.compile('第.*期'))
-                if not issue_text:
+                issue_element = lottery_div.find(class_="preDrawIssue")
+                if not issue_element:
+                    print(f"未找到期号元素")
                     continue
                     
-                issue_match = re.search(r'第(\d+)期', issue_text)
-                if not issue_match:
+                issue_number = issue_element.text.strip()
+                match = re.search(r'(\d+)$', issue_number)
+                if not match:
+                    print(f"无法从 {issue_number} 提取期号")
                     continue
-                    
-                issue_short = issue_match.group(1)[-3:]
+                issue_short = match.group(1)[-3:]
                 
                 # 获取号码
+                number_box = lottery_div.find(class_="number-box")
+                if not number_box:
+                    print(f"未找到号码区块")
+                    continue
+                    
+                number_elements = [li for li in number_box.find_all('li') 
+                                 if 'xgcaddF1' not in li.get('class', [])]
+                
                 numbers = []
                 special_number = None
                 special_zodiac = None
                 
-                number_elements = block.find_all(['span', 'div'], class_=lambda x: x and ('number' in x or '号码' in x))
-                
                 for i, elem in enumerate(number_elements):
-                    number = elem.text.strip().zfill(2)
-                    zodiac = elem.find_next(string=re.compile('[鼠牛虎兔龙蛇马羊猴鸡狗猪]'))
-                    
-                    if i == len(number_elements) - 1:
-                        special_number = number
-                        special_zodiac = zodiac.strip() if zodiac else ''
-                    else:
-                        numbers.append(number)
+                    try:
+                        number = elem.find('span').text.strip().zfill(2)
+                        zodiac = elem.find(class_="animal").text.strip()
+                        
+                        if i == len(number_elements) - 1:
+                            special_number = number
+                            special_zodiac = zodiac
+                        else:
+                            numbers.append(number)
+                    except Exception as e:
+                        print(f"处理单个号码时出错: {str(e)}")
+                        continue
                 
                 if numbers and special_number:
-                    results[lottery_id] = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
-                    print(f"成功获取 {title} 结果")
-                
+                    result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
+                    results[lottery_id] = result
+                    print(f"成功获取 {name} 结果: {result}")
+                else:
+                    print(f"号码数据不完整: numbers={numbers}, special_number={special_number}")
+                    
             except Exception as e:
-                print(f"处理彩票区块时出错: {str(e)}")
+                print(f"处理 {name} 时出错: {str(e)}")
                 continue
                 
         return results
