@@ -1,21 +1,35 @@
-from playwright.sync_api import sync_playwright
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 import time
 import re
 import os
 
-def get_page():
+def get_driver():
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    
     try:
-        playwright = sync_playwright().start()
-        browser = playwright.chromium.launch(
-            headless=True,
-            args=['--no-sandbox', '--disable-dev-shm-usage']
+        if os.environ.get('VERCEL_ENV'):
+            # Vercel 环境
+            chrome_options.binary_location = '/usr/bin/chromium-browser'
+            service = Service()
+        else:
+            # GitHub Actions 环境
+            service = Service(ChromeDriverManager().install())
+            
+        driver = webdriver.Chrome(
+            service=service,
+            options=chrome_options
         )
-        context = browser.new_context()
-        page = context.new_page()
-        return playwright, browser, context, page
+        return driver
     except Exception as e:
-        print(f"初始化Playwright时出错: {str(e)}")
-        return None, None, None, None
+        print(f"设置Chrome驱动时出错: {str(e)}")
+        return None
 
 def extract_lottery_info(page, lottery_code, lottery_name):
     """提取特定彩票的开奖信息"""
@@ -130,14 +144,14 @@ def get_lottery_results(page):
         return None
 
 def main():
-    playwright = browser = context = page = None
+    driver = None
     try:
-        playwright, browser, context, page = get_page()
-        if not all([playwright, browser, context, page]):
+        driver = get_driver()
+        if not driver:
             raise Exception("无法初始化浏览器")
             
         print("浏览器初始化成功")
-        results = get_lottery_results(page)
+        results = get_lottery_results(driver)
         
         if os.environ.get('VERCEL_ENV'):
             return results
@@ -147,14 +161,8 @@ def main():
         if os.environ.get('VERCEL_ENV'):
             return {"error": str(e)}
     finally:
-        if page:
-            page.close()
-        if context:
-            context.close()
-        if browser:
-            browser.close()
-        if playwright:
-            playwright.stop()
+        if driver:
+            driver.quit()
         print("浏览器资源已清理")
 
 if __name__ == '__main__':
