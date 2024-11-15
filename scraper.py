@@ -16,23 +16,26 @@ def setup_driver():
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
-    chrome_options.binary_location = os.environ.get('CHROME_BIN', '/usr/bin/google-chrome')
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     
     try:
-        service = Service(os.environ.get('CHROMEDRIVER_PATH', '/usr/bin/chromedriver'))
+        if os.environ.get('VERCEL_ENV'):
+            # Vercel 环境
+            chrome_options.binary_location = '/usr/bin/chromium-browser'
+            driver_path = '/usr/bin/chromedriver'
+            service = Service(executable_path=driver_path)
+        else:
+            # GitHub Actions 环境
+            service = Service(ChromeDriverManager().install())
+            
         driver = webdriver.Chrome(service=service, options=chrome_options)
         return driver
     except Exception as e:
         print(f"设置Chrome驱动时出错: {str(e)}")
-        # 尝试使用 webdriver_manager
-        try:
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            return driver
-        except Exception as e:
-            print(f"使用 webdriver_manager 时出错: {str(e)}")
+        if os.environ.get('VERCEL_ENV'):
+            raise Exception("Vercel环境中无法初始化Chrome驱动")
+        else:
             raise
 
 def extract_lottery_info(driver, lottery_code, lottery_name):
@@ -148,11 +151,12 @@ def get_lottery_results(driver):
             try:
                 result = extract_lottery_info(driver, code, name)
                 if result:
-                    # 保存到文件
-                    with open(f'{lottery_id}.txt', 'w', encoding='utf-8') as f:
-                        f.write(result)
+                    if not os.environ.get('VERCEL_ENV'):
+                        # 只在非Vercel环境下写入文件
+                        with open(f'{lottery_id}.txt', 'w', encoding='utf-8') as f:
+                            f.write(result)
                     results[lottery_id] = result
-                    print(f"已保存 {lottery_id} 开奖结果")
+                    print(f"已处理 {lottery_id} 开奖结果")
                 else:
                     print(f"未找到 {name} 的开奖结果")
             except Exception as e:
