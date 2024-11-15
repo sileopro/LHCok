@@ -28,7 +28,27 @@ def get_lottery_data():
             timeout=30
         )
         
+        print(f"响应状态码: {response.status_code}")
+        print(f"响应内容长度: {len(response.text)}")
+        print("响应内容预览:")
+        print(response.text[:500])
+        
         soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 打印所有div的id
+        all_divs = soup.find_all('div', id=True)
+        print("\n所有div的id:")
+        for div in all_divs:
+            print(f"ID: {div.get('id')}")
+        
+        # 打印所有class包含特定关键词的元素
+        print("\n包含关键词的元素:")
+        keywords = ['number-box', 'preDrawIssue', 'animal']
+        for keyword in keywords:
+            elements = soup.find_all(class_=lambda x: x and keyword in x)
+            print(f"\n{keyword}:")
+            for elem in elements:
+                print(elem.prettify()[:200])
         
         lottery_types = {
             'lam': ('AMLHC2', '老澳门六合彩'),
@@ -40,11 +60,27 @@ def get_lottery_data():
         results = {}
         for lottery_id, (code, name) in lottery_types.items():
             try:
-                # 使用与 scraper.py 相同的选择器
-                lottery_div = soup.find('div', id=code)
+                print(f"\n处理 {name}...")
+                
+                # 尝试多种方式查找元素
+                lottery_div = (
+                    soup.find('div', id=code) or
+                    soup.find('div', {'data-id': code}) or
+                    soup.find('div', text=re.compile(f'.*{name}.*'))
+                )
+                
                 if not lottery_div:
                     print(f"未找到彩票区块: {code}")
+                    # 尝试查找包含名称的元素
+                    name_elements = soup.find_all(text=re.compile(f'.*{name}.*'))
+                    if name_elements:
+                        print(f"找到包含名称的元素:")
+                        for elem in name_elements:
+                            print(elem.parent.prettify()[:200])
                     continue
+                
+                print(f"找到彩票区块，内容预览:")
+                print(lottery_div.prettify()[:200])
                 
                 # 获取期号
                 issue_element = lottery_div.find(class_="preDrawIssue")
