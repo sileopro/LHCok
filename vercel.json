@@ -2,14 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/**/*.*",
-      "use": "@vercel/node"
+      "src": "api/run.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.9",
+        "maxLambdaSize": "15mb"
+      }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/api/run.py"
     }
-  ]
+  ],
+  "env": {
+    "PYTHONPATH": ".",
+    "PYTHONUNBUFFERED": "1"
+  }
 } 
