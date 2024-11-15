@@ -14,34 +14,16 @@ def get_driver():
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--disable-software-rasterizer')
-    chrome_options.add_argument('--disable-extensions')
-    chrome_options.add_argument('--single-process')
-    chrome_options.add_argument('--no-zygote')
-    chrome_options.add_argument('--remote-debugging-port=9222')
     
     try:
-        if os.environ.get('VERCEL_ENV'):
-            # Vercel 环境
-            chrome_options.binary_location = os.environ.get('CHROME_BIN', '/usr/bin/google-chrome')
-            service = Service(executable_path=os.environ.get('CHROMEDRIVER_PATH', '/usr/bin/chromedriver'))
-        else:
-            # GitHub Actions 环境
-            service = Service(ChromeDriverManager().install())
-            
+        service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(
             service=service,
             options=chrome_options
         )
-        print("Chrome驱动初始化成功")
         return driver
-        
     except Exception as e:
         print(f"设置Chrome驱动时出错: {str(e)}")
-        if os.environ.get('VERCEL_ENV'):
-            print(f"Chrome路径: {os.environ.get('CHROME_BIN')}")
-            print(f"ChromeDriver路径: {os.environ.get('CHROMEDRIVER_PATH')}")
         return None
 
 def extract_lottery_info(driver, lottery_code, lottery_name):
