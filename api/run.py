@@ -2,30 +2,85 @@ from http.server import BaseHTTPRequestHandler
 import sys
 import os
 import json
-import subprocess
+import requests
+from bs4 import BeautifulSoup
+import re
 import time
 
 def get_lottery_data():
-    """使用 Node.js 的 Puppeteer 获取数据"""
+    """使用 requests 获取数据"""
     try:
-        # 执行 Node.js 脚本
-        process = subprocess.Popen(['node', 'api/scraper.js'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+        }
         
-        if stderr:
-            print(f"Node.js 错误输出: {stderr.decode('utf-8')}")
-            
-        if stdout:
+        response = requests.get(
+            'https://akjw09d.48489aaa.com:8800/',
+            headers=headers,
+            verify=False,
+            timeout=30
+        )
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        lottery_types = {
+            'lam': ('AMLHC2', '老澳门六合彩'),
+            'xam': ('AMLHC3', '新澳门六合彩'),
+            'hk': ('LHC', '六合彩'),
+            'tc': ('TWLHC', '台湾六合彩')
+        }
+        
+        results = {}
+        for lottery_id, (code, name) in lottery_types.items():
             try:
-                return json.loads(stdout.decode('utf-8'))
-            except json.JSONDecodeError:
-                print(f"JSON解析错误: {stdout.decode('utf-8')}")
-                return None
-        
-        return None
+                lottery_div = soup.find(id=code)
+                if not lottery_div:
+                    continue
+                    
+                issue_element = lottery_div.find(class_="preDrawIssue")
+                if not issue_element:
+                    continue
+                    
+                issue_number = issue_element.text.strip()
+                match = re.search(r'(\d+)$', issue_number)
+                if not match:
+                    continue
+                issue_short = match.group(1)[-3:]
+                
+                number_box = lottery_div.find(class_="number-box")
+                if not number_box:
+                    continue
+                    
+                numbers = []
+                special_number = None
+                special_zodiac = None
+                
+                number_elements = [li for li in number_box.find_all('li') 
+                                 if 'xgcaddF1' not in li.get('class', [])]
+                
+                for i, elem in enumerate(number_elements):
+                    number = elem.find('span').text.strip().zfill(2)
+                    zodiac = elem.find(class_="animal").text.strip()
+                    
+                    if i == len(number_elements) - 1:
+                        special_number = number
+                        special_zodiac = zodiac
+                    else:
+                        numbers.append(number)
+                
+                if numbers and special_number:
+                    results[lottery_id] = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
+                    
+            except Exception as e:
+                print(f"处理 {name} 时出错: {str(e)}")
+                continue
+                
+        return results
         
     except Exception as e:
-        print(f"执行脚本时出错: {str(e)}")
+        print(f"请求数据时出错: {str(e)}")
         return None
 
 class handler(BaseHTTPRequestHandler):
