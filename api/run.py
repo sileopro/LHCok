@@ -19,7 +19,8 @@ def get_lottery_data():
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0'
         }
         
         # 尝试多次请求
@@ -33,17 +34,23 @@ def get_lottery_data():
                     verify=False,
                     timeout=30
                 )
-                response.raise_for_status()  # 检查响应状态
+                response.raise_for_status()
                 print("请求成功")
+                print(f"响应长度: {len(response.text)}")
+                print(f"响应内容预览: {response.text[:200]}")  # 打印响应内容的前200个字符
                 break
             except requests.RequestException as e:
                 print(f"请求失败: {str(e)}")
                 if attempt == max_retries - 1:
                     raise
-                time.sleep(2)  # 等待2秒后重试
+                time.sleep(2)
         
         print("开始解析HTML...")
         soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 打印页面结构
+        print("页面结构预览:")
+        print(soup.prettify()[:500])  # 打印格式化后的HTML前500个字符
         
         lottery_types = {
             'lam': ('AMLHC2', '老澳门六合彩'),
@@ -56,10 +63,16 @@ def get_lottery_data():
         for lottery_id, (code, name) in lottery_types.items():
             try:
                 print(f"处理 {name}...")
-                lottery_div = soup.find(id=code)
+                # 尝试不同的选择器
+                lottery_div = soup.find(id=code) or soup.find('div', {'id': code}) or soup.find('div', {'data-id': code})
                 if not lottery_div:
-                    print(f"未找到 {name} 区块")
+                    print(f"未找到 {name} 区块，尝试其他方法...")
+                    # 打印所有div的id
+                    all_divs = soup.find_all('div', id=True)
+                    print(f"页面中的所有div id: {[div.get('id') for div in all_divs]}")
                     continue
+                
+                print(f"找到 {name} 区块，内容预览: {lottery_div.prettify()[:200]}")
                     
                 issue_element = lottery_div.find(class_="preDrawIssue")
                 if not issue_element:
@@ -104,6 +117,7 @@ def get_lottery_data():
                     
             except Exception as e:
                 print(f"处理 {name} 时出错: {str(e)}")
+                continue
                 
         return results
         
