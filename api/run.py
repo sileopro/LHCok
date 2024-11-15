@@ -7,12 +7,18 @@ from bs4 import BeautifulSoup
 import re
 import time
 import urllib3
-import base64
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_lottery_data():
     """使用与 scraper.py 相同的方式获取数据"""
+    lottery_types = {
+        'lam': ('AMLHC2', '老澳门六合彩'),
+        'xam': ('AMLHC3', '新澳门六合彩'),
+        'hk': ('LHC', '六合彩'),
+        'tc': ('TWLHC', '台湾六合彩')
+    }
+    
     try:
         session = requests.Session()
         session.verify = False
@@ -36,13 +42,6 @@ def get_lottery_data():
         try:
             data = response.json()
             print("API响应:", data)
-            
-            lottery_types = {
-                'lam': ('AMLHC2', '老澳门六合彩'),
-                'xam': ('AMLHC3', '新澳门六合彩'),
-                'hk': ('LHC', '六合彩'),
-                'tc': ('TWLHC', '台湾六合彩')
-            }
             
             results = {}
             for lottery_id, (code, name) in lottery_types.items():
@@ -69,42 +68,48 @@ def get_lottery_data():
             print("API返回非JSON数据，尝试解析HTML...")
             # 如果API请求失败，尝试解析HTML
             response = session.get(
-                'https://akjw09d.48489aaa.com:8800/lottery/results',
+                'https://akjw09d.48489aaa.com:8800/',
                 headers=headers
             )
             
             soup = BeautifulSoup(response.text, 'html.parser')
+            print("页面内容预览:", response.text[:500])
             
             results = {}
             for lottery_id, (code, name) in lottery_types.items():
                 try:
-                    lottery_div = soup.find('div', {'data-lottery': code})
+                    lottery_div = soup.find('div', id=code)
                     if not lottery_div:
+                        print(f"未找到 {name} 区块")
                         continue
                         
-                    issue_element = lottery_div.find(class_="issue")
+                    issue_element = lottery_div.find(class_="preDrawIssue")
                     if not issue_element:
+                        print(f"未找到 {name} 期号")
                         continue
                         
                     issue_number = issue_element.text.strip()
                     match = re.search(r'(\d+)$', issue_number)
                     if not match:
+                        print(f"{name} 期号格式错误")
                         continue
                     issue_short = match.group(1)[-3:]
                     
-                    numbers_div = lottery_div.find(class_="numbers")
-                    if not numbers_div:
+                    number_box = lottery_div.find(class_="number-box")
+                    if not number_box:
+                        print(f"未找到 {name} 号码区块")
                         continue
                         
-                    number_elements = numbers_div.find_all(class_="number")
+                    number_elements = [li for li in number_box.find_all('li') 
+                                     if 'xgcaddF1' not in li.get('class', [])]
                     
                     numbers = []
                     special_number = None
                     special_zodiac = None
                     
                     for i, elem in enumerate(number_elements):
-                        number = elem.text.strip().zfill(2)
-                        zodiac = elem.find_next(class_="zodiac").text.strip()
+                        number = elem.find('span').text.strip().zfill(2)
+                        zodiac = elem.find(class_="animal").text.strip()
                         
                         if i == len(number_elements) - 1:
                             special_number = number
