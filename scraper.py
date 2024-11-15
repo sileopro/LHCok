@@ -14,16 +14,34 @@ def get_driver():
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-software-rasterizer')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--single-process')
+    chrome_options.add_argument('--no-zygote')
+    chrome_options.add_argument('--remote-debugging-port=9222')
     
     try:
-        service = Service(ChromeDriverManager().install())
+        if os.environ.get('VERCEL_ENV'):
+            # Vercel 环境
+            chrome_options.binary_location = os.environ.get('CHROME_BIN', '/usr/bin/google-chrome')
+            service = Service(executable_path=os.environ.get('CHROMEDRIVER_PATH', '/usr/bin/chromedriver'))
+        else:
+            # GitHub Actions 环境
+            service = Service(ChromeDriverManager().install())
+            
         driver = webdriver.Chrome(
             service=service,
             options=chrome_options
         )
+        print("Chrome驱动初始化成功")
         return driver
+        
     except Exception as e:
         print(f"设置Chrome驱动时出错: {str(e)}")
+        if os.environ.get('VERCEL_ENV'):
+            print(f"Chrome路径: {os.environ.get('CHROME_BIN')}")
+            print(f"ChromeDriver路径: {os.environ.get('CHROMEDRIVER_PATH')}")
         return None
 
 def extract_lottery_info(driver, lottery_code, lottery_name):
@@ -152,10 +170,13 @@ def get_lottery_results(driver):
         return None
 
 def main():
+    driver = None
     try:
         driver = get_driver()
+        if not driver:
+            raise Exception("浏览器初始化失败")
+            
         print("浏览器初始化成功")
-        
         results = get_lottery_results(driver)
         
         if os.environ.get('VERCEL_ENV'):
@@ -166,9 +187,12 @@ def main():
         if os.environ.get('VERCEL_ENV'):
             return {"error": str(e)}
     finally:
-        if 'driver' in locals():
-            driver.quit()
-            print("浏览器已关闭")
+        try:
+            if driver:
+                driver.quit()
+                print("浏览器已关闭")
+        except Exception as e:
+            print(f"关闭浏览器时出错: {str(e)}")
 
 if __name__ == '__main__':
     main()
