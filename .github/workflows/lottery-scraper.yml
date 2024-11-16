@@ -67,20 +67,15 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 拉取最新代码
-          git pull origin main --rebase || true
-          
-          # 检查文件是否存在差异
-          if git diff --quiet HEAD *.txt; then
-            echo "no_changes=true" >> $GITHUB_OUTPUT
-            echo "文件内容与远程仓库相同，跳过提交"
-            exit 0
-          else
-            echo "no_changes=false" >> $GITHUB_OUTPUT
-            echo "检测到文件差异"
+          # 检查是否有新生成的txt文件
+          if [ -f "*.txt" ]; then
+            echo "发现新的txt文件，准备提交"
             git add -f *.txt
             git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')"
             git push origin main
+          else
+            echo "没有找到txt文件，跳过提交"
+            exit 0
           fi
 
   scrape-second:
@@ -142,18 +137,15 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 拉取最新代码
-          git pull origin main --rebase || true
-          
-          # 检查文件是否存在差异
-          if git diff --quiet HEAD *.txt; then
-            echo "文件内容与远程仓库相同，跳过提交"
-            exit 0
-          else
-            echo "检测到文件差异"
+          # 检查是否有新生成的txt文件
+          if [ -f "*.txt" ]; then
+            echo "发现新的txt文件，准备提交"
             git add -f *.txt
             git commit -m "更新开奖结果(8800) $(date '+%Y-%m-%d %H:%M:%S')"
             git push origin main
+          else
+            echo "没有找到txt文件，跳过提交"
+            exit 0
           fi
         
       - name: 删除旧的工作流运行记录
