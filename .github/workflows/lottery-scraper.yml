@@ -51,7 +51,10 @@ jobs:
           pip install selenium webdriver-manager
           
       - name: 运行第一个抓取脚本
-        run: python scrapered.py
+        run: |
+          # 修改文件名
+          sed -i 's/f"{lottery_id}.txt"/f"{lottery_id}_6htv.txt"/' scrapered.py
+          python scrapered.py
         env:
           TZ: Asia/Shanghai
           
@@ -59,7 +62,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add *.txt
+          git add *_6htv.txt
           git diff --quiet && git diff --staged --quiet || (git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')" && git push)
 
   scrape-second:
@@ -103,7 +106,10 @@ jobs:
           pip install selenium webdriver-manager
           
       - name: 运行第二个抓取脚本
-        run: python scraper.py
+        run: |
+          # 修改文件名
+          sed -i 's/f"{lottery_id}.txt"/f"{lottery_id}_8800.txt"/' scraper.py
+          python scraper.py
         env:
           TZ: Asia/Shanghai
         
@@ -111,8 +117,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add *.txt
-          git diff --quiet && git diff --staged --quiet || (git commit -m "更新开奖结果(8800) $(date '+%Y-%m-%d %H:%M:%S')" && git push)
+          git add *_8800.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "更新开奖结果(48489) $(date '+%Y-%m-%d %H:%M:%S')" && git push)
         
       - name: 删除旧的工作流运行记录
         uses: Mattraks/delete-workflow-runs@v2
