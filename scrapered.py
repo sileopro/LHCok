@@ -160,10 +160,14 @@ def extract_lottery_info(driver, lottery_type):
                     var elements = document.getElementsByTagName('div');
                     for(var i = 0; i < elements.length; i++) {
                         var text = elements[i].textContent;
-                        if(text.includes('第') && text.includes('期')) {
+                        if(text.includes('第') && text.includes('期') && text.includes('最新开奖结果')) {
                             console.log('找到期号文本:', text);
-                            issueText = text;
-                            break;
+                            // 提取期号
+                            var match = text.match(/第(\\d+)期/);
+                            if(match) {
+                                issueText = match[0];
+                                break;
+                            }
                         }
                     }
                     
@@ -171,6 +175,8 @@ def extract_lottery_info(driver, lottery_type):
                     var numbers = [];
                     var zodiac = '';
                     var elements = document.getElementsByTagName('div');
+                    var processedNumbers = new Set(); // 用于去重
+                    
                     for(var i = 0; i < elements.length; i++) {
                         var text = elements[i].textContent.trim();
                         // 检查是否包含数字和生肖
@@ -178,8 +184,9 @@ def extract_lottery_info(driver, lottery_type):
                             var parts = text.split('/');
                             if(parts.length == 2) {
                                 var num = parts[0].match(/\\d+/);
-                                if(num) {
+                                if(num && !processedNumbers.has(num[0])) {
                                     numbers.push(num[0]);
+                                    processedNumbers.add(num[0]); // 添加到已处理集合
                                     if(numbers.length == 7) {  // 最后一个数字的生肖
                                         zodiac = parts[1].trim();
                                     }
@@ -214,7 +221,7 @@ def extract_lottery_info(driver, lottery_type):
         if not match:
             # 尝试从页面内容中查找期号
             page_text = driver.find_element(By.TAG_NAME, "body").text
-            match = re.search(r'第(\d+)期', page_text)
+            match = re.search(r'第(\d+)期最新开奖结果', page_text)
             if not match:
                 raise Exception("无法找到期号")
         issue_short = match.group(1)[-3:]
