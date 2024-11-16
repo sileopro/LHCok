@@ -9,42 +9,20 @@ import time
 import re
 import os
 import random
+import undetected_chromedriver as uc
 
 def get_driver():
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-    chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--start-maximized')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--lang=zh-CN')
-    chrome_options.add_argument('--ignore-certificate-errors')
-    chrome_options.add_argument('--ignore-ssl-errors')
-    
-    # 添加更多的 User-Agent
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    ]
-    chrome_options.add_argument(f'--user-agent={random.choice(user_agents)}')
-    
     try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(
-            service=service,
-            options=chrome_options
+        # 使用 undetected_chromedriver
+        options = uc.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--window-size=1920,1080')
+        
+        driver = uc.Chrome(
+            options=options,
+            driver_executable_path=ChromeDriverManager().install()
         )
-        # 添加 CDP 命令来禁用 webdriver 标记
-        driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-            'source': '''
-                Object.defineProperty(navigator, 'webdriver', {
-                    get: () => undefined
-                })
-            '''
-        })
         return driver
     except Exception as e:
         print(f"设置Chrome驱动时出错: {str(e)}")
@@ -52,18 +30,27 @@ def get_driver():
 
 def random_sleep():
     """随机等待一段时间"""
-    time.sleep(random.uniform(2, 4))
+    time.sleep(random.uniform(3, 5))
 
 def extract_lottery_info(driver, lottery_type):
     """提取特定彩票的开奖信息"""
     try:
-        # 等待并点击图库按钮
-        gallery_button = WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '图库')]"))
+        # 等待页面加载完成
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
-        driver.execute_script("arguments[0].scrollIntoView(true);", gallery_button)
         random_sleep()
-        driver.execute_script("arguments[0].click();", gallery_button)
+        
+        # 使用JavaScript点击图库按钮
+        driver.execute_script("""
+            var elements = document.getElementsByTagName('span');
+            for(var i = 0; i < elements.length; i++) {
+                if(elements[i].textContent.includes('图库')) {
+                    elements[i].click();
+                    break;
+                }
+            }
+        """)
         random_sleep()
 
         # 点击对应的彩种按钮
@@ -74,48 +61,63 @@ def extract_lottery_info(driver, lottery_type):
             'tc': '台彩'
         }
         
-        # 等待并点击彩种按钮
-        button = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.XPATH, f"//div[contains(text(), '{lottery_buttons[lottery_type]}')]"))
-        )
-        driver.execute_script("arguments[0].scrollIntoView(true);", button)
-        random_sleep()
-        driver.execute_script("arguments[0].click();", button)
+        # 使用JavaScript点击彩种按钮
+        driver.execute_script(f"""
+            var elements = document.getElementsByTagName('div');
+            for(var i = 0; i < elements.length; i++) {{
+                if(elements[i].textContent.includes('{lottery_buttons[lottery_type]}')) {{
+                    elements[i].click();
+                    break;
+                }}
+            }}
+        """)
         random_sleep()
 
+        # 打印当前页面源码以便调试
+        print(f"当前页面URL: {driver.current_url}")
+        print("正在查找开奖信息...")
+
         # 获取期号
-        issue_element = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '第') and contains(text(), '期')]"))
-        )
-        issue_text = issue_element.text.strip()
+        issue_text = driver.execute_script("""
+            var elements = document.getElementsByTagName('div');
+            for(var i = 0; i < elements.length; i++) {
+                if(elements[i].textContent.includes('第') && elements[i].textContent.includes('期')) {
+                    return elements[i].textContent;
+                }
+            }
+            return '';
+        """)
+        
+        if not issue_text:
+            raise Exception("未找到期号")
+            
         print(f"找到期号文本: {issue_text}")
         match = re.search(r'第(\d+)期', issue_text)
         if not match:
             raise Exception(f"无法从文本'{issue_text}'解析期号")
         issue_short = match.group(1)[-3:]
 
-        # 获取号码
-        number_elements = WebDriverWait(driver, 15).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.circle span, div.number span"))
-        )
-        print(f"找到 {len(number_elements)} 个号码元素")
+        # 获取号码和生肖
+        numbers_data = driver.execute_script("""
+            var numbers = [];
+            var zodiac = '';
+            var elements = document.querySelectorAll('.circle span, .number span, .zodiac, .animal');
+            elements.forEach(function(elem) {
+                if(elem.classList.contains('zodiac') || elem.classList.contains('animal')) {
+                    zodiac = elem.textContent;
+                } else {
+                    numbers.push(elem.textContent);
+                }
+            });
+            return {numbers: numbers, zodiac: zodiac};
+        """)
         
-        numbers = []
-        for i, elem in enumerate(number_elements[:-1]):
-            number = elem.text.strip().zfill(2)
-            numbers.append(number)
-            print(f"号码 {i+1}: {number}")
-        
-        # 获取特码和生肖
-        special_number = number_elements[-1].text.strip().zfill(2)
-        print(f"特码: {special_number}")
-        
-        # 获取生肖
-        zodiac_element = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "span.zodiac, span.animal"))
-        )
-        special_zodiac = zodiac_element.text.strip()
-        print(f"生肖: {special_zodiac}")
+        if not numbers_data or not numbers_data['numbers']:
+            raise Exception("未找到号码")
+            
+        numbers = [num.strip().zfill(2) for num in numbers_data['numbers'][:-1]]
+        special_number = numbers_data['numbers'][-1].strip().zfill(2)
+        special_zodiac = numbers_data['zodiac'].strip()
 
         result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
         print(f"成功获取{lottery_buttons[lottery_type]}开奖结果：{result}")
