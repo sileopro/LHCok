@@ -2,7 +2,7 @@ name: 彩票one
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 每30分钟运行一次
+    - cron: '*/5 12-14 * * *'  # 北京时间 20:30-22:30 每5分钟运行一次 (UTC+8)
   workflow_dispatch:  # 允许手动触发
     inputs:
       reason:
