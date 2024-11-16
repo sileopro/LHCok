@@ -66,7 +66,9 @@ def extract_lottery_info(driver, lottery_type):
         print("正在查找可点击元素...")
         driver.execute_script("""
             document.querySelectorAll('span, div, a, button').forEach(function(el) {
-                console.log('找到元素:', el.textContent.trim());
+                if(el.textContent.trim()) {
+                    console.log('找到元素:', el.textContent.trim());
+                }
             });
         """)
         
@@ -91,15 +93,6 @@ def extract_lottery_info(driver, lottery_type):
                     }
                 }
                 
-                // 方法3：查找所有可能的元素
-                var allElements = document.querySelectorAll('*');
-                for(var i = 0; i < allElements.length; i++) {
-                    if(allElements[i].textContent.trim() === '图库') {
-                        allElements[i].click();
-                        return '通过遍历所有元素找到并点击';
-                    }
-                }
-                
                 return false;
             }
             return findAndClick();
@@ -107,16 +100,8 @@ def extract_lottery_info(driver, lottery_type):
         
         print("图库按钮点击结果:", gallery_clicked)
         if not gallery_clicked:
-            # 如果JavaScript点击失败，尝试使用Selenium点击
-            try:
-                gallery_button = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), '图库')]"))
-                )
-                gallery_button.click()
-                print("通过Selenium找到并点击图库按钮")
-            except:
-                print("未找到图库按钮")
-                return None
+            print("未找到图库按钮")
+            return None
             
         random_sleep()
 
@@ -151,16 +136,23 @@ def extract_lottery_info(driver, lottery_type):
         print(f"已点击{lottery_buttons[lottery_type]}按钮")
         random_sleep()
 
+        # 等待页面加载
+        time.sleep(2)
+        
         # 获取号码和生肖
         result_data = driver.execute_script("""
             function extractData() {
                 try {
+                    // 打印页面内容，帮助调试
+                    console.log('当前页面内容:', document.body.textContent);
+                    
                     // 获取期号
                     var issueText = '';
                     var elements = document.getElementsByTagName('div');
                     for(var i = 0; i < elements.length; i++) {
                         var text = elements[i].textContent;
                         if(text.includes('第') && text.includes('期')) {
+                            console.log('找到期号文本:', text);
                             issueText = text;
                             break;
                         }
@@ -173,37 +165,51 @@ def extract_lottery_info(driver, lottery_type):
                     
                     // 获取号码
                     var numbers = [];
-                    var numberElements = document.querySelectorAll('div.circle span, div.number span');
+                    var numberElements = document.querySelectorAll('div[class*="circle"] span, div[class*="number"] span');
+                    console.log('找到号码元素数量:', numberElements.length);
+                    
                     numberElements.forEach(function(el) {
                         var num = el.textContent.trim();
+                        console.log('找到号码:', num);
                         if(num && !isNaN(num)) {
                             numbers.push(num);
                         }
                     });
                     
+                    // 如果没有找到号码，尝试其他选择器
                     if(numbers.length < 7) {
-                        console.log('号码数量不足');
-                        return null;
+                        var allElements = document.querySelectorAll('div');
+                        allElements.forEach(function(el) {
+                            var text = el.textContent.trim();
+                            if(text && !isNaN(text) && text.length <= 2) {
+                                console.log('通过备用方法找到号码:', text);
+                                numbers.push(text);
+                            }
+                        });
                     }
                     
                     // 获取生肖
                     var zodiac = '';
-                    var zodiacElement = document.querySelector('span.zodiac, span.animal');
-                    if(zodiacElement) {
-                        zodiac = zodiacElement.textContent.trim();
-                    }
+                    var zodiacElements = document.querySelectorAll('span[class*="zodiac"], span[class*="animal"], div[class*="zodiac"], div[class*="animal"]');
+                    console.log('找到生肖元素数量:', zodiacElements.length);
                     
-                    console.log('提取到的数据:', {
-                        issue: issueText,
-                        numbers: numbers,
-                        zodiac: zodiac
+                    zodiacElements.forEach(function(el) {
+                        var text = el.textContent.trim();
+                        console.log('找到生肖:', text);
+                        if(text && !zodiac) {
+                            zodiac = text;
+                        }
                     });
                     
-                    return {
+                    var result = {
                         issue: issueText,
                         numbers: numbers,
                         zodiac: zodiac
                     };
+                    
+                    console.log('提取到的数据:', result);
+                    return result;
+                    
                 } catch(e) {
                     console.error('提取数据时出错:', e);
                     return null;
