@@ -101,7 +101,7 @@ def extract_lottery_info(driver, lottery_type):
         # 等待并点击彩种按钮
         try:
             # 打印所有可点击元素，帮助调试
-            print("查找可点击元素...")
+            print("���找可点击元素...")
             elements = driver.find_elements(By.XPATH, "//div[text()]")
             for elem in elements:
                 print(f"找到元素: {elem.text}")
@@ -267,8 +267,6 @@ def get_lottery_results(driver):
         
         for lottery_type in lottery_types:
             try:
-                print(f"\n开始处理 {lottery_type}...")
-                print("-"*50)
                 result = extract_lottery_info(driver, lottery_type)
                 if result:
                     with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
@@ -277,9 +275,7 @@ def get_lottery_results(driver):
                     print(f"✅ 已保存 {lottery_type} 开奖结果")
                 else:
                     print(f"❌ 未找到 {lottery_type} 的开奖结果")
-                print("-"*50)
                 
-                # 每次处理完一个彩种后，重新加载页面
                 driver.get('https://6htv99.com/#/home')
                 random_sleep()
             except Exception as e:
