@@ -62,40 +62,32 @@ def extract_lottery_info(driver, lottery_type):
         )
         random_sleep()
         
-        # 打印所有可点击元素的文本，帮助调试
         print(f"正在处理{lottery_type}...")
         
-        # 使用更多的选择器尝试找到图库按钮
-        gallery_clicked = driver.execute_script("""
-            function findAndClick() {
-                // 方法1：通过span标签查找
-                var spans = document.querySelectorAll('span');
-                for(var i = 0; i < spans.length; i++) {
-                    if(spans[i].textContent.includes('图库')) {
-                        spans[i].click();
-                        return '通过span找到并点击';
+        # 点击图库按钮
+        try:
+            # 先尝试使用 Selenium 直接点击
+            gallery_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//span[text()='图库']"))
+            )
+            driver.execute_script("arguments[0].click();", gallery_button)
+            print("已点击图库按钮")
+        except:
+            # 如果失败，使用 JavaScript 点击
+            gallery_clicked = driver.execute_script("""
+                var elements = document.querySelectorAll('span, div');
+                for(var i = 0; i < elements.length; i++) {
+                    if(elements[i].textContent.trim() === '图库') {
+                        elements[i].click();
+                        return true;
                     }
                 }
-                
-                // 方法2：通过导航菜单查找
-                var navItems = document.querySelectorAll('div[class*="nav"], div[class*="menu"]');
-                for(var i = 0; i < navItems.length; i++) {
-                    if(navItems[i].textContent.includes('图库')) {
-                        navItems[i].click();
-                        return '通过导航菜单找到并点击';
-                    }
-                }
-                
                 return false;
-            }
-            return findAndClick();
-        """)
+            """)
+            if not gallery_clicked:
+                print("未找到图库按钮")
+                return None
         
-        print("图库按钮点击结果:", gallery_clicked)
-        if not gallery_clicked:
-            print("未找到图库按钮")
-            return None
-            
         random_sleep()
 
         # 点击对应的彩种按钮
@@ -108,20 +100,52 @@ def extract_lottery_info(driver, lottery_type):
         
         # 等待并点击彩种按钮
         try:
-            # 等待彩种按钮可点击
-            button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, f"//div[contains(text(), '{lottery_buttons[lottery_type]}')]"))
-            )
-            driver.execute_script("arguments[0].click();", button)
+            # 打印所有可点击元素，帮助调试
+            print("查找可点击元素...")
+            elements = driver.find_elements(By.XPATH, "//div[text()]")
+            for elem in elements:
+                print(f"找到元素: {elem.text}")
+            
+            # 使用多种方式尝试点击
+            button_clicked = False
+            
+            # 方法1：直接点击
+            try:
+                button = driver.find_element(By.XPATH, f"//div[text()='{lottery_buttons[lottery_type]}']")
+                driver.execute_script("arguments[0].click();", button)
+                button_clicked = True
+            except:
+                print("方法1失败")
+            
+            # 方法2：使用部分文本匹配
+            if not button_clicked:
+                try:
+                    button = driver.find_element(By.XPATH, f"//div[contains(text(), '{lottery_buttons[lottery_type]}')]")
+                    driver.execute_script("arguments[0].click();", button)
+                    button_clicked = True
+                except:
+                    print("方法2失败")
+            
+            # 方法3：使用JavaScript点击
+            if not button_clicked:
+                button_clicked = driver.execute_script(f"""
+                    var elements = document.getElementsByTagName('div');
+                    for(var i = 0; i < elements.length; i++) {{
+                        if(elements[i].textContent.includes('{lottery_buttons[lottery_type]}')) {{
+                            elements[i].click();
+                            return true;
+                        }}
+                    }}
+                    return false;
+                """)
+            
+            if not button_clicked:
+                raise Exception(f"无法点击{lottery_buttons[lottery_type]}按钮")
+            
             print(f"已点击{lottery_buttons[lottery_type]}按钮")
             
             # 等待页面更新
             time.sleep(3)
-            
-            # 等待新内容加载
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'circle') or contains(@class, 'number')]"))
-            )
             
         except Exception as e:
             print(f"点击{lottery_buttons[lottery_type]}按钮时出错: {str(e)}")
