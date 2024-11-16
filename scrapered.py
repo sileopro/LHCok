@@ -9,20 +9,41 @@ import time
 import re
 import os
 import random
-import undetected_chromedriver as uc
 
 def get_driver():
     try:
-        # 使用 undetected_chromedriver
-        options = uc.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--window-size=1920,1080')
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
         
-        driver = uc.Chrome(
-            options=options,
-            driver_executable_path=ChromeDriverManager().install()
+        # 随机 User-Agent
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+        ]
+        chrome_options.add_argument(f'--user-agent={random.choice(user_agents)}')
+        
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(
+            service=service,
+            options=chrome_options
         )
+        
+        # 使用 CDP 命令来禁用 webdriver 标记
+        driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+            'source': '''
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                })
+            '''
+        })
+        
         return driver
     except Exception as e:
         print(f"设置Chrome驱动时出错: {str(e)}")
