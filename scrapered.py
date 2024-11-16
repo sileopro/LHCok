@@ -62,17 +62,26 @@ def extract_lottery_info(driver, lottery_type):
         )
         random_sleep()
         
+        # 先保存当前窗口句柄
+        main_window = driver.current_window_handle
+        
         # 使用JavaScript点击图库按钮
-        driver.execute_script("""
+        gallery_clicked = driver.execute_script("""
             var elements = document.querySelectorAll('span');
             for(var i = 0; i < elements.length; i++) {
-                if(elements[i].textContent.trim() === '图库') {
+                if(elements[i].textContent.includes('图库')) {
                     elements[i].click();
                     return true;
                 }
             }
             return false;
         """)
+        
+        if not gallery_clicked:
+            print("未找到图库按钮")
+            return None
+            
+        print("已点击图库按钮")
         random_sleep()
 
         # 点击对应的彩种按钮
@@ -86,10 +95,11 @@ def extract_lottery_info(driver, lottery_type):
         # 等待并点击彩种按钮
         button_clicked = driver.execute_script(f"""
             function clickButton() {{
-                var buttons = document.querySelectorAll('div');
-                for(var i = 0; i < buttons.length; i++) {{
-                    if(buttons[i].textContent.trim() === '{lottery_buttons[lottery_type]}') {{
-                        buttons[i].click();
+                var elements = document.getElementsByTagName('div');
+                for(var i = 0; i < elements.length; i++) {{
+                    var text = elements[i].textContent.trim();
+                    if(text.includes('{lottery_buttons[lottery_type]}')) {{
+                        elements[i].click();
                         return true;
                     }}
                 }}
@@ -102,32 +112,66 @@ def extract_lottery_info(driver, lottery_type):
             print(f"未找到{lottery_buttons[lottery_type]}按钮")
             return None
             
+        print(f"已点击{lottery_buttons[lottery_type]}按钮")
         random_sleep()
-        
-        # 等待新内容加载
-        time.sleep(2)
 
         # 获取号码和生肖
         result_data = driver.execute_script("""
             function extractData() {
-                // 获取期号
-                var issueElement = document.querySelector('div[class*="period"]');
-                if (!issueElement) return null;
-                var issueText = issueElement.textContent.trim();
-                
-                // 获取号码
-                var numberElements = document.querySelectorAll('div[class*="circle"] span, div[class*="number"] span');
-                var numbers = Array.from(numberElements).map(el => el.textContent.trim());
-                
-                // 获取生肖
-                var zodiacElement = document.querySelector('span[class*="zodiac"], span[class*="animal"]');
-                var zodiac = zodiacElement ? zodiacElement.textContent.trim() : '';
-                
-                return {
-                    issue: issueText,
-                    numbers: numbers,
-                    zodiac: zodiac
-                };
+                try {
+                    // 获取期号
+                    var issueText = '';
+                    var elements = document.getElementsByTagName('div');
+                    for(var i = 0; i < elements.length; i++) {
+                        var text = elements[i].textContent;
+                        if(text.includes('第') && text.includes('期')) {
+                            issueText = text;
+                            break;
+                        }
+                    }
+                    
+                    if(!issueText) {
+                        console.log('未找到期号');
+                        return null;
+                    }
+                    
+                    // 获取号码
+                    var numbers = [];
+                    var numberElements = document.querySelectorAll('div.circle span, div.number span');
+                    numberElements.forEach(function(el) {
+                        var num = el.textContent.trim();
+                        if(num && !isNaN(num)) {
+                            numbers.push(num);
+                        }
+                    });
+                    
+                    if(numbers.length < 7) {
+                        console.log('号码数量不足');
+                        return null;
+                    }
+                    
+                    // 获取生肖
+                    var zodiac = '';
+                    var zodiacElement = document.querySelector('span.zodiac, span.animal');
+                    if(zodiacElement) {
+                        zodiac = zodiacElement.textContent.trim();
+                    }
+                    
+                    console.log('提取到的数据:', {
+                        issue: issueText,
+                        numbers: numbers,
+                        zodiac: zodiac
+                    });
+                    
+                    return {
+                        issue: issueText,
+                        numbers: numbers,
+                        zodiac: zodiac
+                    };
+                } catch(e) {
+                    console.error('提取数据时出错:', e);
+                    return null;
+                }
             }
             return extractData();
         """)
@@ -157,11 +201,13 @@ def extract_lottery_info(driver, lottery_type):
 
     except Exception as e:
         print(f"提取{lottery_type}信息时出错: {str(e)}")
-        # 保存页面源码以便调试
+        # 保存页面源码和截图以便调试
         try:
             with open(f'error_{lottery_type}.html', 'w', encoding='utf-8') as f:
                 f.write(driver.page_source)
+            driver.save_screenshot(f'error_{lottery_type}.png')
             print(f"已保存错误页面源码到 error_{lottery_type}.html")
+            print(f"已保存错误页面截图到 error_{lottery_type}.png")
         except:
             pass
         return None
