@@ -67,6 +67,13 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git pull origin main --rebase || true
+          
+          # 检查文件是否存在差异
+          if git diff --quiet *.txt; then
+            echo "没有新的更新，跳过提交"
+            exit 0
+          fi
+          
           git add -f *.txt
           git status
           git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')" || true
@@ -120,30 +127,25 @@ jobs:
       - name: 检查第二个脚本文件
         run: |
           ls -la *.txt
-          echo "文件内容："
           cat *.txt
           
       - name: 提交第二个脚本的更新
+        continue-on-error: true
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+          git pull origin main --rebase || true
           
-          # 确保获取最新的更改
-          git fetch origin main
-          git reset --hard origin/main
-          
-          # 添加并提交更改
-          git add -A
-          git status
-          
-          # 检查是否有更改需要提交
-          if git diff --staged --quiet; then
-            echo "没有检测到文件更改"
-          else
-            echo "检测到文件更改，准备提交..."
-            git commit -m "更新开奖结果(8800) $(date '+%Y-%m-%d %H:%M:%S')"
-            git push origin main
+          # 检查文件是否存在差异
+          if git diff --quiet *.txt; then
+            echo "没有新的更新，跳过提交"
+            exit 0
           fi
+          
+          git add -f *.txt
+          git status
+          git commit -m "更新开奖结果(8800) $(date '+%Y-%m-%d %H:%M:%S')" || true
+          git push origin main --force
         
       - name: 删除旧的工作流运行记录
         if: always()
