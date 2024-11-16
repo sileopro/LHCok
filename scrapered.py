@@ -155,38 +155,41 @@ def extract_lottery_info(driver, lottery_type):
         result_data = driver.execute_script("""
             function extractData() {
                 try {
-                    // 获取当前显示的号码
-                    var numbers = [];
-                    var numberElements = document.querySelectorAll('div.circle span, div.number span');
-                    
-                    if (numberElements.length === 0) {
-                        console.log('未找到号码元素，尝试其他选择器');
-                        numberElements = document.querySelectorAll('div[class*="circle"] span, div[class*="number"] span');
-                    }
-                    
-                    numberElements.forEach(function(el) {
-                        var num = el.textContent.trim();
-                        if(num && !isNaN(num)) {
-                            numbers.push(num);
-                        }
-                    });
-                    
-                    // 获取生肖
-                    var zodiac = '';
-                    var zodiacElements = document.querySelectorAll('div.animal, span.animal');
-                    zodiacElements.forEach(function(el) {
-                        var text = el.textContent.trim();
-                        if(text) {
-                            zodiac = text;
-                        }
-                    });
-                    
                     // 获取期号
                     var issueText = '';
-                    var issueElement = document.querySelector('div.period');
-                    if (issueElement) {
-                        issueText = issueElement.textContent.trim();
+                    var elements = document.getElementsByTagName('div');
+                    for(var i = 0; i < elements.length; i++) {
+                        var text = elements[i].textContent;
+                        if(text.includes('第') && text.includes('期')) {
+                            console.log('找到期号文本:', text);
+                            issueText = text;
+                            break;
+                        }
                     }
+                    
+                    // 获取号码和生肖
+                    var numbers = [];
+                    var zodiac = '';
+                    var elements = document.getElementsByTagName('div');
+                    for(var i = 0; i < elements.length; i++) {
+                        var text = elements[i].textContent.trim();
+                        // 检查是否包含数字和生肖
+                        if(text.includes('/')) {
+                            var parts = text.split('/');
+                            if(parts.length == 2) {
+                                var num = parts[0].match(/\\d+/);
+                                if(num) {
+                                    numbers.push(num[0]);
+                                    if(numbers.length == 7) {  // 最后一个数字的生肖
+                                        zodiac = parts[1].trim();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    console.log('找到号码:', numbers);
+                    console.log('找到生肖:', zodiac);
                     
                     return {
                         issue: issueText,
@@ -201,7 +204,7 @@ def extract_lottery_info(driver, lottery_type):
             return extractData();
         """)
         
-        if not result_data or not result_data['numbers']:
+        if not result_data:
             raise Exception("未能获取开奖数据")
             
         print(f"获取到的数据: {result_data}")
@@ -209,7 +212,11 @@ def extract_lottery_info(driver, lottery_type):
         # 解析期号
         match = re.search(r'第(\d+)期', result_data['issue'])
         if not match:
-            raise Exception(f"无法从文本'{result_data['issue']}'解析期号")
+            # 尝试从页面内容中查找期号
+            page_text = driver.find_element(By.TAG_NAME, "body").text
+            match = re.search(r'第(\d+)期', page_text)
+            if not match:
+                raise Exception("无法找到期号")
         issue_short = match.group(1)[-3:]
         
         # 处理号码
@@ -221,7 +228,7 @@ def extract_lottery_info(driver, lottery_type):
         special_zodiac = result_data['zodiac']
 
         result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
-        print(f"成功获取{lottery_buttons[lottery_type]}开奖结果：{result}")
+        print(f"成功获取{lottery_type}开奖结果：{result}")
         return result
 
     except Exception as e:
