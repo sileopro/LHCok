@@ -55,6 +55,14 @@ jobs:
         env:
           TZ: Asia/Shanghai
           
+      - name: 备份第一个脚本的结果
+        run: |
+          for file in lam.txt xam.txt hk.txt tc.txt; do
+            if [ -f "$file" ]; then
+              cp "$file" "${file%.*}_6htv.txt"
+            fi
+          done
+          
       - name: 提交第一个脚本的更新
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -106,6 +114,14 @@ jobs:
         run: python scraper.py
         env:
           TZ: Asia/Shanghai
+          
+      - name: 备份第二个脚本的结果
+        run: |
+          for file in lam.txt xam.txt hk.txt tc.txt; do
+            if [ -f "$file" ]; then
+              cp "$file" "${file%.*}_8800.txt"
+            fi
+          done
         
       - name: 提交第二个脚本的更新
         run: |
@@ -120,4 +136,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           retain_days: 7
-          keep_minimum_runs: 100 
+          keep_minimum_runs: 100
