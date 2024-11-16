@@ -38,7 +38,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install selenium webdriver-manager
     
-    - name: Run scraper
+    - name: 彩票数据抓取
       run: python scrapered.py
     
     - name: Commit and push if changes
