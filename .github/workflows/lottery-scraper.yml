@@ -1,0 +1,80 @@
+name: 彩票开奖结果抓取
+on:
+  schedule:
+    # 北京时间 19:00-22:30 每5分钟运行一次/实际10分钟运行一次 (UTC 11:00-14:30)
+    - cron: '*/5 11 * * *'  # UTC 11:00-11:59
+    - cron: '*/5 12 * * *'  # UTC 12:00-12:59
+    - cron: '*/5 13 * * *'  # UTC 13:00-13:59
+    - cron: '0-30 14 * * *'  # UTC 14:00-14:30
+  push:
+    branches: [ main ]  # 当推送到main分支时也触发
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # 添加超时限制
+    
+    # 添加清理策略
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true  # 取消正在运行的重复任务
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的git历史
+          token: ${{ secrets.GITHUB_TOKEN }}  # 使用GitHub Token
+          
+      - name: 设置时区
+        uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: "Asia/Shanghai"
+          
+      - name: 设置Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          
+      - name: 安装 Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg2
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          
+      - name: 安装 ChromeDriver
+        uses: nanasess/setup-chromedriver@master
+          
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium webdriver-manager
+          
+      - name: 运行第一个抓取脚本
+        run: python scrapered.py
+        env:
+          TZ: Asia/Shanghai
+          
+      - name: 运行第二个抓取脚本
+        run: python scraper.py
+        env:
+          TZ: Asia/Shanghai
+        
+      - name: 提交更新
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add *.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "自动更新开奖结果 $(date '+%Y-%m-%d %H:%M:%S')" && git push)
+        
+      - name: 删除旧的工作流运行记录
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: 7    # 保留最近7天
+          keep_minimum_runs: 100  # 至少保留100次运行记录
