@@ -64,13 +64,14 @@ def extract_lottery_info(driver, lottery_type):
         
         # 使用JavaScript点击图库按钮
         driver.execute_script("""
-            var elements = document.getElementsByTagName('span');
+            var elements = document.querySelectorAll('span');
             for(var i = 0; i < elements.length; i++) {
-                if(elements[i].textContent.includes('图库')) {
+                if(elements[i].textContent.trim() === '图库') {
                     elements[i].click();
-                    break;
+                    return true;
                 }
             }
+            return false;
         """)
         random_sleep()
 
@@ -82,63 +83,73 @@ def extract_lottery_info(driver, lottery_type):
             'tc': '台彩'
         }
         
-        # 使用JavaScript点击彩种按钮
-        driver.execute_script(f"""
-            var elements = document.getElementsByTagName('div');
-            for(var i = 0; i < elements.length; i++) {{
-                if(elements[i].textContent.includes('{lottery_buttons[lottery_type]}')) {{
-                    elements[i].click();
-                    break;
+        # 等待并点击彩种按钮
+        button_clicked = driver.execute_script(f"""
+            function clickButton() {{
+                var buttons = document.querySelectorAll('div');
+                for(var i = 0; i < buttons.length; i++) {{
+                    if(buttons[i].textContent.trim() === '{lottery_buttons[lottery_type]}') {{
+                        buttons[i].click();
+                        return true;
+                    }}
                 }}
+                return false;
             }}
-        """)
-        random_sleep()
-
-        # 打印当前页面源码以便调试
-        print(f"当前页面URL: {driver.current_url}")
-        print("正在查找开奖信息...")
-
-        # 获取期号
-        issue_text = driver.execute_script("""
-            var elements = document.getElementsByTagName('div');
-            for(var i = 0; i < elements.length; i++) {
-                if(elements[i].textContent.includes('第') && elements[i].textContent.includes('期')) {
-                    return elements[i].textContent;
-                }
-            }
-            return '';
+            return clickButton();
         """)
         
-        if not issue_text:
-            raise Exception("未找到期号")
+        if not button_clicked:
+            print(f"未找到{lottery_buttons[lottery_type]}按钮")
+            return None
             
-        print(f"找到期号文本: {issue_text}")
-        match = re.search(r'第(\d+)期', issue_text)
-        if not match:
-            raise Exception(f"无法从文本'{issue_text}'解析期号")
-        issue_short = match.group(1)[-3:]
+        random_sleep()
+        
+        # 等待新内容加载
+        time.sleep(2)
 
         # 获取号码和生肖
-        numbers_data = driver.execute_script("""
-            var numbers = [];
-            var zodiac = '';
-            var elements = document.querySelectorAll('.circle span, .number span, .zodiac, .animal');
-            elements.forEach(function(elem) {
-                if(elem.classList.contains('zodiac') || elem.classList.contains('animal')) {
-                    zodiac = elem.textContent;
-                } else {
-                    numbers.push(elem.textContent);
-                }
-            });
-            return {numbers: numbers, zodiac: zodiac};
+        result_data = driver.execute_script("""
+            function extractData() {
+                // 获取期号
+                var issueElement = document.querySelector('div[class*="period"]');
+                if (!issueElement) return null;
+                var issueText = issueElement.textContent.trim();
+                
+                // 获取号码
+                var numberElements = document.querySelectorAll('div[class*="circle"] span, div[class*="number"] span');
+                var numbers = Array.from(numberElements).map(el => el.textContent.trim());
+                
+                // 获取生肖
+                var zodiacElement = document.querySelector('span[class*="zodiac"], span[class*="animal"]');
+                var zodiac = zodiacElement ? zodiacElement.textContent.trim() : '';
+                
+                return {
+                    issue: issueText,
+                    numbers: numbers,
+                    zodiac: zodiac
+                };
+            }
+            return extractData();
         """)
         
-        if not numbers_data or not numbers_data['numbers']:
-            raise Exception("未找到号码")
+        if not result_data:
+            raise Exception("未能获取开奖数据")
             
-        numbers = [num.strip().zfill(2) for num in numbers_data['numbers'][:-1]]
-        special_number = numbers_data['numbers'][-1].strip().zfill(2)
-        special_zodiac = numbers_data['zodiac'].strip()
+        print(f"获取到的数据: {result_data}")
+        
+        # 解析期号
+        match = re.search(r'第(\d+)期', result_data['issue'])
+        if not match:
+            raise Exception(f"无法从文本'{result_data['issue']}'解析期号")
+        issue_short = match.group(1)[-3:]
+        
+        # 处理号码
+        if len(result_data['numbers']) < 7:
+            raise Exception(f"号码数量不足: {len(result_data['numbers'])}")
+            
+        numbers = [num.zfill(2) for num in result_data['numbers'][:-1]]
+        special_number = result_data['numbers'][-1].zfill(2)
+        special_zodiac = result_data['zodiac']
 
         result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
         print(f"成功获取{lottery_buttons[lottery_type]}开奖结果：{result}")
