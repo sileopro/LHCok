@@ -188,7 +188,7 @@ def extract_lottery_info(driver, lottery_type):
                                     numbers.push(num[0]);
                                     processedNumbers.add(num[0]); // 添加到已处理集合
                                     if(numbers.length == 7) {  // 最后一个数字的生肖
-                                        zodiac = parts[1].trim();
+                                        zodiac = parts[0].replace(/\\d+/g, '').trim(); // 获取数字前面的生肖
                                     }
                                 }
                             }
