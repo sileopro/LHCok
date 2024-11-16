@@ -1,4 +1,4 @@
-name: 彩票数据抓取
+name: 彩票开奖结果抓取
 on:
   schedule:
     # 北京时间 19:00-22:30 每5分钟运行一次/实际10分钟运行一次 (UTC 11:00-14:30)
@@ -112,7 +112,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add *.txt
-          git diff --quiet && git diff --staged --quiet || (git commit -m "更新开奖结果(48489) $(date '+%Y-%m-%d %H:%M:%S')" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "更新开奖结果(8080) $(date '+%Y-%m-%d %H:%M:%S')" && git push)
         
       - name: 删除旧的工作流运行记录
         uses: Mattraks/delete-workflow-runs@v2
