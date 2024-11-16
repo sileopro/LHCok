@@ -55,16 +55,25 @@ jobs:
         env:
           TZ: Asia/Shanghai
           
+      - name: 检查第一个脚本文件
+        run: |
+          ls -la *.txt
+          cat *.txt
+          
       - name: 提交第一个脚本的更新
+        id: commit-first
         continue-on-error: true
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git pull origin main --rebase
-          git add *.txt
-          git diff --quiet && git diff --staged --quiet || (git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')" && git push)
+          git pull origin main --rebase || true
+          git add -f *.txt
+          git status
+          git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')" || true
+          git push origin main --force
 
   scrape-second:
+    needs: scrape-first
     runs-on: ubuntu-latest
     timeout-minutes: 5
     
@@ -108,7 +117,7 @@ jobs:
         env:
           TZ: Asia/Shanghai
           
-      - name: 检查文件
+      - name: 检查第二个脚本文件
         run: |
           ls -la *.txt
           cat *.txt
