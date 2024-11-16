@@ -62,18 +62,13 @@ def extract_lottery_info(driver, lottery_type):
         )
         random_sleep()
         
-        print(f"正在处理{lottery_type}...")
-        
         # 点击图库按钮
         try:
-            # 先尝试使用 Selenium 直接点击
             gallery_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "//span[text()='图库']"))
             )
             driver.execute_script("arguments[0].click();", gallery_button)
-            print("已点击图库按钮")
         except:
-            # 如果失败，使用 JavaScript 点击
             gallery_clicked = driver.execute_script("""
                 var elements = document.querySelectorAll('span, div');
                 for(var i = 0; i < elements.length; i++) {
@@ -85,7 +80,6 @@ def extract_lottery_info(driver, lottery_type):
                 return false;
             """)
             if not gallery_clicked:
-                print("未找到图库按钮")
                 return None
         
         random_sleep()
@@ -98,58 +92,44 @@ def extract_lottery_info(driver, lottery_type):
             'tc': '台彩'
         }
         
-        # 等待并点击彩种按钮
+        # 使用多种方式尝试点击
+        button_clicked = False
+        
+        # 方法1：直接点击
         try:
-            # 打印所有可点击元素，帮助调试
-            print("���找可点击元素...")
-            elements = driver.find_elements(By.XPATH, "//div[text()]")
-            for elem in elements:
-                print(f"找到元素: {elem.text}")
-            
-            # 使用多种方式尝试点击
-            button_clicked = False
-            
-            # 方法1：直接点击
+            button = driver.find_element(By.XPATH, f"//div[text()='{lottery_buttons[lottery_type]}']")
+            driver.execute_script("arguments[0].click();", button)
+            button_clicked = True
+        except:
+            pass
+        
+        # 方法2：使用部分文本匹配
+        if not button_clicked:
             try:
-                button = driver.find_element(By.XPATH, f"//div[text()='{lottery_buttons[lottery_type]}']")
+                button = driver.find_element(By.XPATH, f"//div[contains(text(), '{lottery_buttons[lottery_type]}')]")
                 driver.execute_script("arguments[0].click();", button)
                 button_clicked = True
             except:
-                print("方法1失败")
-            
-            # 方法2：使用部分文本匹配
-            if not button_clicked:
-                try:
-                    button = driver.find_element(By.XPATH, f"//div[contains(text(), '{lottery_buttons[lottery_type]}')]")
-                    driver.execute_script("arguments[0].click();", button)
-                    button_clicked = True
-                except:
-                    print("方法2失败")
-            
-            # 方法3：使用JavaScript点击
-            if not button_clicked:
-                button_clicked = driver.execute_script(f"""
-                    var elements = document.getElementsByTagName('div');
-                    for(var i = 0; i < elements.length; i++) {{
-                        if(elements[i].textContent.includes('{lottery_buttons[lottery_type]}')) {{
-                            elements[i].click();
-                            return true;
-                        }}
+                pass
+        
+        # 方法3：使用JavaScript点击
+        if not button_clicked:
+            button_clicked = driver.execute_script(f"""
+                var elements = document.getElementsByTagName('div');
+                for(var i = 0; i < elements.length; i++) {{
+                    if(elements[i].textContent.includes('{lottery_buttons[lottery_type]}')) {{
+                        elements[i].click();
+                        return true;
                     }}
-                    return false;
-                """)
-            
-            if not button_clicked:
-                raise Exception(f"无法点击{lottery_buttons[lottery_type]}按钮")
-            
-            print(f"已点击{lottery_buttons[lottery_type]}按钮")
-            
-            # 等待页面更新
-            time.sleep(3)
-            
-        except Exception as e:
-            print(f"点击{lottery_buttons[lottery_type]}按钮时出错: {str(e)}")
+                }}
+                return false;
+            """)
+        
+        if not button_clicked:
             return None
+            
+        print(f"已点击{lottery_buttons[lottery_type]}按钮")
+        time.sleep(3)
 
         # 获取号码和生肖
         result_data = driver.execute_script("""
@@ -212,23 +192,20 @@ def extract_lottery_info(driver, lottery_type):
         """)
         
         if not result_data:
-            raise Exception("未能获取开奖数据")
+            return None
             
-        print(f"获取到的数据: {result_data}")
-        
         # 解析期号
         match = re.search(r'第(\d+)期', result_data['issue'])
         if not match:
-            # 尝试从页面内容中查找期号
             page_text = driver.find_element(By.TAG_NAME, "body").text
             match = re.search(r'第(\d+)期最新开奖结果', page_text)
             if not match:
-                raise Exception("无法找到期号")
+                return None
         issue_short = match.group(1)[-3:]
         
         # 处理号码
         if len(result_data['numbers']) < 7:
-            raise Exception(f"号码数量不足: {len(result_data['numbers'])}")
+            return None
             
         numbers = [num.zfill(2) for num in result_data['numbers'][:-1]]
         special_number = result_data['numbers'][-1].zfill(2)
@@ -239,16 +216,6 @@ def extract_lottery_info(driver, lottery_type):
         return result
 
     except Exception as e:
-        print(f"提取{lottery_type}信息时出错: {str(e)}")
-        # 保存页面源码和截图以便调试
-        try:
-            with open(f'error_{lottery_type}.html', 'w', encoding='utf-8') as f:
-                f.write(driver.page_source)
-            driver.save_screenshot(f'error_{lottery_type}.png')
-            print(f"已保存错误页面源码到 error_{lottery_type}.html")
-            print(f"已保存错误页面截图到 error_{lottery_type}.png")
-        except:
-            pass
         return None
 
 def get_lottery_results(driver):
@@ -266,27 +233,18 @@ def get_lottery_results(driver):
         lottery_types = ['lam', 'xam', 'hk', 'tc']
         
         for lottery_type in lottery_types:
-            try:
-                result = extract_lottery_info(driver, lottery_type)
-                if result:
-                    with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
-                        f.write(result)
-                    results[lottery_type] = result
-                    print(f"✅ 已保存 {lottery_type} 开奖结果")
-                else:
-                    print(f"❌ 未找到 {lottery_type} 的开奖结果")
-                
-                driver.get('https://6htv99.com/#/home')
-                random_sleep()
-            except Exception as e:
-                print(f"❌ 处理 {lottery_type} 时出错: {str(e)}")
-                driver.get('https://6htv99.com/#/home')
-                random_sleep()
+            result = extract_lottery_info(driver, lottery_type)
+            if result:
+                with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
+                    f.write(result)
+                results[lottery_type] = result
+                print(f"✅ 已保存 {lottery_type} 开奖结果")
+            driver.get('https://6htv99.com/#/home')
+            random_sleep()
                 
         return results
                 
     except Exception as e:
-        print(f"❌ 获取开奖结果时出错: {str(e)}")
         return None
 
 def main():
