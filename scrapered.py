@@ -16,6 +16,7 @@ def get_driver():
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    chrome_options.add_argument('--window-size=1920,1080')
     
     try:
         service = Service(ChromeDriverManager().install())
@@ -31,6 +32,13 @@ def get_driver():
 def extract_lottery_info(driver, lottery_type):
     """提取特定彩票的开奖信息"""
     try:
+        # 等待并点击图库按钮
+        gallery_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '图库')]"))
+        )
+        driver.execute_script("arguments[0].click();", gallery_button)
+        time.sleep(2)
+
         # 点击对应的彩种按钮
         lottery_buttons = {
             'lam': '澳彩',
@@ -43,8 +51,8 @@ def extract_lottery_info(driver, lottery_type):
         button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, f"//div[text()='{lottery_buttons[lottery_type]}']"))
         )
-        button.click()
-        time.sleep(2)  # 等待内容加载
+        driver.execute_script("arguments[0].click();", button)
+        time.sleep(2)
 
         # 获取期号
         issue_element = WebDriverWait(driver, 10).until(
@@ -59,7 +67,7 @@ def extract_lottery_info(driver, lottery_type):
         # 获取号码
         numbers = []
         number_elements = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'circle')]"))
+            EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'circle') or contains(@class, 'number')]//span"))
         )
         
         for i, elem in enumerate(number_elements[:-1]):  # 除了最后一个数字
@@ -102,8 +110,13 @@ def get_lottery_results(driver):
                     print(f"已保存 {lottery_type} 开奖结果")
                 else:
                     print(f"未找到 {lottery_type} 的开奖结果")
+                # 每次处理完一个彩种后，重新加载页面
+                driver.get('https://6htv99.com/#/home')
+                time.sleep(3)
             except Exception as e:
                 print(f"处理 {lottery_type} 时出错: {str(e)}")
+                driver.get('https://6htv99.com/#/home')
+                time.sleep(3)
                 
         return results
                 
