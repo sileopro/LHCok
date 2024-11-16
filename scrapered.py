@@ -235,7 +235,7 @@ def get_lottery_results(driver):
         for lottery_type in lottery_types:
             result = extract_lottery_info(driver, lottery_type)
             if result:
-                with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
+                with open(f'{lottery_type}_6htv.txt', 'w', encoding='utf-8') as f:
                     f.write(result)
                 results[lottery_type] = result
                 print(f"✅ 已保存 {lottery_type} 开奖结果")
