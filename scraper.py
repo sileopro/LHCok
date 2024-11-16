@@ -123,11 +123,11 @@ def get_lottery_results(driver):
                     with open(f'{lottery_id}.txt', 'w', encoding='utf-8') as f:
                         f.write(result)
                     results[lottery_id] = result
-                    print(f"✅ 已保存 {lottery_id} 开奖结果\n")
+                    print(f"✅ 已保存 {lottery_id} 开奖结果")
                 else:
-                    print(f"❌ 未找到 {name} 的开奖结果\n")
+                    print(f"❌ 未找到 {name} 的开奖结果")
             except Exception as e:
-                print(f"❌ 处理 {name} 时出错\n")
+                print(f"❌ 处理 {name} 时出错")
                 
         return results
                 
