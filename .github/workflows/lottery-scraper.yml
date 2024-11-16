@@ -67,39 +67,26 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 显示当前文件状态
-          echo "当前文件内容："
-          cat *.txt
-          
           # 拉取最新代码
           git pull origin main --rebase || true
           
-          echo "远程仓库文件内容："
-          git show origin/main:*.txt || true
-          
           # 检查文件是否存在差异
           if git diff --quiet HEAD *.txt; then
+            echo "no_changes=true" >> $GITHUB_OUTPUT
             echo "文件内容与远程仓库相同，跳过提交"
             exit 0
           else
-            echo "检测到文件差异："
-            git diff HEAD *.txt
+            echo "no_changes=false" >> $GITHUB_OUTPUT
+            echo "检测到文件差异"
+            git add -f *.txt
+            git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')"
+            git push origin main
           fi
-          
-          # 强制添加并提交
-          git add -f *.txt
-          git status
-          git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')"
-          git push origin main --force
 
   scrape-second:
     needs: scrape-first
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    
-    concurrency:
-      group: ${{ github.workflow }}-second-${{ github.ref }}
-      cancel-in-progress: true
     
     steps:
       - name: 检出代码
@@ -132,6 +119,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install selenium webdriver-manager
           
+      - name: 等待第一个job的更新同步
+        run: sleep 30
+      
+      - name: 拉取最新更改
+        run: |
+          git pull origin main --rebase
+          
       - name: 运行第二个抓取脚本
         run: python scraper.py
         env:
@@ -148,22 +142,18 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 先保存当前更改
-          cp *.txt /tmp/
-          
           # 拉取最新代码
-          git fetch origin main
-          git reset --hard origin/main
+          git pull origin main --rebase || true
           
-          # 比较文件差异
-          if ! diff -q /tmp/*.txt *.txt >/dev/null 2>&1; then
-            # 有差异，恢复新文件并提交
-            cp /tmp/*.txt ./
+          # 检查文件是否存在差异
+          if git diff --quiet HEAD *.txt; then
+            echo "文件内容与远程仓库相同，跳过提交"
+            exit 0
+          else
+            echo "检测到文件差异"
             git add -f *.txt
             git commit -m "更新开奖结果(8800) $(date '+%Y-%m-%d %H:%M:%S')"
-            git push origin main --force
-          else
-            echo "文件内容没有变化，跳过提交"
+            git push origin main
           fi
         
       - name: 删除旧的工作流运行记录
