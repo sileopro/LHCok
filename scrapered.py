@@ -8,6 +8,7 @@ from selenium.webdriver.chrome.service import Service
 import time
 import re
 import os
+import random
 
 def get_driver():
     chrome_options = Options()
@@ -15,8 +16,20 @@ def get_driver():
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--start-maximized')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--lang=zh-CN')
+    chrome_options.add_argument('--ignore-certificate-errors')
+    chrome_options.add_argument('--ignore-ssl-errors')
+    
+    # 添加更多的 User-Agent
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ]
+    chrome_options.add_argument(f'--user-agent={random.choice(user_agents)}')
     
     try:
         service = Service(ChromeDriverManager().install())
@@ -24,20 +37,34 @@ def get_driver():
             service=service,
             options=chrome_options
         )
+        # 添加 CDP 命令来禁用 webdriver 标记
+        driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+            'source': '''
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                })
+            '''
+        })
         return driver
     except Exception as e:
         print(f"设置Chrome驱动时出错: {str(e)}")
         return None
 
+def random_sleep():
+    """随机等待一段时间"""
+    time.sleep(random.uniform(2, 4))
+
 def extract_lottery_info(driver, lottery_type):
     """提取特定彩票的开奖信息"""
     try:
         # 等待并点击图库按钮
-        gallery_button = WebDriverWait(driver, 10).until(
+        gallery_button = WebDriverWait(driver, 15).until(
             EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '图库')]"))
         )
+        driver.execute_script("arguments[0].scrollIntoView(true);", gallery_button)
+        random_sleep()
         driver.execute_script("arguments[0].click();", gallery_button)
-        time.sleep(2)
+        random_sleep()
 
         # 点击对应的彩种按钮
         lottery_buttons = {
@@ -48,40 +75,47 @@ def extract_lottery_info(driver, lottery_type):
         }
         
         # 等待并点击彩种按钮
-        button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, f"//div[text()='{lottery_buttons[lottery_type]}']"))
+        button = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.XPATH, f"//div[contains(text(), '{lottery_buttons[lottery_type]}')]"))
         )
+        driver.execute_script("arguments[0].scrollIntoView(true);", button)
+        random_sleep()
         driver.execute_script("arguments[0].click();", button)
-        time.sleep(2)
+        random_sleep()
 
         # 获取期号
-        issue_element = WebDriverWait(driver, 10).until(
+        issue_element = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '第') and contains(text(), '期')]"))
         )
         issue_text = issue_element.text.strip()
+        print(f"找到期号文本: {issue_text}")
         match = re.search(r'第(\d+)期', issue_text)
         if not match:
             raise Exception(f"无法从文本'{issue_text}'解析期号")
         issue_short = match.group(1)[-3:]
 
         # 获取号码
-        numbers = []
-        number_elements = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'circle') or contains(@class, 'number')]//span"))
+        number_elements = WebDriverWait(driver, 15).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.circle span, div.number span"))
         )
+        print(f"找到 {len(number_elements)} 个号码元素")
         
-        for i, elem in enumerate(number_elements[:-1]):  # 除了最后一个数字
+        numbers = []
+        for i, elem in enumerate(number_elements[:-1]):
             number = elem.text.strip().zfill(2)
             numbers.append(number)
+            print(f"号码 {i+1}: {number}")
         
         # 获取特码和生肖
         special_number = number_elements[-1].text.strip().zfill(2)
+        print(f"特码: {special_number}")
         
         # 获取生肖
-        zodiac_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//span[contains(@class, 'zodiac') or contains(@class, 'animal')]"))
+        zodiac_element = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "span.zodiac, span.animal"))
         )
         special_zodiac = zodiac_element.text.strip()
+        print(f"生肖: {special_zodiac}")
 
         result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
         print(f"成功获取{lottery_buttons[lottery_type]}开奖结果：{result}")
@@ -89,13 +123,22 @@ def extract_lottery_info(driver, lottery_type):
 
     except Exception as e:
         print(f"提取{lottery_type}信息时出错: {str(e)}")
+        # 保存页面源码以便调试
+        try:
+            with open(f'error_{lottery_type}.html', 'w', encoding='utf-8') as f:
+                f.write(driver.page_source)
+            print(f"已保存错误页面源码到 error_{lottery_type}.html")
+        except:
+            pass
         return None
 
 def get_lottery_results(driver):
     """获取所有彩票开奖结果"""
     try:
         driver.get('https://6htv99.com/#/home')
-        time.sleep(5)  # 等待页面加载
+        random_sleep()
+        print("页面标题:", driver.title)
+        print("当前URL:", driver.current_url)
         
         results = {}
         lottery_types = ['lam', 'xam', 'hk', 'tc']
@@ -112,11 +155,11 @@ def get_lottery_results(driver):
                     print(f"未找到 {lottery_type} 的开奖结果")
                 # 每次处理完一个彩种后，重新加载页面
                 driver.get('https://6htv99.com/#/home')
-                time.sleep(3)
+                random_sleep()
             except Exception as e:
                 print(f"处理 {lottery_type} 时出错: {str(e)}")
                 driver.get('https://6htv99.com/#/home')
-                time.sleep(3)
+                random_sleep()
                 
         return results
                 
