@@ -63,14 +63,7 @@ def extract_lottery_info(driver, lottery_type):
         random_sleep()
         
         # 打印所有可点击元素的文本，帮助调试
-        print("正在查找可点击元素...")
-        driver.execute_script("""
-            document.querySelectorAll('span, div, a, button').forEach(function(el) {
-                if(el.textContent.trim()) {
-                    console.log('找到元素:', el.textContent.trim());
-                }
-            });
-        """)
+        print(f"正在处理{lottery_type}...")
         
         # 使用更多的选择器尝试找到图库按钮
         gallery_clicked = driver.execute_script("""
@@ -114,102 +107,68 @@ def extract_lottery_info(driver, lottery_type):
         }
         
         # 等待并点击彩种按钮
-        button_clicked = driver.execute_script(f"""
-            function clickButton() {{
-                var elements = document.getElementsByTagName('div');
-                for(var i = 0; i < elements.length; i++) {{
-                    var text = elements[i].textContent.trim();
-                    if(text.includes('{lottery_buttons[lottery_type]}')) {{
-                        elements[i].click();
-                        return true;
-                    }}
-                }}
-                return false;
-            }}
-            return clickButton();
-        """)
-        
-        if not button_clicked:
-            print(f"未找到{lottery_buttons[lottery_type]}按钮")
-            return None
+        try:
+            # 等待彩种按钮可点击
+            button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, f"//div[contains(text(), '{lottery_buttons[lottery_type]}')]"))
+            )
+            driver.execute_script("arguments[0].click();", button)
+            print(f"已点击{lottery_buttons[lottery_type]}按钮")
             
-        print(f"已点击{lottery_buttons[lottery_type]}按钮")
-        random_sleep()
+            # 等待页面更新
+            time.sleep(3)
+            
+            # 等待新内容加载
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'circle') or contains(@class, 'number')]"))
+            )
+            
+        except Exception as e:
+            print(f"点击{lottery_buttons[lottery_type]}按钮时出错: {str(e)}")
+            return None
 
-        # 等待页面加载
-        time.sleep(2)
-        
         # 获取号码和生肖
         result_data = driver.execute_script("""
             function extractData() {
                 try {
-                    // 打印页面内容，帮助调试
-                    console.log('当前页面内容:', document.body.textContent);
-                    
-                    // 获取期号
-                    var issueText = '';
-                    var elements = document.getElementsByTagName('div');
-                    for(var i = 0; i < elements.length; i++) {
-                        var text = elements[i].textContent;
-                        if(text.includes('第') && text.includes('期')) {
-                            console.log('找到期号文本:', text);
-                            issueText = text;
-                            break;
-                        }
-                    }
-                    
-                    if(!issueText) {
-                        console.log('未找到期号');
-                        return null;
-                    }
-                    
-                    // 获取号码
+                    // 获取当前显示的号码
                     var numbers = [];
-                    var numberElements = document.querySelectorAll('div[class*="circle"] span, div[class*="number"] span');
-                    console.log('找到号码元素数量:', numberElements.length);
+                    var numberElements = document.querySelectorAll('div.circle span, div.number span');
+                    
+                    if (numberElements.length === 0) {
+                        console.log('未找到号码元素，尝试其他选择器');
+                        numberElements = document.querySelectorAll('div[class*="circle"] span, div[class*="number"] span');
+                    }
                     
                     numberElements.forEach(function(el) {
                         var num = el.textContent.trim();
-                        console.log('找到号码:', num);
                         if(num && !isNaN(num)) {
                             numbers.push(num);
                         }
                     });
                     
-                    // 如果没有找到号码，尝试其他选择器
-                    if(numbers.length < 7) {
-                        var allElements = document.querySelectorAll('div');
-                        allElements.forEach(function(el) {
-                            var text = el.textContent.trim();
-                            if(text && !isNaN(text) && text.length <= 2) {
-                                console.log('通过备用方法找到号码:', text);
-                                numbers.push(text);
-                            }
-                        });
-                    }
-                    
                     // 获取生肖
                     var zodiac = '';
-                    var zodiacElements = document.querySelectorAll('span[class*="zodiac"], span[class*="animal"], div[class*="zodiac"], div[class*="animal"]');
-                    console.log('找到生肖元素数量:', zodiacElements.length);
-                    
+                    var zodiacElements = document.querySelectorAll('div.animal, span.animal');
                     zodiacElements.forEach(function(el) {
                         var text = el.textContent.trim();
-                        console.log('找到生肖:', text);
-                        if(text && !zodiac) {
+                        if(text) {
                             zodiac = text;
                         }
                     });
                     
-                    var result = {
+                    // 获取期号
+                    var issueText = '';
+                    var issueElement = document.querySelector('div.period');
+                    if (issueElement) {
+                        issueText = issueElement.textContent.trim();
+                    }
+                    
+                    return {
                         issue: issueText,
                         numbers: numbers,
                         zodiac: zodiac
                     };
-                    
-                    console.log('提取到的数据:', result);
-                    return result;
-                    
                 } catch(e) {
                     console.error('提取数据时出错:', e);
                     return null;
@@ -218,7 +177,7 @@ def extract_lottery_info(driver, lottery_type):
             return extractData();
         """)
         
-        if not result_data:
+        if not result_data or not result_data['numbers']:
             raise Exception("未能获取开奖数据")
             
         print(f"获取到的数据: {result_data}")
