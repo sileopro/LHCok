@@ -148,30 +148,23 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 显示当前文件状态
-          echo "当前文件内容："
-          cat *.txt
+          # 先保存当前更改
+          cp *.txt /tmp/
           
           # 拉取最新代码
-          git pull origin main --rebase || true
+          git fetch origin main
+          git reset --hard origin/main
           
-          echo "远程仓库文件内容："
-          git show origin/main:*.txt || true
-          
-          # 检查文件是否存在差异
-          if git diff --quiet HEAD *.txt; then
-            echo "文件内容与远程仓库相同，跳过提交"
-            exit 0
+          # 比较文件差异
+          if ! diff -q /tmp/*.txt *.txt >/dev/null 2>&1; then
+            # 有差异，恢复新文件并提交
+            cp /tmp/*.txt ./
+            git add -f *.txt
+            git commit -m "更新开奖结果(8800) $(date '+%Y-%m-%d %H:%M:%S')"
+            git push origin main --force
           else
-            echo "检测到文件差异："
-            git diff HEAD *.txt
+            echo "文件内容没有变化，跳过提交"
           fi
-          
-          # 强制添加并提交
-          git add -f *.txt
-          git status
-          git commit -m "更新开奖结果(8800) $(date '+%Y-%m-%d %H:%M:%S')"
-          git push origin main --force
         
       - name: 删除旧的工作流运行记录
         if: always()
