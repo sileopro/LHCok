@@ -51,10 +51,7 @@ jobs:
           pip install selenium webdriver-manager
           
       - name: 运行第一个抓取脚本
-        run: |
-          # 修改文件名
-          sed -i 's/f"{lottery_id}.txt"/f"{lottery_id}_6htv.txt"/' scrapered.py
-          python scrapered.py
+        run: python scrapered.py
         env:
           TZ: Asia/Shanghai
           
@@ -106,10 +103,7 @@ jobs:
           pip install selenium webdriver-manager
           
       - name: 运行第二个抓取脚本
-        run: |
-          # 修改文件名
-          sed -i 's/f"{lottery_id}.txt"/f"{lottery_id}_8800.txt"/' scraper.py
-          python scraper.py
+        run: python scraper.py
         env:
           TZ: Asia/Shanghai
         
