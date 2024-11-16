@@ -62,26 +62,62 @@ def extract_lottery_info(driver, lottery_type):
         )
         random_sleep()
         
-        # 先保存当前窗口句柄
-        main_window = driver.current_window_handle
-        
-        # 使用JavaScript点击图库按钮
-        gallery_clicked = driver.execute_script("""
-            var elements = document.querySelectorAll('span');
-            for(var i = 0; i < elements.length; i++) {
-                if(elements[i].textContent.includes('图库')) {
-                    elements[i].click();
-                    return true;
-                }
-            }
-            return false;
+        # 打印所有可点击元素的文本，帮助调试
+        print("正在查找可点击元素...")
+        driver.execute_script("""
+            document.querySelectorAll('span, div, a, button').forEach(function(el) {
+                console.log('找到元素:', el.textContent.trim());
+            });
         """)
         
+        # 使用更多的选择器尝试找到图库按钮
+        gallery_clicked = driver.execute_script("""
+            function findAndClick() {
+                // 方法1：通过span标签查找
+                var spans = document.querySelectorAll('span');
+                for(var i = 0; i < spans.length; i++) {
+                    if(spans[i].textContent.includes('图库')) {
+                        spans[i].click();
+                        return '通过span找到并点击';
+                    }
+                }
+                
+                // 方法2：通过导航菜单查找
+                var navItems = document.querySelectorAll('div[class*="nav"], div[class*="menu"]');
+                for(var i = 0; i < navItems.length; i++) {
+                    if(navItems[i].textContent.includes('图库')) {
+                        navItems[i].click();
+                        return '通过导航菜单找到并点击';
+                    }
+                }
+                
+                // 方法3：查找所有可能的元素
+                var allElements = document.querySelectorAll('*');
+                for(var i = 0; i < allElements.length; i++) {
+                    if(allElements[i].textContent.trim() === '图库') {
+                        allElements[i].click();
+                        return '通过遍历所有元素找到并点击';
+                    }
+                }
+                
+                return false;
+            }
+            return findAndClick();
+        """)
+        
+        print("图库按钮点击结果:", gallery_clicked)
         if not gallery_clicked:
-            print("未找到图库按钮")
-            return None
+            # 如果JavaScript点击失败，尝试使用Selenium点击
+            try:
+                gallery_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), '图库')]"))
+                )
+                gallery_button.click()
+                print("通过Selenium找到并点击图库按钮")
+            except:
+                print("未找到图库按钮")
+                return None
             
-        print("已点击图库按钮")
         random_sleep()
 
         # 点击对应的彩种按钮
