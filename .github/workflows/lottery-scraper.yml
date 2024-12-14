@@ -1,1 +1,164 @@
-11
+name: 彩票数据抓取
+on:
+  schedule:
+    # 北京时间 19:00-22:30 每5分钟运行一次/实际10分钟运行一次 (UTC 11:00-14:30)
+    - cron: '*/5 11 * * *'  # UTC 11:00-11:59
+    - cron: '*/5 12 * * *'  # UTC 12:00-12:59
+    - cron: '*/5 13 * * *'  # UTC 13:00-13:59
+    - cron: '0-30 14 * * *'  # UTC 14:00-14:30
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  scrape-first:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    concurrency:
+      group: ${{ github.workflow }}-first-${{ github.ref }}
+      cancel-in-progress: true
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: 设置时区
+        uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: "Asia/Shanghai"
+          
+      - name: 设置Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          
+      - name: 安装 Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg2
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium webdriver-manager
+          
+      - name: 运行第一个抓取脚本
+        run: python scrapered.py
+        env:
+          TZ: Asia/Shanghai
+          
+      - name: 检查第一个脚本文件
+        run: |
+          ls -la *.txt
+          cat *.txt
+          
+      - name: 提交第一个脚本的更新
+        id: commit-first
+        continue-on-error: true
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # 确保txt文件存在
+          if ! ls *.txt 1> /dev/null 2>&1; then
+            echo "没有找到txt文件，创建默认文件"
+            echo "第001期: 36 39 14 20 28 08 特码 42 猪" > hk.txt
+            echo "第001期: 36 39 14 20 28 08 特码 42 猪" > lam.txt
+            echo "第001期: 36 39 14 20 28 08 特码 42 猪" > tc.txt
+            echo "第001期: 36 39 14 20 28 08 特码 42 猪" > xam.txt
+          fi
+          
+          # 添加并提交文件
+          git add -f *.txt
+          git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')"
+          git push origin main
+
+  scrape-second:
+    needs: scrape-first
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: 设置时区
+        uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: "Asia/Shanghai"
+          
+      - name: 设置Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          
+      - name: 安装 Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg2
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium webdriver-manager
+          
+      - name: 等待第一个job的更新同步
+        run: sleep 30
+      
+      - name: 拉取最新更改
+        run: |
+          git pull origin main --rebase
+          
+      - name: 运行第二个抓取脚本
+        run: python scraper.py
+        env:
+          TZ: Asia/Shanghai
+          
+      - name: 检查第二个脚本文件
+        run: |
+          ls -la *.txt
+          cat *.txt
+          
+      - name: 提交第二个脚本的更新
+        continue-on-error: true
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # 确保txt文件存在
+          if ! ls *.txt 1> /dev/null 2>&1; then
+            echo "没有找到txt文件，创建默认文件"
+            echo "第001期: 36 39 14 20 28 08 特码 42 猪" > hk.txt
+            echo "第001期: 36 39 14 20 28 08 特码 42 猪" > lam.txt
+            echo "第001期: 36 39 14 20 28 08 特码 42 猪" > tc.txt
+            echo "第001期: 36 39 14 20 28 08 特码 42 猪" > xam.txt
+          fi
+          
+          # 添加并提交文件
+          git add -f *.txt
+          git commit -m "更新开奖结果(8800) $(date '+%Y-%m-%d %H:%M:%S')"
+          git push origin main
+        
+      - name: 删除旧的工作流运行记录
+        if: always()
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: 7
+          keep_minimum_runs: 100
