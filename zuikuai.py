@@ -108,16 +108,29 @@ def extract_lottery_info(driver, lottery_type):
         page_source = driver.page_source
         print(f"页面内容长度: {len(page_source)}")
         
+        # 查找包含期号的元素
+        period_text = driver.execute_script("""
+            const elements = document.querySelectorAll('*');
+            for (const el of elements) {
+                const text = el.textContent.trim();
+                if (text.includes('期') && text.includes('月') && text.includes('日')) {
+                    return text;
+                }
+            }
+            return '';
+        """)
+        
+        print(f"找到包含期号的文本: {period_text}")
+        
         # 先尝试提取期号
         issue_match = None
         issue_patterns = [
-            r'第0*(\d+)期.*?月.*?日',  # 匹配带日期的期号
-            r'第0*(\d+)期',  # 匹配普通期号
-            r'第(\d+)期',    # 最宽松的匹配
+            r'第(\d+)期.*?(\d+)月(\d+)日',  # 匹配带日期的期号
+            r'第(\d+)期',                   # 匹配普通期号
         ]
         
         for pattern in issue_patterns:
-            issue_match = re.search(pattern, page_source)
+            issue_match = re.search(pattern, period_text)
             if issue_match:
                 issue = issue_match.group(1)
                 print(f"找到期号: {issue}")
