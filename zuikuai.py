@@ -166,7 +166,7 @@ def get_lottery_results(driver):
     """获取所有彩票开奖结果"""
     try:
         # 更新初始URL
-        driver.get('https://www.uzzn.com')
+        driver.get('https://www.hkj.rip/')
         random_sleep()
         print("\n" + "="*80)
         print("浏览器初始化成功")
