@@ -81,7 +81,7 @@ jobs:
           git add -f *.txt
           
           # 即使没有变化也创建提交
-          git commit -m "更新开奖结果(zuikuai) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
+          git commit -m "更新开奖结果(hkj88) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
           
           # 尝试推送更改
           git push origin main || true
@@ -146,7 +146,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           git add -f *.txt
-          git commit -m "更新开奖结果(scrapered) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
+          git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
           git push origin main || true
 
   scrape-third:
@@ -209,7 +209,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           git add -f *.txt
-          git commit -m "更新开奖结果(scraper) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
+          git commit -m "更新开奖结果(man33) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
           git push origin main || true
         
       - name: 删除旧的工作流运行记录
