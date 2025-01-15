@@ -67,121 +67,90 @@ def extract_lottery_info(driver, lottery_type):
             
         print(f"已访问{lottery_type}页面")
         
+        # 定义iframe映射
+        iframe_mapping = {
+            'lam': '/page/show/lamkj.html',
+            'xam': '/page/show/xamkj.html',
+            'hk': '/page/show/hkkj.html',
+            'tc': '/page/show/kl8kj.html'
+        }
+        
         # 先切换到默认内容
         driver.switch_to.default_content()
         
-        # 获取所有iframe
+        # 查找目标iframe
+        target_src = iframe_mapping[lottery_type]
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         print(f"找到 {len(iframes)} 个iframe")
         
-        # 遍历iframe，优先处理较大的iframe
+        target_iframe = None
         for iframe in iframes:
-            try:
-                # 切换到iframe
-                driver.switch_to.frame(iframe)
-                print("切换到iframe")
+            src = iframe.get_attribute('src')
+            print(f"iframe src: {src}")
+            if target_src in src:
+                target_iframe = iframe
+                break
+        
+        if not target_iframe:
+            print(f"未找到目标iframe: {target_src}")
+            return None
+            
+        # 切换到目标iframe
+        driver.switch_to.frame(target_iframe)
+        print(f"切换到目标iframe: {target_src}")
+        
+        # 等待iframe加载
+        time.sleep(5)
+        
+        # 获取iframe内容
+        iframe_source = driver.page_source
+        print(f"iframe内容长度: {len(iframe_source)}")
+        print("iframe内容:")
+        print(iframe_source)
+        
+        # 使用XPath直接查找数字元素
+        number_elements = driver.find_elements(By.XPATH, "//div[contains(@style, 'color') and string-length(normalize-space(text())) <= 2 and number(normalize-space(text()))]")
+        
+        if number_elements:
+            print(f"\n找到 {len(number_elements)} 个数字元素:")
+            numbers = []
+            for elem in number_elements:
+                num = elem.text.strip()
+                style = elem.get_attribute('style')
+                print(f"数字: {num}, 样式: {style}")
+                if num.isdigit():
+                    numbers.append(num)
+            
+            if len(numbers) >= 7:
+                # 提取期号
+                issue_elements = driver.find_elements(By.XPATH, "//div[contains(text(), '期')]")
+                issue = None
+                for elem in issue_elements:
+                    match = re.search(r'第(\d+)期', elem.text)
+                    if match:
+                        issue = match.group(1)
+                        break
                 
-                # 等待页面加载
-                time.sleep(2)
+                if not issue:
+                    print("未找到期号")
+                    return None
                 
-                # 获取iframe中的源码
-                iframe_source = driver.page_source
-                print(f"iframe源码长度: {len(iframe_source)}")
+                # 提取生肖
+                zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
+                zodiac = next((z for z in zodiac_chars if z in iframe_source), '')
                 
-                # 如果是较小的iframe，跳过
-                if len(iframe_source) < 5000:
-                    driver.switch_to.default_content()
-                    continue
+                # 格式化结果
+                numbers = [num.zfill(2) for num in numbers[:6]]
+                special_number = numbers[6].zfill(2)
+                issue_short = issue[-3:]
                 
-                # 打印完整的iframe内容
-                print("完整的iframe内容:")
-                print(iframe_source)
-                
-                # 使用更简单的方法查找数字
-                number_elements = driver.execute_script("""
-                    function findNumbers() {
-                        const numbers = [];
-                        // 查找所有div元素
-                        const divs = document.getElementsByTagName('div');
-                        
-                        for(const div of divs) {
-                            // 检查文本内容
-                            const text = div.textContent.trim();
-                            // 如果是1-2位数字
-                            if(/^\\d{1,2}$/.test(text)) {
-                                // 获取计算后的样式
-                                const style = window.getComputedStyle(div);
-                                // 如果有背景色或特殊颜色
-                                if(style.backgroundColor !== 'rgba(0, 0, 0, 0)' || 
-                                   style.color !== 'rgb(0, 0, 0)') {
-                                    // 获取父元素的文本内容
-                                    let parentText = '';
-                                    let parent = div.parentElement;
-                                    while(parent && !parentText) {
-                                        parentText = parent.textContent.trim();
-                                        parent = parent.parentElement;
-                                    }
-                                    numbers.push({
-                                        text: text,
-                                        style: div.getAttribute('style'),
-                                        class: div.getAttribute('class'),
-                                        parentText: parentText
-                                    });
-                                }
-                            }
-                        }
-                        return numbers;
-                    }
-                    return findNumbers();
-                """)
-                
-                if number_elements:
-                    print(f"\n找到 {len(number_elements)} 个数字元素:")
-                    for num in number_elements:
-                        print(f"数字: {num['text']}")
-                        print(f"样式: {num['style']}")
-                        print(f"类名: {num['class']}")
-                        print(f"父元素文本: {num['parentText']}")
-                        print("---")
-                    
-                    # 根据父元素文本筛选属于当前彩种的数字
-                    target_numbers = []
-                    type_names = {
-                        'lam': '老澳门',
-                        'xam': '新澳门',
-                        'hk': '香港',
-                        'tc': '快乐八'
-                    }
-                    
-                    for num in number_elements:
-                        if type_names[lottery_type] in num['parentText']:
-                            target_numbers.append(num['text'])
-                    
-                    if len(target_numbers) >= 7:
-                        # 提取期号
-                        issue_match = re.search(r'第(\d+)期', iframe_source)
-                        if issue_match:
-                            issue = issue_match.group(1)
-                            
-                            # 提取生肖
-                            zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
-                            zodiac = next((z for z in zodiac_chars if z in iframe_source), '')
-                            
-                            # 格式化结果
-                            numbers = [num.zfill(2) for num in target_numbers[:6]]
-                            special_number = target_numbers[6].zfill(2)
-                            issue_short = issue[-3:]
-                            
-                            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
-                            print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
-                            return result
-                
-                driver.switch_to.default_content()
-                
-            except Exception as e:
-                print(f"处理iframe时出错: {str(e)}")
-                driver.switch_to.default_content()
-                continue
+                result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
+                print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
+                return result
+            else:
+                print(f"警告: 数字数量不足 ({len(numbers)})")
+        else:
+            print("未找到数字元素")
         
         print(f"警告: {lottery_type} 未找到足够的号码数据")
         return None
