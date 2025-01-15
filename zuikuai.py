@@ -60,8 +60,7 @@ def extract_lottery_info(driver, lottery_type):
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
-        
-        time.sleep(10)
+        time.sleep(5)
         
         base_url = "https://www.hkj.rip/"
         driver.get(base_url)
@@ -69,18 +68,7 @@ def extract_lottery_info(driver, lottery_type):
             
         print(f"已访问{lottery_type}页面")
         print(f"当前URL: {driver.current_url}")
-        
-        # 获取页面源码
-        page_source = driver.page_source
-        print("页面源码长度:", len(page_source))
-        
-        # 保存页面源码到文件（用于调试）
-        with open('page_source.html', 'w', encoding='utf-8') as f:
-            f.write(page_source)
-            
-        # 使用BeautifulSoup解析页面
-        soup = BeautifulSoup(page_source, 'html.parser')
-        
+
         # 定义彩种名称映射
         type_names = {
             'lam': '老澳门',
@@ -91,76 +79,78 @@ def extract_lottery_info(driver, lottery_type):
         
         target_name = type_names[lottery_type]
         
-        # 查找包含目标文本的所有元素
-        elements = soup.find_all(string=lambda text: text and target_name in text)
-        
-        if not elements:
-            print(f"未找到包含 {target_name} 的元素")
-            return None
+        # 使用XPath直接查找包含目标文本的元素
+        try:
+            target_element = driver.find_element(By.XPATH, f"//*[contains(text(), '{target_name}')]")
+            print(f"找到目标元素: {target_element.text}")
             
-        # 找到包含目标文本的元素后，向上查找可能的容器
-        target_element = elements[0]
-        container = target_element.parent
-        
-        # 向上最多查找5层父元素，找到包含完整信息的容器
-        for _ in range(5):
-            if container.find_all(string=lambda x: x and re.search(r'\d+', str(x))):
-                break
-            container = container.parent
+            # 获取父元素
+            parent = driver.execute_script("""
+                var element = arguments[0];
+                var parent = element.parentElement;
+                // 向上查找直到找到包含数字的父元素
+                while (parent && !parent.textContent.match(/\\d+/)) {
+                    parent = parent.parentElement;
+                }
+                return parent;
+            """, target_element)
             
-        # 提取该容器内的所有文本
-        text = container.get_text()
-        print(f"找到的文本内容: {text}")
-        
-        # 提取期号
-        issue_match = re.search(r'第(\d+)期', text)
-        if not issue_match:
-            print(f"未找到期号")
-            return None
+            if not parent:
+                print("未找到包含数据的父元素")
+                return None
+                
+            # 获取该区域的所有文本
+            text = parent.get_attribute('textContent')
+            print(f"找到的文本内容: {text}")
             
-        issue = issue_match.group(1)
-        
-        # 提取所有数字
-        numbers = re.findall(r'\b\d{1,2}\b', text)
-        
-        # 提取生肖
-        zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
-        zodiac = next((z for z in zodiac_chars if z in text), '')
-        
-        result_data = {
-            'issue': f"第{issue}期",
-            'numbers': numbers,
-            'zodiac': zodiac
-        }
-        
-        print(f"提取的数据: {result_data}")
-        
-        # 后续处理保持不变
-        if not result_data:
-            print(f"警告: {lottery_type} 未获取到数据")
-            return None
+            # 提取期号
+            issue_match = re.search(r'第(\d+)期', text)
+            if not issue_match:
+                print("未找到期号")
+                return None
+                
+            issue = issue_match.group(1)
             
-        print(f"获取到的原始数据: {result_data}")
-        
-        # 解析期号
-        match = re.search(r'第(\d+)期', result_data['issue'])
-        if not match:
-            print(f"错误: {lottery_type} 无法解析期号")
-            return None
-        issue_short = match.group(1)[-3:]
-        
-        # 处理号码
-        if len(result_data['numbers']) < 7:
-            print(f"错误: {lottery_type} 号码数量不足 ({len(result_data['numbers'])})")
-            return None
+            # 获取该区域内所有带颜色样式的元素（通常是号码）
+            number_elements = parent.find_elements(By.CSS_SELECTOR, '[style*="color"]')
+            numbers = []
+            for elem in number_elements:
+                num = elem.text.strip()
+                if num and num.isdigit():
+                    numbers.append(num)
             
-        numbers = [num.zfill(2) for num in result_data['numbers'][:-1]]
-        special_number = result_data['numbers'][-1].zfill(2)
-        special_zodiac = result_data['zodiac']
-
-        result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
-        print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
-        return result
+            # 提取生肖
+            zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
+            zodiac = next((z for z in zodiac_chars if z in text), '')
+            
+            result_data = {
+                'issue': f"第{issue}期",
+                'numbers': numbers,
+                'zodiac': zodiac
+            }
+            
+            print(f"提取的数据: {result_data}")
+            
+            if not result_data['numbers']:
+                print(f"警告: {lottery_type} 未获取到号码数据")
+                return None
+                
+            if len(result_data['numbers']) < 7:
+                print(f"错误: {lottery_type} 号码数量不足 ({len(result_data['numbers'])})")
+                return None
+                
+            numbers = [num.zfill(2) for num in result_data['numbers'][:-1]]
+            special_number = result_data['numbers'][-1].zfill(2)
+            special_zodiac = result_data['zodiac']
+            
+            issue_short = issue[-3:]
+            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
+            print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
+            return result
+            
+        except Exception as e:
+            print(f"在查找元素时出错: {str(e)}")
+            return None
 
     except Exception as e:
         print(f"❌ 提取{lottery_type}数据出错: {str(e)}")
