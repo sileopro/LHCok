@@ -1,1 +1,39 @@
+name: Lottery Scraper
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium webdriver-manager
+          
+      - name: Run first scraper (zuikuai.py)
+        run: python zuikuai.py
+        
+      - name: Run second scraper (scrapered.py)
+        run: python scrapered.py
+        
+      - name: Run third scraper (scraper.py)
+        run: python scraper.py
+        
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update lottery results" && git push)
 
