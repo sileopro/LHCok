@@ -5,7 +5,6 @@ on:
     - cron: '*/5 11 * * *'  # UTC 11:00-11:59
     - cron: '*/5 12 * * *'  # UTC 12:00-12:59
     - cron: '*/5 13 * * *'  # UTC 13:00-13:59
-    - cron: '*/5 13 * * *'  # UTC 15:00-15:59
     - cron: '0-30 14 * * *'  # UTC 14:00-14:30
   push:
     branches: [ main ]
@@ -78,10 +77,14 @@ jobs:
             echo "第001期: 36 39 14 20 28 08 特码 42 猪" > xam.txt
           fi
           
-          # 添加并提交文件
+          # 强制添加所有txt文件
           git add -f *.txt
-          git commit -m "更新开奖结果(zuikuai) $(date '+%Y-%m-%d %H:%M:%S')"
-          git push origin main
+          
+          # 即使没有变化也创建提交
+          git commit -m "更新开奖结果(zuikuai) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
+          
+          # 尝试推送更改
+          git push origin main || true
 
   scrape-second:
     needs: scrape-first
@@ -143,8 +146,8 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           git add -f *.txt
-          git commit -m "更新开奖结果(scrapered) $(date '+%Y-%m-%d %H:%M:%S')"
-          git push origin main
+          git commit -m "更新开奖结果(scrapered) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
+          git push origin main || true
 
   scrape-third:
     needs: scrape-second
@@ -206,8 +209,8 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           git add -f *.txt
-          git commit -m "更新开奖结果(scraper) $(date '+%Y-%m-%d %H:%M:%S')"
-          git push origin main
+          git commit -m "更新开奖结果(scraper) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
+          git push origin main || true
         
       - name: 删除旧的工作流运行记录
         if: always()
