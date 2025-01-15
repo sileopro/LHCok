@@ -9,6 +9,7 @@ import time
 import re
 import os
 import random
+from bs4 import BeautifulSoup
 
 def get_driver():
     try:
@@ -60,10 +61,8 @@ def extract_lottery_info(driver, lottery_type):
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         
-        # 增加更长的等待时间
         time.sleep(10)
         
-        # 更新为新的网站URL结构
         base_url = "https://www.hkj.rip/"
         driver.get(base_url)
         time.sleep(5)
@@ -71,79 +70,72 @@ def extract_lottery_info(driver, lottery_type):
         print(f"已访问{lottery_type}页面")
         print(f"当前URL: {driver.current_url}")
         
-        # 保存页面源码用于调试
+        # 获取页面源码
         page_source = driver.page_source
         print("页面源码长度:", len(page_source))
         
-        # 使用更简单的选择器策略
-        result_data = driver.execute_script("""
-            function extractData() {
-                try {
-                    const typeNames = {
-                        'lam': '老澳门',
-                        'xam': '新澳门',
-                        'hk': '香港彩',
-                        'tc': '快乐八'
-                    };
-                    
-                    // 打印页面上所有文本内容，用于调试
-                    console.log('页面文本:', document.body.textContent);
-                    
-                    // 首先尝试找到包含彩种名称的元素
-                    const elements = Array.from(document.getElementsByTagName('*'));
-                    const targetName = typeNames[arguments[0]];
-                    
-                    let targetElement = null;
-                    for (const el of elements) {
-                        if (el.textContent.includes(targetName)) {
-                            targetElement = el;
-                            console.log('找到目标元素:', el.textContent);
-                            break;
-                        }
-                    }
-                    
-                    if (!targetElement) {
-                        console.log('未找到包含', targetName, '的元素');
-                        return null;
-                    }
-                    
-                    // 获取目标元素所在区域的所有文本
-                    let container = targetElement;
-                    while (container && container.children.length < 10) {
-                        container = container.parentElement;
-                    }
-                    
-                    const text = container ? container.textContent : targetElement.textContent;
-                    console.log('找到的文本区域:', text);
-                    
-                    // 提取期号
-                    const issueMatch = text.match(/第\\d+期/);
-                    const issueText = issueMatch ? issueMatch[0] : '';
-                    
-                    // 提取数字
-                    const numbers = text.match(/\\b\\d{1,2}\\b/g) || [];
-                    
-                    // 提取生肖
-                    const zodiacChars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
-                    const zodiac = zodiacChars.find(z => text.includes(z)) || '';
-                    
-                    const result = {
-                        issue: issueText,
-                        numbers: numbers,
-                        zodiac: zodiac
-                    };
-                    
-                    console.log('提取的结果:', result);
-                    return result;
-                    
-                } catch(e) {
-                    console.error('提取数据时出错:', e);
-                    return null;
-                }
-            }
-            return extractData(arguments[0]);
-        """, lottery_type)
+        # 保存页面源码到文件（用于调试）
+        with open('page_source.html', 'w', encoding='utf-8') as f:
+            f.write(page_source)
+            
+        # 使用BeautifulSoup解析页面
+        soup = BeautifulSoup(page_source, 'html.parser')
         
+        # 定义彩种名称映射
+        type_names = {
+            'lam': '老澳门',
+            'xam': '新澳门',
+            'hk': '香港彩',
+            'tc': '快乐八'
+        }
+        
+        target_name = type_names[lottery_type]
+        
+        # 查找包含目标文本的所有元素
+        elements = soup.find_all(string=lambda text: text and target_name in text)
+        
+        if not elements:
+            print(f"未找到包含 {target_name} 的元素")
+            return None
+            
+        # 找到包含目标文本的元素后，向上查找可能的容器
+        target_element = elements[0]
+        container = target_element.parent
+        
+        # 向上最多查找5层父元素，找到包含完整信息的容器
+        for _ in range(5):
+            if container.find_all(string=lambda x: x and re.search(r'\d+', str(x))):
+                break
+            container = container.parent
+            
+        # 提取该容器内的所有文本
+        text = container.get_text()
+        print(f"找到的文本内容: {text}")
+        
+        # 提取期号
+        issue_match = re.search(r'第(\d+)期', text)
+        if not issue_match:
+            print(f"未找到期号")
+            return None
+            
+        issue = issue_match.group(1)
+        
+        # 提取所有数字
+        numbers = re.findall(r'\b\d{1,2}\b', text)
+        
+        # 提取生肖
+        zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
+        zodiac = next((z for z in zodiac_chars if z in text), '')
+        
+        result_data = {
+            'issue': f"第{issue}期",
+            'numbers': numbers,
+            'zodiac': zodiac
+        }
+        
+        print(f"提取的数据: {result_data}")
+        
+        # 后续处理保持不变
         if not result_data:
             print(f"警告: {lottery_type} 未获取到数据")
             return None
