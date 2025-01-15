@@ -68,10 +68,6 @@ def extract_lottery_info(driver, lottery_type):
         print(f"已访问{lottery_type}页面")
         print(f"当前URL: {driver.current_url}")
         
-        # 保存页面源码用于调试
-        page_source = driver.page_source
-        print(f"页面源码长度: {len(page_source)}")
-        
         # 先切换到默认内容
         driver.switch_to.default_content()
         
@@ -79,7 +75,7 @@ def extract_lottery_info(driver, lottery_type):
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         print(f"找到 {len(iframes)} 个iframe")
         
-        numbers_found = False
+        # 遍历iframe，优先处理较大的iframe
         for iframe in iframes:
             try:
                 # 切换到iframe
@@ -93,37 +89,75 @@ def extract_lottery_info(driver, lottery_type):
                 iframe_source = driver.page_source
                 print(f"iframe源码长度: {len(iframe_source)}")
                 
-                # 在iframe中查找数字元素
+                # 如果是较小的iframe，跳过
+                if len(iframe_source) < 5000:
+                    driver.switch_to.default_content()
+                    continue
+                
+                # 打印iframe的HTML结构，用于调试
+                print("iframe HTML结构:")
+                print(iframe_source[:1000])  # 只打印前1000个字符
+                
+                # 使用更精确的JavaScript来查找数字元素
                 number_elements = driver.execute_script("""
                     function findNumbers() {
-                        // 获取所有元素
-                        const elements = document.getElementsByTagName('*');
                         const numbers = [];
+                        const targetTypes = {
+                            'lam': '老澳门',
+                            'xam': '新澳门',
+                            'hk': '香港',
+                            'tc': '快乐八'
+                        };
                         
-                        for(const el of elements) {
-                            // 检查元素是否有样式
-                            const style = window.getComputedStyle(el);
-                            const text = el.textContent.trim();
-                            
-                            // 如果元素有颜色样式且包含数字
-                            if((style.color !== 'rgb(0, 0, 0)' || style.backgroundColor !== 'rgba(0, 0, 0, 0)') 
-                               && /^\\d+$/.test(text)) {
-                                numbers.push({
-                                    text: text,
-                                    style: el.getAttribute('style'),
-                                    parent: el.parentElement.textContent
-                                });
+                        // 查找包含目标文本的容器
+                        const targetText = targetTypes[arguments[0]];
+                        let targetContainer = null;
+                        
+                        // 遍历所有元素查找目标区域
+                        const allElements = document.getElementsByTagName('*');
+                        for(const el of allElements) {
+                            if(el.textContent.includes(targetText)) {
+                                // 向上查找可能的容器
+                                let parent = el;
+                                while(parent && parent.children.length < 10) {
+                                    parent = parent.parentElement;
+                                }
+                                if(parent) {
+                                    targetContainer = parent;
+                                    break;
+                                }
                             }
                         }
+                        
+                        if(!targetContainer) return numbers;
+                        
+                        // 在目标容器中查找数字
+                        const elements = targetContainer.getElementsByTagName('*');
+                        for(const el of elements) {
+                            const text = el.textContent.trim();
+                            if(/^\\d{1,2}$/.test(text)) {
+                                const style = window.getComputedStyle(el);
+                                if(style.color !== 'rgb(0, 0, 0)' || style.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                                    numbers.push({
+                                        text: text,
+                                        color: style.color,
+                                        bgColor: style.backgroundColor,
+                                        parentText: el.parentElement.textContent
+                                    });
+                                }
+                            }
+                        }
+                        
+                        console.log('找到的数字:', numbers);
                         return numbers;
                     }
-                    return findNumbers();
-                """)
+                    return findNumbers(arguments[0]);
+                """, lottery_type)
                 
                 if number_elements:
-                    print(f"在iframe中找到 {len(number_elements)} 个数字元素")
-                    for num in number_elements[:5]:
-                        print(f"数字: {num['text']}, 样式: {num['style']}, 父元素: {num['parent']}")
+                    print(f"找到 {len(number_elements)} 个数字元素")
+                    for num in number_elements:
+                        print(f"数字: {num['text']}, 颜色: {num['color']}, 背景色: {num['bgColor']}")
                     
                     # 提取期号
                     issue_match = re.search(r'第(\d+)期', iframe_source)
@@ -132,14 +166,7 @@ def extract_lottery_info(driver, lottery_type):
                         print(f"找到期号: {issue}")
                         
                         # 收集数字
-                        numbers = []
-                        for num in number_elements:
-                            parent_text = num['parent']
-                            if ('老澳门' in parent_text and lottery_type == 'lam') or \
-                               ('新澳门' in parent_text and lottery_type == 'xam') or \
-                               ('香港' in parent_text and lottery_type == 'hk') or \
-                               ('快乐八' in parent_text and lottery_type == 'tc'):
-                                numbers.append(num['text'])
+                        numbers = [num['text'] for num in number_elements]
                         
                         if len(numbers) >= 7:
                             # 提取生肖
@@ -153,10 +180,8 @@ def extract_lottery_info(driver, lottery_type):
                             
                             result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
                             print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
-                            numbers_found = True
                             return result
                 
-                # 切换回主框架继续搜索
                 driver.switch_to.default_content()
                 
             except Exception as e:
@@ -164,9 +189,8 @@ def extract_lottery_info(driver, lottery_type):
                 driver.switch_to.default_content()
                 continue
         
-        if not numbers_found:
-            print(f"警告: {lottery_type} 未找到足够的号码数据")
-            return None
+        print(f"警告: {lottery_type} 未找到足够的号码数据")
+        return None
 
     except Exception as e:
         print(f"❌ 提取{lottery_type}数据出错: {str(e)}")
