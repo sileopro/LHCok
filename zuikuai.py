@@ -62,7 +62,6 @@ def extract_lottery_info(driver, lottery_type):
         )
         random_sleep()
         
-        # 新网站的彩种映射和对应的URL
         lottery_urls = {
             'lam': 'https://www.hkj.rip/macau/',
             'xam': 'https://www.hkj.rip/macau-new/',
@@ -70,11 +69,11 @@ def extract_lottery_info(driver, lottery_type):
             'tc': 'https://www.hkj.rip/taiwan/'
         }
         
-        # 直接访问对应彩种的URL
         driver.get(lottery_urls[lottery_type])
         random_sleep()
             
         print(f"已访问{lottery_type}页面")
+        print(f"当前URL: {driver.current_url}")
 
         # 获取号码和生肖
         result_data = driver.execute_script("""
@@ -123,19 +122,26 @@ def extract_lottery_info(driver, lottery_type):
         """)
         
         if not result_data:
+            print(f"警告: {lottery_type} 未获取到数据")
             return None
             
+        # 打印原始数据以便调试
+        print(f"获取到的原始数据: {result_data}")
+        
         # 解析期号
         match = re.search(r'第(\d+)期', result_data['issue'])
         if not match:
             page_text = driver.find_element(By.TAG_NAME, "body").text
+            print(f"页面文本: {page_text[:200]}...")
             match = re.search(r'第(\d+)期最新开奖结果', page_text)
             if not match:
+                print(f"错误: {lottery_type} 无法解析期号")
                 return None
         issue_short = match.group(1)[-3:]
         
         # 处理号码
         if len(result_data['numbers']) < 7:
+            print(f"错误: {lottery_type} 号码数量不足 ({len(result_data['numbers'])})")
             return None
             
         numbers = [num.zfill(2) for num in result_data['numbers'][:-1]]
@@ -143,11 +149,11 @@ def extract_lottery_info(driver, lottery_type):
         special_zodiac = result_data['zodiac']
 
         result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
-        print(f"成功获取{lottery_type}开奖结果：{result}")
+        print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
         return result
 
     except Exception as e:
-        print(f"提取数据出错: {str(e)}")
+        print(f"❌ 提取{lottery_type}数据出错: {str(e)}")
         return None
 
 def get_lottery_results(driver):
@@ -165,18 +171,24 @@ def get_lottery_results(driver):
         lottery_types = ['lam', 'xam', 'hk', 'tc']
         
         for lottery_type in lottery_types:
+            print(f"\n开始获取 {lottery_type} 开奖结果...")
             result = extract_lottery_info(driver, lottery_type)
             if result:
-                with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
-                    f.write(result)
-                results[lottery_type] = result
-                print(f"✅ 已保存 {lottery_type} 开奖结果")
+                try:
+                    with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
+                        f.write(result)
+                    results[lottery_type] = result
+                    print(f"✅ 已成功保存 {lottery_type}.txt")
+                except Exception as e:
+                    print(f"❌ 保存 {lottery_type}.txt 失败: {str(e)}")
+            else:
+                print(f"❌ 未能获取 {lottery_type} 开奖结果")
             random_sleep()
                 
         return results
                 
     except Exception as e:
-        print(f"获取结果出错: {str(e)}")
+        print(f"❌ 获取结果出错: {str(e)}")
         return None
 
 def main():
