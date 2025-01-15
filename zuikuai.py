@@ -9,7 +9,6 @@ import time
 import re
 import os
 import random
-from bs4 import BeautifulSoup
 
 def get_driver():
     try:
