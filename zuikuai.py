@@ -67,90 +67,110 @@ def extract_lottery_info(driver, lottery_type):
             
         print(f"已访问{lottery_type}页面")
         
-        # 定义iframe映射
-        iframe_mapping = {
-            'lam': '/page/show/lamkj.html',
-            'xam': '/page/show/xamkj.html',
-            'hk': '/page/show/hkkj.html',
-            'tc': '/page/show/kl8kj.html'
-        }
-        
         # 先切换到默认内容
         driver.switch_to.default_content()
         
-        # 查找目标iframe
-        target_src = iframe_mapping[lottery_type]
+        # 等待并获取所有iframe
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.TAG_NAME, "iframe"))
+        )
+        
+        # 遍历所有iframe
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         print(f"找到 {len(iframes)} 个iframe")
         
-        target_iframe = None
         for iframe in iframes:
-            src = iframe.get_attribute('src')
-            print(f"iframe src: {src}")
-            if target_src in src:
-                target_iframe = iframe
-                break
-        
-        if not target_iframe:
-            print(f"未找到目标iframe: {target_src}")
-            return None
-            
-        # 切换到目标iframe
-        driver.switch_to.frame(target_iframe)
-        print(f"切换到目标iframe: {target_src}")
-        
-        # 等待iframe加载
-        time.sleep(5)
-        
-        # 获取iframe内容
-        iframe_source = driver.page_source
-        print(f"iframe内容长度: {len(iframe_source)}")
-        print("iframe内容:")
-        print(iframe_source)
-        
-        # 使用XPath直接查找数字元素
-        number_elements = driver.find_elements(By.XPATH, "//div[contains(@style, 'color') and string-length(normalize-space(text())) <= 2 and number(normalize-space(text()))]")
-        
-        if number_elements:
-            print(f"\n找到 {len(number_elements)} 个数字元素:")
-            numbers = []
-            for elem in number_elements:
-                num = elem.text.strip()
-                style = elem.get_attribute('style')
-                print(f"数字: {num}, 样式: {style}")
-                if num.isdigit():
-                    numbers.append(num)
-            
-            if len(numbers) >= 7:
-                # 提取期号
-                issue_elements = driver.find_elements(By.XPATH, "//div[contains(text(), '期')]")
-                issue = None
-                for elem in issue_elements:
-                    match = re.search(r'第(\d+)期', elem.text)
-                    if match:
-                        issue = match.group(1)
-                        break
+            try:
+                # 切换到iframe
+                driver.switch_to.frame(iframe)
+                print("切换到新iframe")
                 
-                if not issue:
-                    print("未找到期号")
-                    return None
+                # 等待iframe加载
+                time.sleep(2)
                 
-                # 提取生肖
-                zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
-                zodiac = next((z for z in zodiac_chars if z in iframe_source), '')
+                # 获取iframe内容
+                iframe_source = driver.page_source
+                print(f"iframe内容长度: {len(iframe_source)}")
                 
-                # 格式化结果
-                numbers = [num.zfill(2) for num in numbers[:6]]
-                special_number = numbers[6].zfill(2)
-                issue_short = issue[-3:]
+                # 检查是否包含目标内容
+                type_markers = {
+                    'lam': '老澳门',
+                    'xam': '新澳门',
+                    'hk': '香港',
+                    'tc': '快乐八'
+                }
                 
-                result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
-                print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
-                return result
-            else:
-                print(f"警告: 数字数量不足 ({len(numbers)})")
-        else:
-            print("未找到数字元素")
+                if type_markers[lottery_type] in iframe_source:
+                    print(f"找到目标内容: {type_markers[lottery_type]}")
+                    
+                    # 使用JavaScript查找数字元素
+                    number_elements = driver.execute_script("""
+                        function findNumbers() {
+                            const numbers = [];
+                            const elements = document.getElementsByTagName('*');
+                            for (const el of elements) {
+                                const text = el.textContent.trim();
+                                if (/^\\d{1,2}$/.test(text)) {
+                                    const style = window.getComputedStyle(el);
+                                    if (style.color !== 'rgb(0, 0, 0)' || 
+                                        style.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                                        numbers.push({
+                                            text: text,
+                                            style: el.getAttribute('style'),
+                                            color: style.color,
+                                            bgColor: style.backgroundColor
+                                        });
+                                    }
+                                }
+                            }
+                            return numbers;
+                        }
+                        return findNumbers();
+                    """)
+                    
+                    if number_elements:
+                        print(f"\n找到 {len(number_elements)} 个数字元素:")
+                        numbers = []
+                        for num in number_elements:
+                            print(f"数字: {num['text']}, 样式: {num['style']}")
+                            print(f"颜色: {num['color']}, 背景色: {num['bgColor']}")
+                            if num['text'].isdigit():
+                                numbers.append(num['text'])
+                        
+                        if len(numbers) >= 7:
+                            # 提取期号
+                            issue_match = re.search(r'第(\d+)期', iframe_source)
+                            if not issue_match:
+                                print("未找到期号")
+                                driver.switch_to.default_content()
+                                continue
+                            
+                            issue = issue_match.group(1)
+                            
+                            # 提取生肖
+                            zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
+                            zodiac = next((z for z in zodiac_chars if z in iframe_source), '')
+                            
+                            # 格式化结果
+                            numbers = [num.zfill(2) for num in numbers[:6]]
+                            special_number = numbers[6].zfill(2)
+                            issue_short = issue[-3:]
+                            
+                            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
+                            print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
+                            return result
+                        else:
+                            print(f"警告: 数字数量不足 ({len(numbers)})")
+                    else:
+                        print("未找到数字元素")
+                
+                # 切换回主框架继续搜索
+                driver.switch_to.default_content()
+                
+            except Exception as e:
+                print(f"处理iframe时出错: {str(e)}")
+                driver.switch_to.default_content()
+                continue
         
         print(f"警告: {lottery_type} 未找到足够的号码数据")
         return None
