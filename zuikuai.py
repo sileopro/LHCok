@@ -61,13 +61,77 @@ def extract_lottery_info(driver, lottery_type):
         )
         time.sleep(5)
         
-        base_url = "https://www.hkj.rip/"  # 使用正确的URL
-        driver.get(base_url)
-        time.sleep(5)
+        # 尝试不同的URL格式
+        urls = [
+            f"https://www.hkj.rip/lottery/{lottery_type}",
+            f"https://www.hkj.rip/kj/{lottery_type}",
+            f"https://www.hkj.rip/{lottery_type}",
+            "https://www.hkj.rip/"
+        ]
+        
+        for url in urls:
+            try:
+                driver.get(url)
+                time.sleep(5)
+                print(f"尝试访问URL: {url}")
+                
+                # 保存页面源码用于调试
+                page_source = driver.page_source
+                print(f"页面源码长度: {len(page_source)}")
+                
+                # 尝试查找iframe
+                iframes = driver.find_elements(By.TAG_NAME, "iframe")
+                if iframes:
+                    print(f"找到 {len(iframes)} 个iframe")
+                    for iframe in iframes:
+                        try:
+                            driver.switch_to.frame(iframe)
+                            print("切换到iframe")
+                            
+                            # 在iframe中查找数字元素
+                            elements = driver.find_elements(By.XPATH, "//*[contains(text(), '期')]")
+                            if elements:
+                                print("在iframe中找到期号元素")
+                                break
+                            driver.switch_to.default_content()
+                        except Exception as e:
+                            print(f"处理iframe时出错: {str(e)}")
+                            driver.switch_to.default_content()
+                            continue
+                
+                # 使用多种选择器尝试查找元素
+                selectors = [
+                    'div[style*="color"]',
+                    'span[style*="color"]',
+                    'div.number',
+                    'span.number',
+                    'div[class*="ball"]',
+                    'span[class*="ball"]',
+                    'div[class*="num"]',
+                    'span[class*="num"]'
+                ]
+                
+                for selector in selectors:
+                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                    if elements:
+                        print(f"使用选择器 {selector} 找到 {len(elements)} 个元素")
+                        # 打印前几个元素的文本内容
+                        for i, elem in enumerate(elements[:5]):
+                            print(f"元素 {i+1} 文本: {elem.text}")
+                
+                # 如果找到了数字元素，就跳出URL循环
+                if elements:
+                    break
+                    
+            except Exception as e:
+                print(f"访问 {url} 时出错: {str(e)}")
+                continue
+        
+        # 如果所有URL都失败了，返回None
+        if not elements:
+            print(f"警告: 在所有URL中都未找到数字元素")
+            return None
             
-        print(f"已访问{lottery_type}页面")
-        print(f"当前URL: {driver.current_url}")
-
         # 根据图片显示的实际布局修改选择器
         try:
             # 获取所有可能包含数字的元素
