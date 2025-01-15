@@ -69,41 +69,51 @@ def extract_lottery_info(driver, lottery_type):
         print(f"已访问{lottery_type}页面")
         print(f"当前URL: {driver.current_url}")
 
-        # 获取号码和生肖
+        # 更新 JavaScript 提取逻辑
         result_data = driver.execute_script("""
             function extractData() {
                 try {
-                    // 获取对应彩种的区块
-                    let targetSection;
-                    const sections = document.querySelectorAll('div');
-                    for(const section of sections) {
-                        if(section.textContent.includes('香港彩') && arguments[0] === 'hk') {
-                            targetSection = section;
-                            break;
-                        } else if(section.textContent.includes('快乐八') && arguments[0] === 'tc') {
-                            targetSection = section;
-                            break;
-                        } else if(section.textContent.includes('老澳门') && arguments[0] === 'lam') {
-                            targetSection = section;
-                            break;
-                        } else if(section.textContent.includes('新澳门') && arguments[0] === 'xam') {
-                            targetSection = section;
-                            break;
+                    // 获取所有可能包含开奖信息的元素
+                    const allElements = document.querySelectorAll('*');
+                    let targetSection = null;
+                    
+                    // 根据彩种类型查找对应区块
+                    const typeMapping = {
+                        'lam': '老澳门',
+                        'xam': '新澳门',
+                        'hk': '香港彩',
+                        'tc': '快乐八'
+                    };
+                    
+                    // 遍历所有元素查找目标区块
+                    for(const element of allElements) {
+                        const text = element.textContent;
+                        if(text && text.includes(typeMapping[arguments[0]])) {
+                            // 向上查找最近的容器元素
+                            let parent = element;
+                            while(parent && !parent.querySelector('div[style*="color"]')) {
+                                parent = parent.parentElement;
+                            }
+                            if(parent) {
+                                targetSection = parent;
+                                break;
+                            }
                         }
                     }
                     
-                    if(!targetSection) return null;
+                    if(!targetSection) {
+                        console.log('未找到目标区块');
+                        return null;
+                    }
                     
                     // 获取期号
-                    let issueText = '';
-                    const issueMatch = targetSection.textContent.match(/第\\d+期/);
-                    if(issueMatch) {
-                        issueText = issueMatch[0];
-                    }
+                    const issueRegex = /第[0-9]+期/;
+                    const issueMatch = targetSection.textContent.match(issueRegex);
+                    const issueText = issueMatch ? issueMatch[0] : '';
                     
                     // 获取号码
                     const numbers = [];
-                    const numberElements = targetSection.querySelectorAll('div[style*="color"]');
+                    const numberElements = targetSection.querySelectorAll('div[style*="color"], span[style*="color"]');
                     numberElements.forEach(el => {
                         const num = el.textContent.trim();
                         if(num && !isNaN(num)) numbers.push(num);
@@ -112,12 +122,19 @@ def extract_lottery_info(driver, lottery_type):
                     // 获取生肖
                     const zodiacChars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
                     let zodiac = '';
+                    const text = targetSection.textContent;
                     for(const char of zodiacChars) {
-                        if(targetSection.textContent.includes(char)) {
+                        if(text.includes(char)) {
                             zodiac = char;
                             break;
                         }
                     }
+                    
+                    console.log('找到数据:', {
+                        issue: issueText,
+                        numbers: numbers,
+                        zodiac: zodiac
+                    });
                     
                     return {
                         issue: issueText,
