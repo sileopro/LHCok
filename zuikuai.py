@@ -62,11 +62,12 @@ def extract_lottery_info(driver, lottery_type):
         )
         random_sleep()
         
+        # 更新为新的网站URL
         lottery_urls = {
-            'lam': 'https://www.hkj.rip/macau/',
-            'xam': 'https://www.hkj.rip/macau-new/',
-            'hk': 'https://www.hkj.rip/hk/',
-            'tc': 'https://www.hkj.rip/taiwan/'
+            'lam': 'https://www.uzzn.com/macau/',    # 老澳门
+            'xam': 'https://www.uzzn.com/macau-new/', # 新澳门
+            'hk': 'https://www.uzzn.com/hk/',         # 香港彩
+            'tc': 'https://www.uzzn.com/taiwan/'      # 快乐8
         }
         
         driver.get(lottery_urls[lottery_type])
@@ -159,7 +160,8 @@ def extract_lottery_info(driver, lottery_type):
 def get_lottery_results(driver):
     """获取所有彩票开奖结果"""
     try:
-        driver.get('https://www.hkj.rip')
+        # 更新初始URL
+        driver.get('https://www.uzzn.com')
         random_sleep()
         print("\n" + "="*80)
         print("浏览器初始化成功")
