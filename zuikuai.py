@@ -139,8 +139,10 @@ def extract_lottery_info(driver, lottery_type):
             'lam': '老澳门',
             'xam': '新澳门',
             'hk': '香港',
-            'tc': '快乐八'
+            'tc': '快乐8'
         }
+        
+        print(f"开始获取{lottery_names[lottery_type]}开奖结果...")
         
         with open('time.txt', 'a', encoding='utf-8') as f:
             f.write(f"{lottery_names[lottery_type]}第{issue}期：{next_time}\n")
@@ -164,31 +166,26 @@ def extract_lottery_info(driver, lottery_type):
         """)
         
         if number_elements and len(number_elements) >= 7:
-            # 提取生肖 - 修改生肖提取逻辑
-            zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
-            zodiac = ''
-            
-            # 查找包含生肖的元素
+            # 修改生肖提取逻辑，获取特码的生肖
             zodiac_element = driver.execute_script("""
-                const elements = document.querySelectorAll('.whsx');
-                for (const el of elements) {
-                    const text = el.textContent.trim();
-                    if (text.includes('/')) {
-                        return text.split('/')[1];
+                const specialBall = document.querySelector('div[id="s1"]');
+                if (specialBall) {
+                    const zodiacElement = specialBall.parentElement.querySelector('.whsx');
+                    if (zodiacElement) {
+                        const text = zodiacElement.textContent.trim();
+                        const parts = text.split('/');
+                        return parts.length > 1 ? parts[1] : '';
                     }
                 }
                 return '';
             """)
-            
-            if zodiac_element:
-                zodiac = zodiac_element
             
             # 格式化结果
             numbers = [num.zfill(2) for num in number_elements[:6]]
             special_number = number_elements[6].zfill(2)
             issue_short = issue.zfill(3)[-3:]  # 确保期号是3位数
             
-            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
+            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac_element}"
             print(f"✅ 成功获取开奖结果：{result}")
             
             # 使用正确的文件名
