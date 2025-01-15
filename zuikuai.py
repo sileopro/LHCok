@@ -62,45 +62,52 @@ def extract_lottery_info(driver, lottery_type):
         )
         random_sleep()
         
-        # 新网站的彩种映射
-        lottery_buttons = {
-            'lam': '澳门',
-            'xam': '新澳门',
-            'hk': '香港',
-            'tc': '台湾'
+        # 新网站的彩种映射和对应的URL
+        lottery_urls = {
+            'lam': 'https://www.hkj.rip/macau/',
+            'xam': 'https://www.hkj.rip/macau-new/',
+            'hk': 'https://www.hkj.rip/hk/',
+            'tc': 'https://www.hkj.rip/taiwan/'
         }
         
-        # 点击对应的彩种按钮
-        try:
-            button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, f"//div[contains(text(), '{lottery_buttons[lottery_type]}')]"))
-            )
-            driver.execute_script("arguments[0].click();", button)
-        except:
-            return None
-            
-        print(f"已点击{lottery_buttons[lottery_type]}按钮")
+        # 直接访问对应彩种的URL
+        driver.get(lottery_urls[lottery_type])
         random_sleep()
+            
+        print(f"已访问{lottery_type}页面")
 
         # 获取号码和生肖
         result_data = driver.execute_script("""
             function extractData() {
                 try {
                     // 获取期号
-                    var issueElement = document.querySelector('.period');
-                    var issueText = issueElement ? issueElement.textContent : '';
+                    var issueText = '';
+                    var issueElements = document.querySelectorAll('div, span');
+                    for(var el of issueElements) {
+                        if(el.textContent.includes('期')) {
+                            issueText = el.textContent;
+                            break;
+                        }
+                    }
                     
                     // 获取号码
                     var numbers = [];
-                    var numberElements = document.querySelectorAll('.number-item');
+                    var numberElements = document.querySelectorAll('.number, .ball');
                     numberElements.forEach(function(el) {
                         var num = el.textContent.trim();
-                        if(num) numbers.push(num);
+                        if(num && !isNaN(num)) numbers.push(num);
                     });
                     
                     // 获取特码生肖
-                    var zodiacElement = document.querySelector('.zodiac');
-                    var zodiac = zodiacElement ? zodiacElement.textContent.trim() : '';
+                    var zodiac = '';
+                    var zodiacElements = document.querySelectorAll('div, span');
+                    for(var el of zodiacElements) {
+                        var text = el.textContent.trim();
+                        if(['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'].includes(text)) {
+                            zodiac = text;
+                            break;
+                        }
+                    }
                     
                     return {
                         issue: issueText,
@@ -140,12 +147,12 @@ def extract_lottery_info(driver, lottery_type):
         return result
 
     except Exception as e:
+        print(f"提取数据出错: {str(e)}")
         return None
 
 def get_lottery_results(driver):
     """获取所有彩票开奖结果"""
     try:
-        # 更改为新网站地址
         driver.get('https://www.hkj.rip')
         random_sleep()
         print("\n" + "="*80)
@@ -164,12 +171,12 @@ def get_lottery_results(driver):
                     f.write(result)
                 results[lottery_type] = result
                 print(f"✅ 已保存 {lottery_type} 开奖结果")
-            driver.get('https://6htv99.com/#/home')
             random_sleep()
                 
         return results
                 
     except Exception as e:
+        print(f"获取结果出错: {str(e)}")
         return None
 
 def main():
