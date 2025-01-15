@@ -61,80 +61,99 @@ def extract_lottery_info(driver, lottery_type):
         )
         time.sleep(5)
         
-        base_url = "https://www.uzzn.com"  # 更新为图片中显示的网址
+        base_url = "https://www.hkj.rip/"  # 使用正确的URL
         driver.get(base_url)
         time.sleep(5)
             
         print(f"已访问{lottery_type}页面")
         print(f"当前URL: {driver.current_url}")
 
-        # 定义彩种名称和对应的标识
-        type_info = {
-            'lam': {'name': '老澳门', 'text': '老澳门六合彩'},
-            'xam': {'name': '新澳门', 'text': '新澳门六合彩'},
-            'hk': {'name': '香港彩', 'text': '香港六合彩'},
-            'tc': {'name': '快乐八', 'text': '快乐八'}
-        }
-        
+        # 根据图片显示的实际布局修改选择器
         try:
-            # 直接获取所有数字元素
-            number_elements = driver.find_elements(By.CSS_SELECTOR, 'div[style*="color"]')
-            all_numbers = {}
+            # 获取所有可能包含数字的元素
+            number_elements = driver.find_elements(By.CSS_SELECTOR, 'div[style*="background-color"], div[style*="color"]')
+            
+            # 打印找到的元素数量，用于调试
+            print(f"找到 {len(number_elements)} 个可能的数字元素")
+            
+            # 收集所有数字
+            numbers_by_section = {}
             current_section = None
             
             for elem in number_elements:
-                # 获取父元素的文本，用于判断属于哪个彩种
-                parent_text = driver.execute_script("""
-                    let el = arguments[0];
-                    let parent = el;
-                    let text = '';
-                    for(let i=0; i<5; i++) {
-                        parent = parent.parentElement;
-                        if(parent) {
-                            text = parent.textContent;
-                            if(text.includes('期')) break;
+                try:
+                    # 获取元素的完整样式
+                    style = elem.get_attribute('style')
+                    text = elem.text.strip()
+                    
+                    # 打印调试信息
+                    print(f"元素样式: {style}, 文本: {text}")
+                    
+                    # 获取父元素内容来确定所属区域
+                    parent = driver.execute_script("""
+                        let el = arguments[0];
+                        let parent = el;
+                        for(let i=0; i<5; i++) {
+                            if(parent.textContent.includes('期')) {
+                                return parent.textContent;
+                            }
+                            parent = parent.parentElement;
+                            if(!parent) break;
                         }
-                    }
-                    return text;
-                """, elem)
-                
-                # 判断属于哪个彩种
-                for key, info in type_info.items():
-                    if info['text'] in parent_text:
-                        current_section = key
-                        break
-                
-                if current_section:
-                    num = elem.text.strip()
-                    if num and num.isdigit():
-                        if current_section not in all_numbers:
-                            all_numbers[current_section] = []
-                        all_numbers[current_section].append(num)
+                        return '';
+                    """, elem)
+                    
+                    print(f"父元素内容: {parent}")
+                    
+                    # 判断所属区域
+                    if '老澳门' in parent and lottery_type == 'lam':
+                        current_section = 'lam'
+                    elif '新澳门' in parent and lottery_type == 'xam':
+                        current_section = 'xam'
+                    elif '香港' in parent and lottery_type == 'hk':
+                        current_section = 'hk'
+                    elif '快乐八' in parent and lottery_type == 'tc':
+                        current_section = 'tc'
+                    
+                    # 如果是数字且属于当前彩种，则收集
+                    if current_section == lottery_type and text.isdigit():
+                        if lottery_type not in numbers_by_section:
+                            numbers_by_section[lottery_type] = []
+                        numbers_by_section[lottery_type].append(text)
+                        
+                except Exception as e:
+                    print(f"处理元素时出错: {str(e)}")
+                    continue
             
-            # 处理目标彩种的数据
-            if lottery_type in all_numbers and len(all_numbers[lottery_type]) >= 7:
-                numbers = all_numbers[lottery_type]
+            # 处理收集到的数字
+            if lottery_type in numbers_by_section and len(numbers_by_section[lottery_type]) >= 7:
+                numbers = numbers_by_section[lottery_type]
                 
                 # 提取期号
-                issue_text = driver.find_element(By.XPATH, f"//*[contains(text(), '第') and contains(text(), '期')]").text
-                issue_match = re.search(r'第(\d+)期', issue_text)
-                if not issue_match:
+                issue_elements = driver.find_elements(By.XPATH, "//div[contains(text(), '期')]")
+                issue = None
+                for elem in issue_elements:
+                    match = re.search(r'第(\d+)期', elem.text)
+                    if match:
+                        issue = match.group(1)
+                        break
+                
+                if not issue:
                     print("未找到期号")
                     return None
-                    
-                issue = issue_match.group(1)
                 
                 # 提取生肖
                 zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
                 zodiac = ''
+                page_text = driver.page_source
                 for z in zodiac_chars:
-                    if z in driver.page_source:
+                    if z in page_text:
                         zodiac = z
                         break
                 
                 # 格式化结果
-                numbers = [num.zfill(2) for num in numbers[:-1]]
-                special_number = numbers[-1].zfill(2)
+                numbers = [num.zfill(2) for num in numbers[:6]]  # 前6个号码
+                special_number = numbers_by_section[lottery_type][-1].zfill(2)  # 最后一个作为特码
                 
                 issue_short = issue[-3:]
                 result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
