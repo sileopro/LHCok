@@ -164,9 +164,24 @@ def extract_lottery_info(driver, lottery_type):
         """)
         
         if number_elements and len(number_elements) >= 7:
-            # 提取生肖
+            # 提取生肖 - 修改生肖提取逻辑
             zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
-            zodiac = next((z for z in zodiac_chars if z in page_source), '')
+            zodiac = ''
+            
+            # 查找包含生肖的元素
+            zodiac_element = driver.execute_script("""
+                const elements = document.querySelectorAll('.whsx');
+                for (const el of elements) {
+                    const text = el.textContent.trim();
+                    if (text.includes('/')) {
+                        return text.split('/')[1];
+                    }
+                }
+                return '';
+            """)
+            
+            if zodiac_element:
+                zodiac = zodiac_element
             
             # 格式化结果
             numbers = [num.zfill(2) for num in number_elements[:6]]
@@ -180,7 +195,6 @@ def extract_lottery_info(driver, lottery_type):
             filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write(result)
-            print(f"✅ 已保存到 {filename}")
             
             return result
         else:
@@ -207,20 +221,28 @@ def get_lottery_results(driver):
         
         results = {}
         lottery_types = ['lam', 'xam', 'hk', 'tc']
+        lottery_names = {
+            'lam': '老澳门',
+            'xam': '新澳门',
+            'hk': '香港',
+            'tc': '快乐8'
+        }
         
         for lottery_type in lottery_types:
-            print(f"\n开始获取 {lottery_type} 开奖结果...")
+            print(f"\n开始获取{lottery_names[lottery_type]}开奖结果...")
             result = extract_lottery_info(driver, lottery_type)
             if result:
                 try:
-                    with open(f'{lottery_type}.txt', 'w', encoding='utf-8') as f:
+                    # 使用正确的文件名
+                    filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
+                    with open(filename, 'w', encoding='utf-8') as f:
                         f.write(result)
                     results[lottery_type] = result
-                    print(f"✅ 已成功保存 {lottery_type}.txt")
+                    print(f"✅ 已成功保存 {filename}")
                 except Exception as e:
-                    print(f"❌ 保存 {lottery_type}.txt 失败: {str(e)}")
+                    print(f"❌ 保存文件失败: {str(e)}")
             else:
-                print(f"❌ 未能获取 {lottery_type} 开奖结果")
+                print(f"❌ 未能获取开奖结果")
             random_sleep()
                 
         return results
