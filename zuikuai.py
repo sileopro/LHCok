@@ -61,94 +61,91 @@ def extract_lottery_info(driver, lottery_type):
         )
         time.sleep(5)
         
-        base_url = "https://www.hkj.rip/"
+        base_url = "https://www.uzzn.com"  # 更新为图片中显示的网址
         driver.get(base_url)
         time.sleep(5)
             
         print(f"已访问{lottery_type}页面")
         print(f"当前URL: {driver.current_url}")
 
-        # 定义彩种名称映射
-        type_names = {
-            'lam': '老澳门',
-            'xam': '新澳门',
-            'hk': '香港彩',
-            'tc': '快乐八'
+        # 定义彩种名称和对应的标识
+        type_info = {
+            'lam': {'name': '老澳门', 'text': '老澳门六合彩'},
+            'xam': {'name': '新澳门', 'text': '新澳门六合彩'},
+            'hk': {'name': '香港彩', 'text': '香港六合彩'},
+            'tc': {'name': '快乐八', 'text': '快乐八'}
         }
         
-        target_name = type_names[lottery_type]
-        
-        # 使用XPath直接查找包含目标文本的元素
         try:
-            target_element = driver.find_element(By.XPATH, f"//*[contains(text(), '{target_name}')]")
-            print(f"找到目标元素: {target_element.text}")
+            # 直接获取所有数字元素
+            number_elements = driver.find_elements(By.CSS_SELECTOR, 'div[style*="color"]')
+            all_numbers = {}
+            current_section = None
             
-            # 获取父元素
-            parent = driver.execute_script("""
-                var element = arguments[0];
-                var parent = element.parentElement;
-                // 向上查找直到找到包含数字的父元素
-                while (parent && !parent.textContent.match(/\\d+/)) {
-                    parent = parent.parentElement;
-                }
-                return parent;
-            """, target_element)
-            
-            if not parent:
-                print("未找到包含数据的父元素")
-                return None
-                
-            # 获取该区域的所有文本
-            text = parent.get_attribute('textContent')
-            print(f"找到的文本内容: {text}")
-            
-            # 提取期号
-            issue_match = re.search(r'第(\d+)期', text)
-            if not issue_match:
-                print("未找到期号")
-                return None
-                
-            issue = issue_match.group(1)
-            
-            # 获取该区域内所有带颜色样式的元素（通常是号码）
-            number_elements = parent.find_elements(By.CSS_SELECTOR, '[style*="color"]')
-            numbers = []
             for elem in number_elements:
-                num = elem.text.strip()
-                if num and num.isdigit():
-                    numbers.append(num)
-            
-            # 提取生肖
-            zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
-            zodiac = next((z for z in zodiac_chars if z in text), '')
-            
-            result_data = {
-                'issue': f"第{issue}期",
-                'numbers': numbers,
-                'zodiac': zodiac
-            }
-            
-            print(f"提取的数据: {result_data}")
-            
-            if not result_data['numbers']:
-                print(f"警告: {lottery_type} 未获取到号码数据")
-                return None
+                # 获取父元素的文本，用于判断属于哪个彩种
+                parent_text = driver.execute_script("""
+                    let el = arguments[0];
+                    let parent = el;
+                    let text = '';
+                    for(let i=0; i<5; i++) {
+                        parent = parent.parentElement;
+                        if(parent) {
+                            text = parent.textContent;
+                            if(text.includes('期')) break;
+                        }
+                    }
+                    return text;
+                """, elem)
                 
-            if len(result_data['numbers']) < 7:
-                print(f"错误: {lottery_type} 号码数量不足 ({len(result_data['numbers'])})")
-                return None
+                # 判断属于哪个彩种
+                for key, info in type_info.items():
+                    if info['text'] in parent_text:
+                        current_section = key
+                        break
                 
-            numbers = [num.zfill(2) for num in result_data['numbers'][:-1]]
-            special_number = result_data['numbers'][-1].zfill(2)
-            special_zodiac = result_data['zodiac']
+                if current_section:
+                    num = elem.text.strip()
+                    if num and num.isdigit():
+                        if current_section not in all_numbers:
+                            all_numbers[current_section] = []
+                        all_numbers[current_section].append(num)
             
-            issue_short = issue[-3:]
-            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {special_zodiac}"
-            print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
-            return result
+            # 处理目标彩种的数据
+            if lottery_type in all_numbers and len(all_numbers[lottery_type]) >= 7:
+                numbers = all_numbers[lottery_type]
+                
+                # 提取期号
+                issue_text = driver.find_element(By.XPATH, f"//*[contains(text(), '第') and contains(text(), '期')]").text
+                issue_match = re.search(r'第(\d+)期', issue_text)
+                if not issue_match:
+                    print("未找到期号")
+                    return None
+                    
+                issue = issue_match.group(1)
+                
+                # 提取生肖
+                zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
+                zodiac = ''
+                for z in zodiac_chars:
+                    if z in driver.page_source:
+                        zodiac = z
+                        break
+                
+                # 格式化结果
+                numbers = [num.zfill(2) for num in numbers[:-1]]
+                special_number = numbers[-1].zfill(2)
+                
+                issue_short = issue[-3:]
+                result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
+                print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
+                return result
+            else:
+                print(f"警告: {lottery_type} 未获取到足够的号码数据")
+                return None
             
         except Exception as e:
-            print(f"在查找元素时出错: {str(e)}")
+            print(f"在提取数据时出错: {str(e)}")
             return None
 
     except Exception as e:
