@@ -106,39 +106,35 @@ def extract_lottery_info(driver, lottery_type):
         
         # 获取页面内容
         page_source = driver.page_source
-        print(f"页面内容长度: {len(page_source)}")
         
-        # 查找包含期号的元素
-        period_text = driver.execute_script("""
+        # 查找包含期号和时间的元素
+        period_info = driver.execute_script("""
             const elements = document.querySelectorAll('*');
             for (const el of elements) {
                 const text = el.textContent.trim();
-                if (text.includes('期') && text.includes('月') && text.includes('日')) {
+                if (text.includes('期') && text.includes('月') && text.includes('日') && text.includes('点')) {
                     return text;
                 }
             }
             return '';
         """)
         
-        print(f"找到包含期号的文本: {period_text}")
+        print(f"找到期号和时间信息: {period_info}")
         
-        # 先尝试提取期号
-        issue_match = None
-        issue_patterns = [
-            r'第(\d+)期.*?(\d+)月(\d+)日',  # 匹配带日期的期号
-            r'第(\d+)期',                   # 匹配普通期号
-        ]
-        
-        for pattern in issue_patterns:
-            issue_match = re.search(pattern, period_text)
-            if issue_match:
-                issue = issue_match.group(1)
-                print(f"找到期号: {issue}")
-                break
-        
+        # 提取期号和时间
+        issue_match = re.search(r'第(\d+)期.*?(\d+)月(\d+)日.*?(\d+)点(\d+)分', period_info)
         if not issue_match:
-            print("未能找到有效期号")
+            print("未能找到有效期号和时间")
             return None
+            
+        issue = issue_match.group(1)
+        next_time = f"{issue_match.group(2)}月{issue_match.group(3)}日 {issue_match.group(4)}点{issue_match.group(5)}分"
+        print(f"找到期号: {issue}")
+        print(f"下期开奖时间: {next_time}")
+        
+        # 保存下期开奖时间到文件
+        with open('time.txt', 'a', encoding='utf-8') as f:
+            f.write(f"{lottery_type}第{issue}期：{next_time}\n")
         
         # 使用JavaScript查找数字元素
         number_elements = driver.execute_script("""
@@ -151,17 +147,7 @@ def extract_lottery_info(driver, lottery_type):
                 for (const el of elements) {
                     const text = el.textContent.trim();
                     if (/^\\d{1,2}$/.test(text)) {
-                        const style = window.getComputedStyle(el);
-                        const parent = el.parentElement;
-                        const parentText = parent ? parent.textContent.trim() : '';
-                        
-                        numbers.push({
-                            text: text,
-                            id: el.id,
-                            color: style.color,
-                            bgColor: style.backgroundColor,
-                            context: parentText
-                        });
+                        numbers.push(text);
                     }
                 }
                 return numbers;
@@ -169,36 +155,21 @@ def extract_lottery_info(driver, lottery_type):
             return findNumbers();
         """)
         
-        if number_elements:
-            print(f"\n找到 {len(number_elements)} 个数字元素:")
-            numbers = []
-            for num in number_elements:
-                print(f"数字: {num['text']}")
-                print(f"ID: {num['id']}")
-                print(f"颜色: {num['color']}")
-                print(f"背景色: {num['bgColor']}")
-                print(f"上下文: {num['context']}")
-                print("---")
-                if num['text'].isdigit():
-                    numbers.append(num['text'])
+        if number_elements and len(number_elements) >= 7:
+            # 提取生肖
+            zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
+            zodiac = next((z for z in zodiac_chars if z in page_source), '')
             
-            if len(numbers) >= 7:
-                # 提取生肖
-                zodiac_chars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪']
-                zodiac = next((z for z in zodiac_chars if z in page_source), '')
-                
-                # 格式化结果
-                numbers = [num.zfill(2) for num in numbers[:6]]
-                special_number = numbers[6].zfill(2)
-                issue_short = issue.zfill(3)[-3:]  # 确保期号是3位数
-                
-                result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
-                print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
-                return result
-            else:
-                print(f"警告: 数字数量不足 ({len(numbers)})")
+            # 格式化结果
+            numbers = [num.zfill(2) for num in number_elements[:6]]
+            special_number = number_elements[6].zfill(2)
+            issue_short = issue.zfill(3)[-3:]  # 确保期号是3位数
+            
+            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
+            print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
+            return result
         else:
-            print("未找到数字元素")
+            print(f"警告: 数字数量不足 ({len(number_elements) if number_elements else 0})")
         
         print(f"警告: {lottery_type} 未找到足够的号码数据")
         return None
