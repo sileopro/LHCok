@@ -59,88 +59,83 @@ def extract_lottery_info(driver, lottery_type):
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
-        random_sleep()
+        
+        # 增加更长的等待时间
+        time.sleep(10)
         
         # 更新为新的网站URL结构
         base_url = "https://www.hkj.rip/"
         driver.get(base_url)
-        random_sleep()
+        time.sleep(5)
             
         print(f"已访问{lottery_type}页面")
         print(f"当前URL: {driver.current_url}")
-
-        # 更新 JavaScript 提取逻辑
+        
+        # 保存页面源码用于调试
+        page_source = driver.page_source
+        print("页面源码长度:", len(page_source))
+        
+        # 使用更简单的选择器策略
         result_data = driver.execute_script("""
             function extractData() {
                 try {
-                    // 获取所有可能包含开奖信息的元素
-                    const allElements = document.querySelectorAll('*');
-                    let targetSection = null;
-                    
-                    // 根据彩种类型查找对应区块
-                    const typeMapping = {
+                    const typeNames = {
                         'lam': '老澳门',
                         'xam': '新澳门',
                         'hk': '香港彩',
                         'tc': '快乐八'
                     };
                     
-                    // 遍历所有元素查找目标区块
-                    for(const element of allElements) {
-                        const text = element.textContent;
-                        if(text && text.includes(typeMapping[arguments[0]])) {
-                            // 向上查找最近的容器元素
-                            let parent = element;
-                            while(parent && !parent.querySelector('div[style*="color"]')) {
-                                parent = parent.parentElement;
-                            }
-                            if(parent) {
-                                targetSection = parent;
-                                break;
-                            }
-                        }
-                    }
+                    // 打印页面上所有文本内容，用于调试
+                    console.log('页面文本:', document.body.textContent);
                     
-                    if(!targetSection) {
-                        console.log('未找到目标区块');
-                        return null;
-                    }
+                    // 首先尝试找到包含彩种名称的元素
+                    const elements = Array.from(document.getElementsByTagName('*'));
+                    const targetName = typeNames[arguments[0]];
                     
-                    // 获取期号
-                    const issueRegex = /第[0-9]+期/;
-                    const issueMatch = targetSection.textContent.match(issueRegex);
-                    const issueText = issueMatch ? issueMatch[0] : '';
-                    
-                    // 获取号码
-                    const numbers = [];
-                    const numberElements = targetSection.querySelectorAll('div[style*="color"], span[style*="color"]');
-                    numberElements.forEach(el => {
-                        const num = el.textContent.trim();
-                        if(num && !isNaN(num)) numbers.push(num);
-                    });
-                    
-                    // 获取生肖
-                    const zodiacChars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
-                    let zodiac = '';
-                    const text = targetSection.textContent;
-                    for(const char of zodiacChars) {
-                        if(text.includes(char)) {
-                            zodiac = char;
+                    let targetElement = null;
+                    for (const el of elements) {
+                        if (el.textContent.includes(targetName)) {
+                            targetElement = el;
+                            console.log('找到目标元素:', el.textContent);
                             break;
                         }
                     }
                     
-                    console.log('找到数据:', {
-                        issue: issueText,
-                        numbers: numbers,
-                        zodiac: zodiac
-                    });
+                    if (!targetElement) {
+                        console.log('未找到包含', targetName, '的元素');
+                        return null;
+                    }
                     
-                    return {
+                    // 获取目标元素所在区域的所有文本
+                    let container = targetElement;
+                    while (container && container.children.length < 10) {
+                        container = container.parentElement;
+                    }
+                    
+                    const text = container ? container.textContent : targetElement.textContent;
+                    console.log('找到的文本区域:', text);
+                    
+                    // 提取期号
+                    const issueMatch = text.match(/第\\d+期/);
+                    const issueText = issueMatch ? issueMatch[0] : '';
+                    
+                    // 提取数字
+                    const numbers = text.match(/\\b\\d{1,2}\\b/g) || [];
+                    
+                    // 提取生肖
+                    const zodiacChars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+                    const zodiac = zodiacChars.find(z => text.includes(z)) || '';
+                    
+                    const result = {
                         issue: issueText,
                         numbers: numbers,
                         zodiac: zodiac
                     };
+                    
+                    console.log('提取的结果:', result);
+                    return result;
+                    
                 } catch(e) {
                     console.error('提取数据时出错:', e);
                     return null;
