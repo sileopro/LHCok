@@ -169,16 +169,33 @@ def extract_lottery_info(driver, lottery_type):
             # 修改生肖提取逻辑，获取特码的生肖
             zodiac_element = driver.execute_script("""
                 const specialBall = document.querySelector('div[id="s1"]');
-                if (specialBall) {
-                    const zodiacElement = specialBall.parentElement.querySelector('.whsx');
-                    if (zodiacElement) {
-                        const text = zodiacElement.textContent.trim();
-                        const parts = text.split('/');
-                        return parts.length > 1 ? parts[1] : '';
+                if (specialBall && specialBall.parentElement) {
+                    const parent = specialBall.parentElement;
+                    const nextElement = parent.nextElementSibling;
+                    if (nextElement) {
+                        const text = nextElement.textContent.trim();
+                        if (text.includes('/')) {
+                            return text.split('/')[1];
+                        }
                     }
                 }
                 return '';
             """)
+            
+            # 如果上面的方法失败，尝试另一种方法
+            if not zodiac_element:
+                zodiac_element = driver.execute_script("""
+                    const elements = document.querySelectorAll('.whsx');
+                    for (const el of elements) {
+                        if (el.previousElementSibling && el.previousElementSibling.id === 's1') {
+                            const text = el.textContent.trim();
+                            if (text.includes('/')) {
+                                return text.split('/')[1];
+                            }
+                        }
+                    }
+                    return '';
+                """)
             
             # 格式化结果
             numbers = [num.zfill(2) for num in number_elements[:6]]
