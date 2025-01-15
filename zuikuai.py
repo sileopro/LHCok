@@ -71,13 +71,13 @@ def extract_lottery_info(driver, lottery_type):
                 time.sleep(5)
                 break
             except Exception as e:
-                print(f"访问主页失败，重试 ({retry_count + 1}/{max_retries}): {str(e)}")
+                print(f"访问主页失败，重试 ({retry_count + 1}/{max_retries})")
                 retry_count += 1
                 if retry_count == max_retries:
                     raise Exception("访问主页失败次数过多")
                 time.sleep(5)
             
-        print(f"已访问{lottery_type}页面")
+        print(f"开始获取 {lottery_type} 开奖结果...")
         
         # 定义内部页面映射
         inner_pages = {
@@ -89,7 +89,6 @@ def extract_lottery_info(driver, lottery_type):
         
         # 直接访问内部页面
         inner_url = f"https://www.hkj.rip{inner_pages[lottery_type]}"
-        print(f"访问内部页面: {inner_url}")
         
         retry_count = 0
         while retry_count < max_retries:
@@ -98,7 +97,7 @@ def extract_lottery_info(driver, lottery_type):
                 time.sleep(5)
                 break
             except Exception as e:
-                print(f"访问内部页面失败，重试 ({retry_count + 1}/{max_retries}): {str(e)}")
+                print(f"访问内部页面失败，重试 ({retry_count + 1}/{max_retries})")
                 retry_count += 1
                 if retry_count == max_retries:
                     raise Exception("访问内部页面失败次数过多")
@@ -110,7 +109,6 @@ def extract_lottery_info(driver, lottery_type):
         # 修改查找期号和时间的JavaScript代码
         period_info = driver.execute_script("""
             function findPeriodInfo() {
-                // 先尝试查找包含"图库大全"的元素
                 const elements = document.querySelectorAll('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
@@ -123,8 +121,6 @@ def extract_lottery_info(driver, lottery_type):
             return findPeriodInfo();
         """)
         
-        print(f"找到期号和时间信息: {period_info}")
-        
         # 提取期号和时间
         issue_match = re.search(r'第(\d+)期:(\d+)月(\d+)日.*?(\d+)[点时](\d+)分', period_info)
         if not issue_match:
@@ -133,8 +129,6 @@ def extract_lottery_info(driver, lottery_type):
             
         issue = issue_match.group(1)
         next_time = f"{issue_match.group(2)}月{issue_match.group(3)}日 {issue_match.group(4)}点{issue_match.group(5)}分"
-        print(f"找到期号: {issue}")
-        print(f"下期开奖时间: {next_time}")
         
         # 清空time.txt文件
         if lottery_type == 'lam':  # 只在处理第一个彩种时清空文件
@@ -155,7 +149,6 @@ def extract_lottery_info(driver, lottery_type):
         number_elements = driver.execute_script("""
             function findNumbers() {
                 const numbers = [];
-                // 查找所有id以m或s开头的div元素，按id排序
                 const elements = Array.from(document.querySelectorAll('div[id^="m"], div[id^="s"]'))
                     .sort((a, b) => a.id.localeCompare(b.id));
                 
@@ -181,16 +174,23 @@ def extract_lottery_info(driver, lottery_type):
             issue_short = issue.zfill(3)[-3:]  # 确保期号是3位数
             
             result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac}"
-            print(f"✅ 成功获取{lottery_type}开奖结果：{result}")
+            print(f"✅ 成功获取开奖结果：{result}")
+            
+            # 使用正确的文件名
+            filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(result)
+            print(f"✅ 已保存到 {filename}")
+            
             return result
         else:
-            print(f"警告: 数字数量不足 ({len(number_elements) if number_elements else 0})")
+            print(f"警告: 数字数量不足")
         
-        print(f"警告: {lottery_type} 未找到足够的号码数据")
+        print(f"警告: 未找到足够的号码数据")
         return None
 
     except Exception as e:
-        print(f"❌ 提取{lottery_type}数据出错: {str(e)}")
+        print(f"❌ 提取数据出错: {str(e)}")
         return None
 
 def get_lottery_results(driver):
