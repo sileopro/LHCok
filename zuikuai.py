@@ -107,22 +107,26 @@ def extract_lottery_info(driver, lottery_type):
         # 获取页面内容
         page_source = driver.page_source
         
-        # 查找包含期号和时间的元素
+        # 修改查找期号和时间的JavaScript代码
         period_info = driver.execute_script("""
-            const elements = document.querySelectorAll('*');
-            for (const el of elements) {
-                const text = el.textContent.trim();
-                if (text.includes('期') && text.includes('月') && text.includes('日') && text.includes('点')) {
-                    return text;
+            function findPeriodInfo() {
+                // 先尝试查找包含"图库大全"的元素
+                const elements = document.querySelectorAll('*');
+                for (const el of elements) {
+                    const text = el.textContent.trim();
+                    if (text.includes('期') && text.includes('月') && text.includes('日') && text.includes('图库大全')) {
+                        return text;
+                    }
                 }
+                return '';
             }
-            return '';
+            return findPeriodInfo();
         """)
         
         print(f"找到期号和时间信息: {period_info}")
         
         # 提取期号和时间
-        issue_match = re.search(r'第(\d+)期.*?(\d+)月(\d+)日.*?(\d+)点(\d+)分', period_info)
+        issue_match = re.search(r'第(\d+)期:(\d+)月(\d+)日.*?(\d+)[点时](\d+)分', period_info)
         if not issue_match:
             print("未能找到有效期号和时间")
             return None
@@ -132,9 +136,20 @@ def extract_lottery_info(driver, lottery_type):
         print(f"找到期号: {issue}")
         print(f"下期开奖时间: {next_time}")
         
+        # 清空time.txt文件
+        if lottery_type == 'lam':  # 只在处理第一个彩种时清空文件
+            open('time.txt', 'w', encoding='utf-8').close()
+        
         # 保存下期开奖时间到文件
+        lottery_names = {
+            'lam': '老澳门',
+            'xam': '新澳门',
+            'hk': '香港',
+            'tc': '快乐八'
+        }
+        
         with open('time.txt', 'a', encoding='utf-8') as f:
-            f.write(f"{lottery_type}第{issue}期：{next_time}\n")
+            f.write(f"{lottery_names[lottery_type]}第{issue}期：{next_time}\n")
         
         # 使用JavaScript查找数字元素
         number_elements = driver.execute_script("""
