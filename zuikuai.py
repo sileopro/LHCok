@@ -136,9 +136,9 @@ def extract_lottery_info(driver, lottery_type):
         
         # 保存下期开奖时间到文件
         lottery_names = {
-            'lam': '老澳门',
-            'xam': '新澳门',
-            'hk': '香港',
+            'lam': '老澳',
+            'xam': '新澳',
+            'hk': '港彩',
             'tc': '快乐8'
         }
         
