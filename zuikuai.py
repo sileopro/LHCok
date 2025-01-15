@@ -56,21 +56,14 @@ def random_sleep():
 def extract_lottery_info(driver, lottery_type):
     """提取特定彩票的开奖信息"""
     try:
-        # 等待页面加载完成
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         random_sleep()
         
-        # 更新为新的网站URL
-        lottery_urls = {
-            'lam': 'https://www.uzzn.com/macau/',    # 老澳门
-            'xam': 'https://www.uzzn.com/macau-new/', # 新澳门
-            'hk': 'https://www.uzzn.com/hk/',         # 香港彩
-            'tc': 'https://www.uzzn.com/taiwan/'      # 快乐8
-        }
-        
-        driver.get(lottery_urls[lottery_type])
+        # 更新为新的网站URL结构
+        base_url = "https://www.hkj.rip/"
+        driver.get(base_url)
         random_sleep()
             
         print(f"已访问{lottery_type}页面")
@@ -80,31 +73,48 @@ def extract_lottery_info(driver, lottery_type):
         result_data = driver.execute_script("""
             function extractData() {
                 try {
-                    // 获取期号
-                    var issueText = '';
-                    var issueElements = document.querySelectorAll('div, span');
-                    for(var el of issueElements) {
-                        if(el.textContent.includes('期')) {
-                            issueText = el.textContent;
+                    // 获取对应彩种的区块
+                    let targetSection;
+                    const sections = document.querySelectorAll('div');
+                    for(const section of sections) {
+                        if(section.textContent.includes('香港彩') && arguments[0] === 'hk') {
+                            targetSection = section;
+                            break;
+                        } else if(section.textContent.includes('快乐八') && arguments[0] === 'tc') {
+                            targetSection = section;
+                            break;
+                        } else if(section.textContent.includes('老澳门') && arguments[0] === 'lam') {
+                            targetSection = section;
+                            break;
+                        } else if(section.textContent.includes('新澳门') && arguments[0] === 'xam') {
+                            targetSection = section;
                             break;
                         }
                     }
                     
+                    if(!targetSection) return null;
+                    
+                    // 获取期号
+                    let issueText = '';
+                    const issueMatch = targetSection.textContent.match(/第\\d+期/);
+                    if(issueMatch) {
+                        issueText = issueMatch[0];
+                    }
+                    
                     // 获取号码
-                    var numbers = [];
-                    var numberElements = document.querySelectorAll('.number, .ball');
-                    numberElements.forEach(function(el) {
-                        var num = el.textContent.trim();
+                    const numbers = [];
+                    const numberElements = targetSection.querySelectorAll('div[style*="color"]');
+                    numberElements.forEach(el => {
+                        const num = el.textContent.trim();
                         if(num && !isNaN(num)) numbers.push(num);
                     });
                     
-                    // 获取特码生肖
-                    var zodiac = '';
-                    var zodiacElements = document.querySelectorAll('div, span');
-                    for(var el of zodiacElements) {
-                        var text = el.textContent.trim();
-                        if(['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'].includes(text)) {
-                            zodiac = text;
+                    // 获取生肖
+                    const zodiacChars = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+                    let zodiac = '';
+                    for(const char of zodiacChars) {
+                        if(targetSection.textContent.includes(char)) {
+                            zodiac = char;
                             break;
                         }
                     }
@@ -119,25 +129,20 @@ def extract_lottery_info(driver, lottery_type):
                     return null;
                 }
             }
-            return extractData();
-        """)
+            return extractData(arguments[0]);
+        """, lottery_type)
         
         if not result_data:
             print(f"警告: {lottery_type} 未获取到数据")
             return None
             
-        # 打印原始数据以便调试
         print(f"获取到的原始数据: {result_data}")
         
         # 解析期号
         match = re.search(r'第(\d+)期', result_data['issue'])
         if not match:
-            page_text = driver.find_element(By.TAG_NAME, "body").text
-            print(f"页面文本: {page_text[:200]}...")
-            match = re.search(r'第(\d+)期最新开奖结果', page_text)
-            if not match:
-                print(f"错误: {lottery_type} 无法解析期号")
-                return None
+            print(f"错误: {lottery_type} 无法解析期号")
+            return None
         issue_short = match.group(1)[-3:]
         
         # 处理号码
