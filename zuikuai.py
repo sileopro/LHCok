@@ -103,22 +103,43 @@ def extract_lottery_info(driver, lottery_type):
                 if type_markers[lottery_type] in iframe_source:
                     print(f"找到目标内容: {type_markers[lottery_type]}")
                     
-                    # 使用JavaScript查找数字元素
+                    # 使用更精确的JavaScript查找数字元素
                     number_elements = driver.execute_script("""
                         function findNumbers() {
                             const numbers = [];
-                            const elements = document.getElementsByTagName('*');
+                            // 查找所有可能包含数字的元素
+                            const elements = document.querySelectorAll('div, span, font, b');
+                            
                             for (const el of elements) {
                                 const text = el.textContent.trim();
+                                // 检查是否是1-2位数字
                                 if (/^\\d{1,2}$/.test(text)) {
                                     const style = window.getComputedStyle(el);
+                                    const parent = el.parentElement;
+                                    const parentStyle = parent ? window.getComputedStyle(parent) : null;
+                                    
+                                    // 检查元素或其父元素是否有特殊样式
                                     if (style.color !== 'rgb(0, 0, 0)' || 
-                                        style.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                                        style.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+                                        (parentStyle && (
+                                            parentStyle.color !== 'rgb(0, 0, 0)' ||
+                                            parentStyle.backgroundColor !== 'rgba(0, 0, 0, 0)'
+                                        ))) {
+                                        
+                                        // 获取完整的上下文信息
+                                        let context = '';
+                                        let currentEl = el;
+                                        for (let i = 0; i < 3 && currentEl; i++) {
+                                            context = currentEl.textContent + ' ' + context;
+                                            currentEl = currentEl.parentElement;
+                                        }
+                                        
                                         numbers.push({
                                             text: text,
                                             style: el.getAttribute('style'),
                                             color: style.color,
-                                            bgColor: style.backgroundColor
+                                            bgColor: style.backgroundColor,
+                                            context: context.trim()
                                         });
                                     }
                                 }
@@ -132,8 +153,11 @@ def extract_lottery_info(driver, lottery_type):
                         print(f"\n找到 {len(number_elements)} 个数字元素:")
                         numbers = []
                         for num in number_elements:
-                            print(f"数字: {num['text']}, 样式: {num['style']}")
-                            print(f"颜色: {num['color']}, 背景色: {num['bgColor']}")
+                            print(f"数字: {num['text']}")
+                            print(f"颜色: {num['color']}")
+                            print(f"背景色: {num['bgColor']}")
+                            print(f"上下文: {num['context']}")
+                            print("---")
                             if num['text'].isdigit():
                                 numbers.append(num['text'])
                         
