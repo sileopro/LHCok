@@ -106,31 +106,62 @@ def extract_lottery_info(driver, lottery_type):
         # 获取页面内容
         page_source = driver.page_source
         
-        # 修改查找期号和时间的JavaScript代码
+        # 修改查找期号和时间的JavaScript代码，获取当前期号
         period_info = driver.execute_script("""
             function findPeriodInfo() {
+                // 首先尝试获取开奖结果区域的期号
+                const resultArea = document.querySelector('.kj-result, .kj-content');
+                if (resultArea) {
+                    const periodText = resultArea.textContent.match(/第(\\d+)期/);
+                    if (periodText) {
+                        return periodText[0];
+                    }
+                }
+                
+                // 如果上面失败，则查找包含开奖结果的元素
                 const elements = document.querySelectorAll('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
-                    if (text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分.*?图库大全/)) {
-                        return text;
+                    // 优先匹配包含开奖结果的期号
+                    if (text.includes('开奖结果') && text.match(/第\\d+期/)) {
+                        const match = text.match(/第(\\d+)期/);
+                        if (match) return match[0];
                     }
                 }
+                
+                // 如果还是找不到，返回空字符串
                 return '';
             }
             return findPeriodInfo();
         """)
         
-        # 提取期号和时间，使用更严格的正则表达式
-        issue_match = re.search(r'第(\d+)期.*?(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', period_info)
-        if not issue_match:
-            print(f"未能找到有效期号和时间: {period_info}")
+        # 获取开奖时间信息
+        time_info = driver.execute_script("""
+            function findTimeInfo() {
+                const elements = document.querySelectorAll('*');
+                for (const el of elements) {
+                    const text = el.textContent.trim();
+                    if (text.match(/\\d+月\\d+日.*?\\d+[点时]\\d+分.*?图库大全/)) {
+                        return text;
+                    }
+                }
+                return '';
+            }
+            return findTimeInfo();
+        """)
+        
+        # 分别提取期号和时间
+        issue_match = re.search(r'第(\d+)期', period_info)
+        time_match = re.search(r'(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', time_info)
+        
+        if not issue_match or not time_match:
+            print(f"未能找到有效期号或时间: {period_info} | {time_info}")
             return None
             
         issue = issue_match.group(1)
-        month = issue_match.group(2).zfill(2)  # 确保月份是两位数
-        day = issue_match.group(3).zfill(2)    # 确保日期是两位数
-        next_time = f"{month}月{day}日 {issue_match.group(4)}点{issue_match.group(5)}分"
+        month = time_match.group(1).zfill(2)
+        day = time_match.group(2).zfill(2)
+        next_time = f"{month}月{day}日 {time_match.group(3)}点{time_match.group(4)}分"
         
         # 清空time.txt文件
         if lottery_type == 'lam':  # 只在处理第一个彩种时清空文件
