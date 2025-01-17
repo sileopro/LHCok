@@ -135,13 +135,33 @@ def extract_lottery_info(driver, lottery_type):
             return findPeriodInfo();
         """)
         
-        # 获取开奖时间信息
+        # 修改获取开奖时间信息的JavaScript代码
         time_info = driver.execute_script("""
             function findTimeInfo() {
+                // 首先尝试获取当前开奖时间区域
+                const timeArea = document.querySelector('.kj-time, .time-info');
+                if (timeArea) {
+                    const text = timeArea.textContent.trim();
+                    if (text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分/)) {
+                        return text;
+                    }
+                }
+                
+                // 如果上面失败，查找包含当前开奖信息的元素
                 const elements = document.querySelectorAll('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
-                    if (text.match(/\\d+月\\d+日.*?\\d+[点时]\\d+分.*?图库大全/)) {
+                    // 优先匹配包含"开奖时间"的文本
+                    if (text.includes('开奖时间') && 
+                        text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分/)) {
+                        return text;
+                    }
+                }
+                
+                // 最后尝试匹配任何包含时间信息的元素
+                for (const el of elements) {
+                    const text = el.textContent.trim();
+                    if (text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分.*?图库大全/)) {
                         return text;
                     }
                 }
@@ -167,6 +187,38 @@ def extract_lottery_info(driver, lottery_type):
         if lottery_type == 'lam':  # 只在处理第一个彩种时清空文件
             open('time.txt', 'w', encoding='utf-8').close()
         
+        # 获取下一期开奖时间信息
+        next_period_info = driver.execute_script("""
+            function findNextPeriodInfo() {
+                // 查找包含"下期开奖"或"下期时间"的元素
+                const elements = document.querySelectorAll('*');
+                for (const el of elements) {
+                    const text = el.textContent.trim();
+                    if ((text.includes('下期开奖') || text.includes('下期时间')) && 
+                        text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分/)) {
+                        return text;
+                    }
+                }
+                return '';
+            }
+            return findNextPeriodInfo();
+        """)
+        
+        # 分别提取下一期期号和时间
+        next_issue_match = re.search(r'第(\d+)期', next_period_info)
+        next_time_match = re.search(r'(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', next_period_info)
+        
+        if next_issue_match and next_time_match:
+            next_issue = next_issue_match.group(1)
+            month = next_time_match.group(1).zfill(2)
+            day = next_time_match.group(2).zfill(2)
+            next_time = f"{month}月{day}日 {next_time_match.group(3)}点{next_time_match.group(4)}分"
+        else:
+            # 如果找不到下一期信息，则基于当前期计算下一期
+            current_issue = int(issue)
+            next_issue = str(current_issue + 1).zfill(3)
+            next_time = f"{month}月{day}日 {time_match.group(3)}点{time_match.group(4)}分"
+        
         # 保存下期开奖时间到文件
         lottery_names = {
             'lam': '老澳',
@@ -175,11 +227,9 @@ def extract_lottery_info(driver, lottery_type):
             'tc': '快乐8'
         }
         
-        print(f"开始获取{lottery_names[lottery_type]}开奖结果...")
-        
         with open('time.txt', 'a', encoding='utf-8') as f:
-            f.write(f"{lottery_names[lottery_type]}第{issue}期：{next_time}\n")
-        
+            f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
+            
         # 使用JavaScript查找数字元素
         number_elements = driver.execute_script("""
             function findNumbers() {
