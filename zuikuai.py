@@ -215,6 +215,25 @@ def extract_lottery_info(driver, lottery_type):
             current_issue = int(issue)
             next_issue = str(current_issue + 1).zfill(3)
             next_time = current_time
+            
+        # 保存开奖时间信息到 time.txt
+        lottery_names = {
+            'lam': '老澳',
+            'xam': '新澳',
+            'hk': '港彩',
+            'tc': '快乐8'
+        }
+        
+        # 如果是第一个彩种，清空文件内容
+        if lottery_type == 'lam':
+            with open('time.txt', 'w', encoding='utf-8') as f:
+                f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
+        else:
+            # 追加其他彩种的信息
+            with open('time.txt', 'a', encoding='utf-8') as f:
+                f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
+        
+        print(f"✅ 已更新 {lottery_names[lottery_type]} 开奖时间信息")
         
         # 使用JavaScript查找数字元素
         number_elements = driver.execute_script("""
