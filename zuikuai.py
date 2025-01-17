@@ -183,9 +183,65 @@ def extract_lottery_info(driver, lottery_type):
         day = time_match.group(2).zfill(2)
         next_time = f"{month}月{day}日 {time_match.group(3)}点{time_match.group(4)}分"
         
-        # 清空time.txt文件
-        if lottery_type == 'lam':  # 只在处理第一个彩种时清空文件
-            open('time.txt', 'w', encoding='utf-8').close()
+        # 优化处理 time.txt 文件的逻辑
+        def update_time_file(lottery_type, next_issue, next_time, is_first=False):
+            lottery_names = {
+                'lam': '老澳',
+                'xam': '新澳',
+                'hk': '港彩',
+                'tc': '快乐8'
+            }
+            
+            new_line = f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n"
+            
+            # 如果文件不存在，创建新文件
+            if not os.path.exists('time.txt'):
+                with open('time.txt', 'w', encoding='utf-8') as f:
+                    if is_first:
+                        f.write(new_line)
+                    return True
+            
+            # 读取现有内容
+            try:
+                with open('time.txt', 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+            except:
+                lines = []
+            
+            # 创建新的内容列表
+            new_lines = []
+            updated = False
+            current_line_added = False
+            
+            # 更新或添加新行
+            for line in lines:
+                if lottery_names[lottery_type] in line:
+                    if line != new_line:  # 如果内容不同，更新它
+                        new_lines.append(new_line)
+                        updated = True
+                    else:
+                        new_lines.append(line)
+                    current_line_added = True
+                else:
+                    new_lines.append(line)
+            
+            # 如果没有找到对应彩种的行，添加新行
+            if not current_line_added:
+                new_lines.append(new_line)
+                updated = True
+            
+            # 如果有更新或是第一个彩种，写入文件
+            if updated or is_first:
+                with open('time.txt', 'w', encoding='utf-8') as f:
+                    f.writelines(new_lines)
+                return True
+            
+            return False
+        
+        # 在获取到 next_issue 和 next_time 后调用更新函数
+        is_first = lottery_type == 'lam'  # 检查是否是第一个彩种
+        if update_time_file(lottery_type, next_issue, next_time, is_first):
+            print(f"✅ 已更新 {lottery_type} 开奖时间信息")
         
         # 获取下一期开奖时间信息
         next_period_info = driver.execute_script("""
@@ -219,17 +275,6 @@ def extract_lottery_info(driver, lottery_type):
             next_issue = str(current_issue + 1).zfill(3)
             next_time = f"{month}月{day}日 {time_match.group(3)}点{time_match.group(4)}分"
         
-        # 保存下期开奖时间到文件
-        lottery_names = {
-            'lam': '老澳',
-            'xam': '新澳',
-            'hk': '港彩',
-            'tc': '快乐8'
-        }
-        
-        with open('time.txt', 'a', encoding='utf-8') as f:
-            f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
-            
         # 使用JavaScript查找数字元素
         number_elements = driver.execute_script("""
             function findNumbers() {
