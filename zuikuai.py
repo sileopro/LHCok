@@ -297,7 +297,7 @@ def extract_lottery_info(driver, lottery_type):
                 filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
                 with open(filename, 'w', encoding='utf-8') as f:
                     f.write(result)
-                print(f"✅ 已保存 {filename}")
+               
             except Exception as e:
                 print(f"❌ 保存文件失败: {str(e)}")
             
@@ -368,8 +368,9 @@ def main():
         
         # 显示 time.txt 的内容
         try:
-            print("✅ time.txt 读取成功\n")
+            
             print("\n=== time.txt 内容 ===")
+            print("✅ time.txt 读取成功\n")
             with open('time.txt', 'r', encoding='utf-8') as f:
                 content = f.read().strip()
                 print(content)
