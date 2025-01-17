@@ -293,13 +293,10 @@ def extract_lottery_info(driver, lottery_type):
             result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac_element}"
             print(f"✅ 成功获取开奖结果：{result}")
             
-            try:
-                filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write(result)
-               
-            except Exception as e:
-                print(f"❌ 保存文件失败: {str(e)}")
+            # 只保留一次保存成功的提示
+            filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(result)
             
             return result
         else:
@@ -366,16 +363,14 @@ def main():
         print("✅ 浏览器初始化成功")
         results = get_lottery_results(driver)
         
-        # 显示 time.txt 的内容
+        # 调整 time.txt 内容显示顺序
         try:
-            
-            print("\n=== time.txt 内容 ===")
-            print("✅ time.txt 读取成功\n")
+            print("\n✅ time.txt 读取成功")
+            print("=== time.txt 内容 ===")
             with open('time.txt', 'r', encoding='utf-8') as f:
                 content = f.read().strip()
                 print(content)
-            print("=== time.txt 内容结束 ===")
-            
+            print("=== time.txt 内容结束 ===\n")
         except Exception as e:
             print(f"❌ 读取 time.txt 失败: {str(e)}\n")
         
