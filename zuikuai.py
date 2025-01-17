@@ -112,7 +112,7 @@ def extract_lottery_info(driver, lottery_type):
                 const elements = document.querySelectorAll('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
-                    if (text.includes('期') && text.includes('月') && text.includes('日') && text.includes('图库大全')) {
+                    if (text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分.*?图库大全/)) {
                         return text;
                     }
                 }
@@ -121,14 +121,16 @@ def extract_lottery_info(driver, lottery_type):
             return findPeriodInfo();
         """)
         
-        # 提取期号和时间
-        issue_match = re.search(r'第(\d+)期:(\d+)月(\d+)日.*?(\d+)[点时](\d+)分', period_info)
+        # 提取期号和时间，使用更严格的正则表达式
+        issue_match = re.search(r'第(\d+)期.*?(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', period_info)
         if not issue_match:
-            print("未能找到有效期号和时间")
+            print(f"未能找到有效期号和时间: {period_info}")
             return None
             
         issue = issue_match.group(1)
-        next_time = f"{issue_match.group(2)}月{issue_match.group(3)}日 {issue_match.group(4)}点{issue_match.group(5)}分"
+        month = issue_match.group(2).zfill(2)  # 确保月份是两位数
+        day = issue_match.group(3).zfill(2)    # 确保日期是两位数
+        next_time = f"{month}月{day}日 {issue_match.group(4)}点{issue_match.group(5)}分"
         
         # 清空time.txt文件
         if lottery_type == 'lam':  # 只在处理第一个彩种时清空文件
