@@ -77,7 +77,7 @@ def extract_lottery_info(driver, lottery_type):
                     raise Exception("访问主页失败次数过多")
                 time.sleep(5)
             
-        print(f"开始获取 {lottery_type} 开奖结果...")
+        print(f"✅ 开始获取 {lottery_type} 开奖结果...")
         
         # 定义内部页面映射
         inner_pages = {
@@ -175,7 +175,7 @@ def extract_lottery_info(driver, lottery_type):
         time_match = re.search(r'(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', time_info)
         
         if not issue_match or not time_match:
-            print(f"未能找到有效期号或时间: {period_info} | {time_info}")
+            print(f"❌ 未能找到有效期号或时间: {period_info} | {time_info}")
             return None
             
         issue = issue_match.group(1)
@@ -224,16 +224,16 @@ def extract_lottery_info(driver, lottery_type):
             'tc': '快乐8'
         }
         
-        # 如果是第一个彩种，清空文件内容
-        if lottery_type == 'lam':
-            with open('time.txt', 'w', encoding='utf-8') as f:
-                f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
-        else:
-            # 追加其他彩种的信息
-            with open('time.txt', 'a', encoding='utf-8') as f:
-                f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
-        
-        print(f"✅ 已更新 {lottery_names[lottery_type]} 开奖时间信息")
+        try:
+            if lottery_type == 'lam':
+                with open('time.txt', 'w', encoding='utf-8') as f:
+                    f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
+            else:
+                with open('time.txt', 'a', encoding='utf-8') as f:
+                    f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
+            print(f"✅ 已更新 {lottery_names[lottery_type]} 开奖时间信息")
+        except Exception as e:
+            print(f"❌ 保存时间信息失败: {str(e)}")
         
         # 使用JavaScript查找数字元素
         number_elements = driver.execute_script("""
@@ -293,16 +293,19 @@ def extract_lottery_info(driver, lottery_type):
             result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac_element}"
             print(f"✅ 成功获取开奖结果：{result}")
             
-            # 使用正确的文件名
-            filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write(result)
+            try:
+                filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(result)
+                print(f"✅ 已成功保存 {filename}")
+            except Exception as e:
+                print(f"❌ 保存文件失败: {str(e)}")
             
             return result
         else:
-            print(f"警告: 数字数量不足")
+            print(f"❌ 警告: 数字数量不足")
         
-        print(f"警告: 未找到足够的号码数据")
+        print(f"❌ 警告: 未找到足够的号码数据")
         return None
 
     except Exception as e:
@@ -358,10 +361,21 @@ def main():
     try:
         driver = get_driver()
         if not driver:
-            raise Exception("浏览器初始化失败")
+            raise Exception("❌ 浏览器初始化失败")
             
-        print("浏览器初始化成功")
+        print("✅ 浏览器初始化成功")
         results = get_lottery_results(driver)
+        
+        # 显示 time.txt 的内容
+        try:
+            print("\n=== time.txt 内容 ===")
+            with open('time.txt', 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+                print(content)
+            print("=== time.txt 内容结束 ===")
+            print("✅ time.txt 读取成功\n")
+        except Exception as e:
+            print(f"❌ 读取 time.txt 失败: {str(e)}\n")
         
         if os.environ.get('VERCEL_ENV'):
             return results
