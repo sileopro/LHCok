@@ -331,11 +331,12 @@ def get_lottery_results(driver):
         }
         
         for lottery_type in lottery_types:
+            print("\n" + "="*80)
             print(f"\n开始获取{lottery_names[lottery_type]}开奖结果...")
             result = extract_lottery_info(driver, lottery_type)
             if result:
                 try:
-                    # 使用正确的文件名
+                    # 使用正确的文件名，快乐8保存为klb.txt
                     filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
                     with open(filename, 'w', encoding='utf-8') as f:
                         f.write(result)
@@ -346,6 +347,7 @@ def get_lottery_results(driver):
             else:
                 print(f"❌ 未能获取开奖结果")
             random_sleep()
+            print("\n" + "="*80)
                 
         return results
                 
