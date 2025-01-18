@@ -315,11 +315,11 @@ def get_lottery_results(driver):
         # 更新初始URL
         driver.get('https://www.hkj.rip/')
         random_sleep()
-        print("\n" + "="*80)
+        print("\n" + "="*80)  # 只保留一行分割线
         print("浏览器初始化成功")
         print(f"页面标题: {driver.title}")
         print(f"当前URL: {driver.current_url}")
-        print("="*80 + "\n")
+        print("\n")  # 删除底部分割线，只用换行
         
         results = {}
         lottery_types = ['lam', 'xam', 'hk', 'tc']
