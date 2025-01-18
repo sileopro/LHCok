@@ -138,19 +138,7 @@ def extract_lottery_info(driver, lottery_type):
         # 修改获取开奖时间信息的JavaScript代码
         time_info = driver.execute_script("""
             function findTimeInfo() {
-                // 针对快乐8特殊处理
-                if (window.location.href.includes('kl8kj')) {
-                    const elements = document.querySelectorAll('*');
-                    for (const el of elements) {
-                        const text = el.textContent.trim();
-                        // 扩大匹配范围，包含更多可能的时间格式
-                        if (text.match(/(\\d{1,2}[:.：]\\d{1,2})|((\\d{1,2})月(\\d{1,2})日)/)) {
-                            return text;
-                        }
-                    }
-                }
-                
-                // 其他彩种的处理逻辑
+                // 首先尝试获取当前开奖时间区域
                 const timeArea = document.querySelector('.kj-time, .time-info');
                 if (timeArea) {
                     const text = timeArea.textContent.trim();
@@ -159,11 +147,21 @@ def extract_lottery_info(driver, lottery_type):
                     }
                 }
                 
+                // 如果上面失败，查找包含当前开奖信息的元素
                 const elements = document.querySelectorAll('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
-                    if (text.includes('开奖时间') || 
+                    // 优先匹配包含"开奖时间"的文本
+                    if (text.includes('开奖时间') && 
                         text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分/)) {
+                        return text;
+                    }
+                }
+                
+                // 最后尝试匹配任何包含时间信息的元素
+                for (const el of elements) {
+                    const text = el.textContent.trim();
+                    if (text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分.*?图库大全/)) {
                         return text;
                     }
                 }
@@ -172,61 +170,19 @@ def extract_lottery_info(driver, lottery_type):
             return findTimeInfo();
         """)
         
-        # 针对快乐8特殊处理期号和时间的提取
-        if lottery_type == 'tc':
-            # 首先尝试从页面直接获取期号
-            issue = driver.execute_script("""
-                const elements = document.querySelectorAll('*');
-                for (const el of elements) {
-                    const text = el.textContent.trim();
-                    const match = text.match(/第(\\d+)期/);
-                    if (match) {
-                        return match[1];
-                    }
-                }
-                return '';
-            """)
+        # 分别提取期号和时间
+        issue_match = re.search(r'第(\d+)期', period_info)
+        time_match = re.search(r'(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', time_info)
+        
+        if not issue_match or not time_match:
+            print(f"❌ 未能找到有效期号或时间: {period_info} | {time_info}")
+            return None
             
-            # 如果找不到期号，尝试从URL或其他元素推断
-            if not issue:
-                current_date = time.strftime("%Y%m%d")
-                current_hour = int(time.strftime("%H"))
-                # 根据当前小时计算期号
-                issue = str((current_hour * 2) + (1 if int(time.strftime("%M")) >= 30 else 0)).zfill(3)
-            
-            # 获取当前时间作为开奖时间
-            current_time = time.strftime("%m月%d日 %H点%M分")
-            
-            # 计算下一期时间
-            next_minutes = (int(time.strftime("%M")) // 30 + 1) * 30
-            next_hour = int(time.strftime("%H"))
-            if next_minutes >= 60:
-                next_minutes = 0
-                next_hour += 1
-            next_time = f"{time.strftime('%m月%d日')} {next_hour}点{str(next_minutes).zfill(2)}分"
-            
-            # 更新time.txt中的快乐8信息
-            try:
-                with open('time.txt', 'a', encoding='utf-8') as f:
-                    next_issue = str(int(issue) + 1).zfill(3)
-                    f.write(f"快乐8第{next_issue}期：{next_time}\n")
-                print(f"✅ 已更新 快乐8 开奖时间信息")
-            except Exception as e:
-                print(f"❌ 保存时间信息失败: {str(e)}")
-        else:
-            # 其他彩种的处理保持不变
-            issue_match = re.search(r'第(\d+)期', period_info)
-            time_match = re.search(r'(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', time_info)
-            
-            if not issue_match or not time_match:
-                print(f"❌ 未能找到有效期号或时间: {period_info} | {time_info}")
-                return None
-                
-            issue = issue_match.group(1)
-            month = time_match.group(1).zfill(2)
-            day = time_match.group(2).zfill(2)
-            current_time = f"{month}月{day}日 {time_match.group(3)}点{time_match.group(4)}分"
-
+        issue = issue_match.group(1)
+        month = time_match.group(1).zfill(2)
+        day = time_match.group(2).zfill(2)
+        current_time = f"{month}月{day}日 {time_match.group(3)}点{time_match.group(4)}分"
+        
         # 获取下一期开奖时间信息
         next_period_info = driver.execute_script("""
             function findNextPeriodInfo() {
@@ -279,23 +235,9 @@ def extract_lottery_info(driver, lottery_type):
         except Exception as e:
             print(f"❌ 保存时间信息失败: {str(e)}")
         
-        # 修改号码获取的JavaScript代码，优化快乐8号码获取
+        # 使用JavaScript查找数字元素
         number_elements = driver.execute_script("""
             function findNumbers() {
-                if (window.location.href.includes('kl8kj')) {
-                    const numbers = [];
-                    // 扩大选择器范围
-                    const elements = document.querySelectorAll('.kj-ball, .ball, [class*="num"], [class*="ball"]');
-                    elements.forEach(el => {
-                        const num = el.textContent.trim();
-                        if (/^\\d{1,2}$/.test(num)) {
-                            numbers.push(num);
-                        }
-                    });
-                    return numbers.slice(0, 20); // 只取前20个号码
-                }
-                
-                // 其他彩种的处理保持不变
                 const numbers = [];
                 const elements = Array.from(document.querySelectorAll('div[id^="m"], div[id^="s"]'))
                     .sort((a, b) => a.id.localeCompare(b.id));
@@ -311,26 +253,30 @@ def extract_lottery_info(driver, lottery_type):
             return findNumbers();
         """)
         
-        if number_elements:
-            if lottery_type == 'tc':
-                # 快乐8的结果格式化
-                numbers = [num.zfill(2) for num in number_elements[:20]]  # 快乐8通常有20个号码
-                issue_short = issue.zfill(3)[-3:]
-                result = f"第{issue_short}期：{' '.join(numbers)}"
-            else:
-                # 其他彩种保持原有格式
-                numbers = [num.zfill(2) for num in number_elements[:6]]
-                special_number = number_elements[6].zfill(2)
-                issue_short = issue.zfill(3)[-3:]
-                
-                # 获取生肖（快乐8不需要）
+        if number_elements and len(number_elements) >= 7:
+            # 修改生肖提取逻辑，获取特码的生肖
+            zodiac_element = driver.execute_script("""
+                const specialBall = document.querySelector('div[id="s1"]');
+                if (specialBall && specialBall.parentElement) {
+                    const parent = specialBall.parentElement;
+                    const nextElement = parent.nextElementSibling;
+                    if (nextElement) {
+                        const text = nextElement.textContent.trim();
+                        if (text.includes('/')) {
+                            return text.split('/')[1];
+                        }
+                    }
+                }
+                return '';
+            """)
+            
+            # 如果上面的方法失败，尝试另一种方法
+            if not zodiac_element:
                 zodiac_element = driver.execute_script("""
-                    const specialBall = document.querySelector('div[id="s1"]');
-                    if (specialBall && specialBall.parentElement) {
-                        const parent = specialBall.parentElement;
-                        const nextElement = parent.nextElementSibling;
-                        if (nextElement) {
-                            const text = nextElement.textContent.trim();
+                    const elements = document.querySelectorAll('.whsx');
+                    for (const el of elements) {
+                        if (el.previousElementSibling && el.previousElementSibling.id === 's1') {
+                            const text = el.textContent.trim();
                             if (text.includes('/')) {
                                 return text.split('/')[1];
                             }
@@ -338,12 +284,24 @@ def extract_lottery_info(driver, lottery_type):
                     }
                     return '';
                 """)
-                
-                result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac_element}"
             
+            # 格式化结果
+            numbers = [num.zfill(2) for num in number_elements[:6]]
+            special_number = number_elements[6].zfill(2)
+            issue_short = issue.zfill(3)[-3:]  # 确保期号是3位数
+            
+            result = f"第{issue_short}期：{' '.join(numbers)} 特码 {special_number} {zodiac_element}"
             print(f"✅ 成功获取开奖结果：{result}")
-            return result
             
+            # 只保留一次保存成功的提示
+            filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(result)
+            
+            return result
+        else:
+            print(f"❌ 警告: 数字数量不足")
+        
         print(f"❌ 警告: 未找到足够的号码数据")
         return None
 
@@ -378,7 +336,7 @@ def get_lottery_results(driver):
             result = extract_lottery_info(driver, lottery_type)
             if result:
                 try:
-                    # 使用正确的文件名，快乐8保存为klb.txt
+                    # 使用正确的文件名
                     filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
                     with open(filename, 'w', encoding='utf-8') as f:
                         f.write(result)
