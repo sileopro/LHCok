@@ -106,22 +106,33 @@ def extract_lottery_info(driver, lottery_type):
         # 获取页面内容
         page_source = driver.page_source
         
-        # 修改查找期号的JavaScript代码
+        # 修改期号查找的 JavaScript 代码
         period_info = driver.execute_script("""
             function findPeriodInfo() {
-                // 尝试所有可能包含期号的元素
+                // 增加更多可能的选择器
                 const selectors = [
                     '.kj-result', '.kj-content', '.period-info',
                     'div[class*="period"]', 'div[class*="issue"]',
-                    'span[class*="period"]', 'span[class*="issue"]'
+                    'span[class*="period"]', 'span[class*="issue"]',
+                    '.issue', '#issue', '[data-issue]',
+                    '.lottery-info', '.lottery-result'
                 ];
                 
                 for (const selector of selectors) {
                     const elements = document.querySelectorAll(selector);
                     for (const el of elements) {
                         const text = el.textContent.trim();
-                        const match = text.match(/第[0-9]+期/);
-                        if (match) return match[0];
+                        // 扩展匹配模式以适应不同格式
+                        const patterns = [
+                            /第[0-9]+期/,
+                            /[0-9]+期/,
+                            /期号[：:]\s*[0-9]+/
+                        ];
+                        
+                        for (const pattern of patterns) {
+                            const match = text.match(pattern);
+                            if (match) return match[0];
+                        }
                     }
                 }
                 
@@ -129,8 +140,9 @@ def extract_lottery_info(driver, lottery_type):
                 const elements = document.getElementsByTagName('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
-                    const match = text.match(/第[0-9]+期/);
-                    if (match) return match[0];
+                    if (text.match(/第[0-9]+期/) || text.match(/[0-9]+期/)) {
+                        return text.match(/第?[0-9]+期/)[0];
+                    }
                 }
                 
                 return '';
@@ -138,36 +150,46 @@ def extract_lottery_info(driver, lottery_type):
             return findPeriodInfo();
         """)
         
-        # 修改获取日期的JavaScript代码
+        # 修改时间查找的 JavaScript 代码
         time_info = driver.execute_script("""
             function findTimeInfo() {
-                // 尝试所有可能包含日期的元素
                 const selectors = [
                     '.kj-time', '.time-info', '.date-info',
                     'div[class*="time"]', 'div[class*="date"]',
-                    'span[class*="time"]', 'span[class*="date"]'
+                    'span[class*="time"]', 'span[class*="date"]',
+                    '.lottery-time', '.draw-time', '.result-time'
                 ];
                 
-                const datePattern = /\\d{1,2}月\\d{1,2}日/;
+                const datePatterns = [
+                    /\\d{1,2}月\\d{1,2}日/,
+                    /\\d{4}-\\d{1,2}-\\d{1,2}/,
+                    /\\d{4}\\/\\d{1,2}\\/\\d{1,2}/
+                ];
                 
                 for (const selector of selectors) {
                     const elements = document.querySelectorAll(selector);
                     for (const el of elements) {
                         const text = el.textContent.trim();
-                        const match = text.match(datePattern);
+                        for (const pattern of datePatterns) {
+                            const match = text.match(pattern);
+                            if (match) return match[0];
+                        }
+                    }
+                }
+                
+                // 搜索所有元素
+                const elements = document.getElementsByTagName('*');
+                for (const el of elements) {
+                    const text = el.textContent.trim();
+                    for (const pattern of datePatterns) {
+                        const match = text.match(pattern);
                         if (match) return match[0];
                     }
                 }
                 
-                // 如果上面都失败，搜索所有元素
-                const elements = document.getElementsByTagName('*');
-                for (const el of elements) {
-                    const text = el.textContent.trim();
-                    const match = text.match(datePattern);
-                    if (match) return match[0];
-                }
-                
-                return '';
+                // 如果仍然找不到，返回当前日期
+                const now = new Date();
+                return `${now.getMonth() + 1}月${now.getDate()}日`;
             }
             return findTimeInfo();
         """)
@@ -243,6 +265,9 @@ def extract_lottery_info(driver, lottery_type):
                     f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
             else:
                 with open('time.txt', 'a', encoding='utf-8') as f:
+                    # 确保港彩信息也被写入
+                    if lottery_type == 'hk':
+                        next_time = f"{next_month}月{next_day}日 21点32分"
                     f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
             print(f"✅ 已更新 {lottery_names[lottery_type]} 开奖时间信息")
         except Exception as e:
