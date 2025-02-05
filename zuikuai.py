@@ -118,30 +118,40 @@ def extract_lottery_info(driver, lottery_type):
                     '.lottery-info', '.lottery-result'
                 ];
                 
+                // 修改匹配模式
+                const patterns = [
+                    /第[0-9]+期/,
+                    /[0-9]+期/,
+                    /期号[：:][\\s]*[0-9]+/
+                ];
+                
+                // 首先尝试使用选择器
                 for (const selector of selectors) {
                     const elements = document.querySelectorAll(selector);
                     for (const el of elements) {
                         const text = el.textContent.trim();
-                        // 扩展匹配模式以适应不同格式
-                        const patterns = [
-                            /第[0-9]+期/,
-                            /[0-9]+期/,
-                            /期号[：:]\s*[0-9]+/
-                        ];
-                        
                         for (const pattern of patterns) {
                             const match = text.match(pattern);
-                            if (match) return match[0];
+                            if (match) {
+                                // 提取数字
+                                const num = match[0].match(/\\d+/)[0];
+                                return `第${num}期`;
+                            }
                         }
                     }
                 }
                 
-                // 如果上面都失败，搜索所有元素
+                // 如果选择器方法失败，搜索所有元素
                 const elements = document.getElementsByTagName('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
-                    if (text.match(/第[0-9]+期/) || text.match(/[0-9]+期/)) {
-                        return text.match(/第?[0-9]+期/)[0];
+                    for (const pattern of patterns) {
+                        const match = text.match(pattern);
+                        if (match) {
+                            // 提取数字
+                            const num = match[0].match(/\\d+/)[0];
+                            return `第${num}期`;
+                        }
                     }
                 }
                 
@@ -166,24 +176,33 @@ def extract_lottery_info(driver, lottery_type):
                     /\\d{4}\\/\\d{1,2}\\/\\d{1,2}/
                 ];
                 
+                // 首先尝试使用选择器
                 for (const selector of selectors) {
                     const elements = document.querySelectorAll(selector);
                     for (const el of elements) {
                         const text = el.textContent.trim();
                         for (const pattern of datePatterns) {
                             const match = text.match(pattern);
-                            if (match) return match[0];
+                            if (match) {
+                                // 如果是其他格式，转换为"月日"格式
+                                const date = new Date(match[0].replace(/[年月]/g, '-').replace(/日/, ''));
+                                return `${date.getMonth() + 1}月${date.getDate()}日`;
+                            }
                         }
                     }
                 }
                 
-                // 搜索所有元素
+                // 如果选择器方法失败，搜索所有元素
                 const elements = document.getElementsByTagName('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
                     for (const pattern of datePatterns) {
                         const match = text.match(pattern);
-                        if (match) return match[0];
+                        if (match) {
+                            // 如果是其他格式，转换为"月日"格式
+                            const date = new Date(match[0].replace(/[年月]/g, '-').replace(/日/, ''));
+                            return `${date.getMonth() + 1}月${date.getDate()}日`;
+                        }
                     }
                 }
                 
