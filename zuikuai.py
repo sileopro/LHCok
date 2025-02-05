@@ -172,7 +172,7 @@ def extract_lottery_info(driver, lottery_type):
         
         # 分别提取期号和时间
         issue_match = re.search(r'第(\d+)期', period_info)
-        time_match = re.search(r'(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', time_info)
+        time_match = re.search(r'(\d{1,2})月(\d{1,2})日', time_info)
         
         if not issue_match or not time_match:
             print(f"❌ 未能找到有效期号或时间: {period_info} | {time_info}")
@@ -181,7 +181,19 @@ def extract_lottery_info(driver, lottery_type):
         issue = issue_match.group(1)
         month = time_match.group(1).zfill(2)
         day = time_match.group(2).zfill(2)
-        current_time = f"{month}月{day}日 {time_match.group(3)}点{time_match.group(4)}分"
+        
+        # 使用默认时间
+        default_times = {
+            'hk': '21:32',
+            'xam': '21:34:30',
+            'lam': '21:34:30',
+            'tc': '21:34:00'
+        }
+        
+        # 使用默认时间
+        default_time = default_times[lottery_type]
+        hour, minute = default_time.split(':')[:2]
+        current_time = f"{month}月{day}日 {hour}点{minute}分"
         
         # 获取下一期开奖时间信息
         next_period_info = driver.execute_script("""
@@ -202,14 +214,14 @@ def extract_lottery_info(driver, lottery_type):
         
         # 分别提取下一期期号和时间
         next_issue_match = re.search(r'第(\d+)期', next_period_info)
-        next_time_match = re.search(r'(\d{1,2})月(\d{1,2})日.*?(\d{1,2})[点时](\d{1,2})分', next_period_info)
+        next_time_match = re.search(r'(\d{1,2})月(\d{1,2})日', next_period_info)
         
         # 设置下一期信息
         if next_issue_match and next_time_match:
             next_issue = next_issue_match.group(1)
             next_month = next_time_match.group(1).zfill(2)
             next_day = next_time_match.group(2).zfill(2)
-            next_time = f"{next_month}月{next_day}日 {next_time_match.group(3)}点{next_time_match.group(4)}分"
+            next_time = f"{next_month}月{next_day}日 {hour}点{minute}分"
         else:
             # 如果找不到下一期信息，则基于当前期计算下一期
             current_issue = int(issue)
