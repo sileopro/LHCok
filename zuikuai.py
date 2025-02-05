@@ -161,20 +161,25 @@ def extract_lottery_info(driver, lottery_type):
             return findPeriodInfo();
         """)
         
-        # 修改时间查找的 JavaScript 代码
+        # 修改时间查找的 JavaScript 代码，增加更多选择器和模式
         time_info = driver.execute_script("""
             function findTimeInfo() {
                 const selectors = [
                     '.kj-time', '.time-info', '.date-info',
                     'div[class*="time"]', 'div[class*="date"]',
                     'span[class*="time"]', 'span[class*="date"]',
-                    '.lottery-time', '.draw-time', '.result-time'
+                    '.lottery-time', '.draw-time', '.result-time',
+                    '.kj-date', '.result-date', '.current-date',
+                    'div[class*="kj"]', 'div[class*="result"]'
                 ];
                 
+                // 扩展日期匹配模式
                 const datePatterns = [
                     /\\d{1,2}月\\d{1,2}日/,
                     /\\d{4}-\\d{1,2}-\\d{1,2}/,
-                    /\\d{4}\\/\\d{1,2}\\/\\d{1,2}/
+                    /\\d{4}\\/\\d{1,2}\\/\\d{1,2}/,
+                    /\\d{1,2}-\\d{1,2}/,  // 匹配 "月-日" 格式
+                    /\\d{1,2}\\.\\d{1,2}/  // 匹配 "月.日" 格式
                 ];
                 
                 // 首先尝试使用选择器
@@ -185,9 +190,7 @@ def extract_lottery_info(driver, lottery_type):
                         for (const pattern of datePatterns) {
                             const match = text.match(pattern);
                             if (match) {
-                                // 如果是其他格式，转换为"月日"格式
-                                const date = new Date(match[0].replace(/[年月]/g, '-').replace(/日/, ''));
-                                return `${date.getMonth() + 1}月${date.getDate()}日`;
+                                return match[0];
                             }
                         }
                     }
@@ -200,16 +203,12 @@ def extract_lottery_info(driver, lottery_type):
                     for (const pattern of datePatterns) {
                         const match = text.match(pattern);
                         if (match) {
-                            // 如果是其他格式，转换为"月日"格式
-                            const date = new Date(match[0].replace(/[年月]/g, '-').replace(/日/, ''));
-                            return `${date.getMonth() + 1}月${date.getDate()}日`;
+                            return match[0];
                         }
                     }
                 }
                 
-                // 如果仍然找不到，返回当前日期
-                const now = new Date();
-                return `${now.getMonth() + 1}月${now.getDate()}日`;
+                return '';
             }
             return findTimeInfo();
         """)
@@ -269,21 +268,32 @@ def extract_lottery_info(driver, lottery_type):
             # 如果找不到下一期信息，则基于当前期计算下一期
             current_issue = int(issue)
             next_issue = str(current_issue + 1).zfill(3)
-            # 使用当前日期
-            current_date = time_info.split('日')[0]  # 获取"月日"部分
-            next_time = f"{current_date}日 {hour}点{minute}分"
-            # 为港彩设置所需的变量
-            if lottery_type == 'hk':
-                date_match = re.search(r'(\d{1,2})月(\d{1,2})日', current_date)
-                if date_match:
-                    next_month = date_match.group(1).zfill(2)
-                    next_day = date_match.group(2).zfill(2)
-                else:
-                    # 如果无法从日期中提取，使用当前系统日期
-                    now = datetime.now()
-                    next_month = str(now.month).zfill(2)
-                    next_day = str(now.day).zfill(2)
             
+            # 从页面提取日期信息
+            current_date = time_info.split('日')[0] if '日' in time_info else time_info
+            date_match = None
+            
+            # 尝试不同的日期格式
+            date_patterns = [
+                r'(\d{1,2})月(\d{1,2})日?',
+                r'(\d{1,2})-(\d{1,2})',
+                r'(\d{1,2})\.(\d{1,2})'
+            ]
+            
+            for pattern in date_patterns:
+                date_match = re.search(pattern, current_date)
+                if date_match:
+                    break
+            
+            if date_match:
+                next_month = date_match.group(1).zfill(2)
+                next_day = date_match.group(2).zfill(2)
+            else:
+                print(f"❌ 警告: 无法从页面提取日期信息: {current_date}")
+                return None
+            
+            next_time = f"{next_month}月{next_day}日 {hour}点{minute}分"
+        
         # 保存开奖时间信息到 time.txt
         lottery_names = {
             'lam': '老澳',
@@ -293,15 +303,19 @@ def extract_lottery_info(driver, lottery_type):
         }
         
         try:
+            # 统一日期格式：确保月和日都是两位数
+            formatted_time = re.sub(
+                r'(\d{1,2})月(\d{1,2})日',
+                lambda m: f"{int(m.group(1)):02d}月{int(m.group(2)):02d}日",
+                next_time
+            )
+            
             if lottery_type == 'lam':
                 with open('time.txt', 'w', encoding='utf-8') as f:
-                    f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
+                    f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{formatted_time}\n")
             else:
                 with open('time.txt', 'a', encoding='utf-8') as f:
-                    # 确保港彩信息也被写入
-                    if lottery_type == 'hk':
-                        next_time = f"{next_month}月{next_day}日 21点32分"
-                    f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{next_time}\n")
+                    f.write(f"{lottery_names[lottery_type]}第{next_issue}期：{formatted_time}\n")
             print(f"✅ 已更新 {lottery_names[lottery_type]} 开奖时间信息")
         except Exception as e:
             print(f"❌ 保存时间信息失败: {str(e)}")
