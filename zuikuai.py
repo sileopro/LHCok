@@ -106,65 +106,67 @@ def extract_lottery_info(driver, lottery_type):
         # 获取页面内容
         page_source = driver.page_source
         
-        # 修改查找期号和时间的JavaScript代码，获取当前期号
+        # 修改查找期号的JavaScript代码
         period_info = driver.execute_script("""
             function findPeriodInfo() {
-                // 首先尝试获取开奖结果区域的期号
-                const resultArea = document.querySelector('.kj-result, .kj-content');
-                if (resultArea) {
-                    const periodText = resultArea.textContent.match(/第(\\d+)期/);
-                    if (periodText) {
-                        return periodText[0];
-                    }
-                }
+                // 尝试所有可能包含期号的元素
+                const selectors = [
+                    '.kj-result', '.kj-content', '.period-info',
+                    'div[class*="period"]', 'div[class*="issue"]',
+                    'span[class*="period"]', 'span[class*="issue"]'
+                ];
                 
-                // 如果上面失败，则查找包含开奖结果的元素
-                const elements = document.querySelectorAll('*');
-                for (const el of elements) {
-                    const text = el.textContent.trim();
-                    // 优先匹配包含开奖结果的期号
-                    if (text.includes('开奖结果') && text.match(/第\\d+期/)) {
-                        const match = text.match(/第(\\d+)期/);
+                for (const selector of selectors) {
+                    const elements = document.querySelectorAll(selector);
+                    for (const el of elements) {
+                        const text = el.textContent.trim();
+                        const match = text.match(/第[0-9]+期/);
                         if (match) return match[0];
                     }
                 }
                 
-                // 如果还是找不到，返回空字符串
+                // 如果上面都失败，搜索所有元素
+                const elements = document.getElementsByTagName('*');
+                for (const el of elements) {
+                    const text = el.textContent.trim();
+                    const match = text.match(/第[0-9]+期/);
+                    if (match) return match[0];
+                }
+                
                 return '';
             }
             return findPeriodInfo();
         """)
         
-        # 修改获取开奖时间信息的JavaScript代码
+        # 修改获取日期的JavaScript代码
         time_info = driver.execute_script("""
             function findTimeInfo() {
-                // 首先尝试获取当前开奖时间区域
-                const timeArea = document.querySelector('.kj-time, .time-info');
-                if (timeArea) {
-                    const text = timeArea.textContent.trim();
-                    if (text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分/)) {
-                        return text;
+                // 尝试所有可能包含日期的元素
+                const selectors = [
+                    '.kj-time', '.time-info', '.date-info',
+                    'div[class*="time"]', 'div[class*="date"]',
+                    'span[class*="time"]', 'span[class*="date"]'
+                ];
+                
+                const datePattern = /\\d{1,2}月\\d{1,2}日/;
+                
+                for (const selector of selectors) {
+                    const elements = document.querySelectorAll(selector);
+                    for (const el of elements) {
+                        const text = el.textContent.trim();
+                        const match = text.match(datePattern);
+                        if (match) return match[0];
                     }
                 }
                 
-                // 如果上面失败，查找包含当前开奖信息的元素
-                const elements = document.querySelectorAll('*');
+                // 如果上面都失败，搜索所有元素
+                const elements = document.getElementsByTagName('*');
                 for (const el of elements) {
                     const text = el.textContent.trim();
-                    // 优先匹配包含"开奖时间"的文本
-                    if (text.includes('开奖时间') && 
-                        text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分/)) {
-                        return text;
-                    }
+                    const match = text.match(datePattern);
+                    if (match) return match[0];
                 }
                 
-                // 最后尝试匹配任何包含时间信息的元素
-                for (const el of elements) {
-                    const text = el.textContent.trim();
-                    if (text.match(/第\\d+期.*?\\d+月\\d+日.*?\\d+[点时]\\d+分.*?图库大全/)) {
-                        return text;
-                    }
-                }
                 return '';
             }
             return findTimeInfo();
@@ -190,7 +192,6 @@ def extract_lottery_info(driver, lottery_type):
             'tc': '21:34:00'
         }
         
-        # 使用默认时间
         default_time = default_times[lottery_type]
         hour, minute = default_time.split(':')[:2]
         current_time = f"{month}月{day}日 {hour}点{minute}分"
