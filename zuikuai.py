@@ -9,6 +9,7 @@ import time
 import re
 import os
 import random
+from datetime import datetime
 
 def get_driver():
     try:
@@ -268,7 +269,20 @@ def extract_lottery_info(driver, lottery_type):
             # 如果找不到下一期信息，则基于当前期计算下一期
             current_issue = int(issue)
             next_issue = str(current_issue + 1).zfill(3)
-            next_time = current_time
+            # 使用当前日期
+            current_date = time_info.split('日')[0]  # 获取"月日"部分
+            next_time = f"{current_date}日 {hour}点{minute}分"
+            # 为港彩设置所需的变量
+            if lottery_type == 'hk':
+                date_match = re.search(r'(\d{1,2})月(\d{1,2})日', current_date)
+                if date_match:
+                    next_month = date_match.group(1).zfill(2)
+                    next_day = date_match.group(2).zfill(2)
+                else:
+                    # 如果无法从日期中提取，使用当前系统日期
+                    now = datetime.now()
+                    next_month = str(now.month).zfill(2)
+                    next_day = str(now.day).zfill(2)
             
         # 保存开奖时间信息到 time.txt
         lottery_names = {
