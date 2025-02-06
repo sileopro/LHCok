@@ -228,9 +228,9 @@ def extract_lottery_info(driver, lottery_type):
         # 使用默认时间
         default_times = {
             'hk': '21:32',
-            'xam': '21:34:30',
-            'lam': '21:34:30',
-            'tc': '21:34:00'
+            'xam': '21:32:30',
+            'lam': '21:32:30',
+            'tc': '21:32:00'
         }
         
         default_time = default_times[lottery_type]
