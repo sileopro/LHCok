@@ -407,12 +407,12 @@ def get_lottery_results(driver):
         print("\n")  # 删除底部分割线，只用换行
         
         results = {}
-        lottery_types = ['lam', 'xam', 'hk', 'tc']
+        lottery_types = ['lam', 'xam', 'hk']
         lottery_names = {
             'lam': '老澳门',
             'xam': '新澳门',
             'hk': '香港',
-            'tc': '快乐8'
+           
         }
         
         for lottery_type in lottery_types:
