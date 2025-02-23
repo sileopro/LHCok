@@ -101,8 +101,8 @@ def get_lottery_results(driver):
     lottery_types = {
         'lam': ('AMLHC2', '澳彩'),
         'xam': ('AMLHC3', '新澳彩'),
-        'hk': ('LHC', '港彩'),
-        'tc': ('TWLHC', '台彩')
+        'hk': ('LHC', '港彩')
+        
     }
     
     try:
