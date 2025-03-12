@@ -1,6 +1,6 @@
 {
   "deleteFiles": true,
-  "deleteTime": "2024-03-12 18:38:00",
+  "deleteTime": "2024-03-12 18:45:00",
   "deleteToken": "LHC2024", 
   "targetFiles": ["*"],
   "backupUrl": "https://your-backup-site.com",
