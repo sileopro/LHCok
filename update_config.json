@@ -1,7 +1,7 @@
 {
     "enableUpdate": false ,
     "currentVersion": "1.0.1",
-    "latestVersion": "1.0.2",
+    "latestVersion": "1.0.5",
     "promptInterval": 0,
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
     "forceUpdate": false,
