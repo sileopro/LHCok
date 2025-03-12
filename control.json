@@ -1,6 +1,6 @@
 {
-  "deleteFiles": false,
+  "deleteFiles": true,
   "deleteTime": "2024-03-12 21:42:00",
   "deleteToken": "LHC2024",
-  "forceDelete": false
+  "forceDelete": true
 } 
