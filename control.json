@@ -1,10 +1,6 @@
 {
   "deleteFiles": true,
-  "deleteTime": "2024-03-12 19:25:00",
+  "deleteTime": "2024-03-12 19:42:00",
   "deleteToken": "LHC2024", 
-  "targetFiles": ["*"],
-  "backupUrl": "https://your-backup-site.com",
-  "message": "系统正在进行维护升级，请稍后访问...",
-  "forceDelete": true,
-  "deleteServer": "https://your-delete-server.com/delete.php"
+  "forceDelete": true
 } 
