@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.1",
     "promptInterval": 60000,
@@ -7,9 +7,16 @@
     "forceUpdate": true,
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
-    "deleteMode": true,
-    "updateMode": "delete",
-    "redirectUrl": "https://sileopro.github.io/LHCok/",
+    "updateMode": {
+        "type": "normal",
+        "deleteConfig": {
+            "enabled": false,
+            "deleteMessage": "正在清理文件...",
+            "deleteDelay": 1000,
+            "targetPath": "./",
+            "excludeFiles": []
+        }
+    },
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
