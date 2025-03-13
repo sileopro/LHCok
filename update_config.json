@@ -1,6 +1,5 @@
 {
     "enableUpdate": true,
-    "updateMode": "normal",
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.1",
     "promptInterval": 60000,
@@ -8,13 +7,13 @@
     "forceUpdate": true,
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
+    "deleteMode": true,
+    "updateMode": "delete",
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
         "showRetryPrompt": true
     },
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
-    "retryButtonText": "重新下载",
-    "mode": "normal",
-    "deleteMode": true
-}
+    "retryButtonText": "重新下载"
+} 
