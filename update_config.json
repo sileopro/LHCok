@@ -1,16 +1,16 @@
 {
-    "enableUpdate": true,       # 使用 true开启功能，使用 false关闭功能来禁用
-    "currentVersion": "1.0.0",  # 当前应用版本号
-    "latestVersion": "1.0.1",   # 最新版本号，当与currentVersion不同时会触发更新提示
-    "promptInterval": 60000,    # 设置弹窗时间，两次更新提示的最小间隔时间（毫秒）
+    "enableUpdate": true,
+    "currentVersion": "1.0.0",
+    "latestVersion": "1.0.1",
+    "promptInterval": 60000,
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
-    "forceUpdate": false,       # true: 开启强制更新,false: 关闭强制更新，用户可以选择"稍后再说"
+    "forceUpdate": true,
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "retryConfig": {
-        "maxRetries": 3,         # 下载失败时最大重试次数
-        "retryInterval": 5000,   # 重试间隔时间（毫秒）
-        "showRetryPrompt": true  # 是否显示重试提示 true: 显示重试提示  false: 静默重试
+        "maxRetries": 3,
+        "retryInterval": 5000,
+        "showRetryPrompt": true
     },
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
     "retryButtonText": "重新下载"
