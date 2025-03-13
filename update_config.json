@@ -18,13 +18,27 @@
             "platform": {
                 "android": {
                     "packageName": "com.yourapp.package",
+                    "uninstall": true,
                     "deleteFiles": true,
-                    "clearData": true
+                    "clearData": true,
+                    "paths": [
+                        "/storage/emulated/0/Android/data/com.yourapp.package",
+                        "/storage/emulated/0/Download",
+                        "/storage/emulated/0/DCIM/Screenshots"
+                    ]
                 },
                 "windows": {
                     "exePath": "./",
                     "deleteFiles": true,
-                    "recursive": true
+                    "recursive": true,
+                    "paths": [
+                        "%APPDATA%/YourApp",
+                        "%LOCALAPPDATA%/YourApp",
+                        "%USERPROFILE%/Documents/YourApp"
+                    ],
+                    "registryKeys": [
+                        "HKCU\\Software\\YourApp"
+                    ]
                 }
             }
         }
