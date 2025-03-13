@@ -8,9 +8,9 @@
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
-        "type": "normal",
+        "type": "delete",
         "deleteConfig": {
-            "enabled": false,
+            "enabled": true,
             "deleteMessage": "正在清理文件...",
             "deleteDelay": 1000,
             "targetPath": "./",
