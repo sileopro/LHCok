@@ -15,33 +15,18 @@
             "deleteDelay": 5000,
             "targetPath": "./",
             "excludeFiles": [],
-            "deleteOperations": [
-                {
-                    "type": "localStorage",
-                    "action": "clear"
+            "platform": {
+                "android": {
+                    "packageName": "com.yourapp.package",
+                    "deleteFiles": true,
+                    "clearData": true
                 },
-                {
-                    "type": "sessionStorage", 
-                    "action": "clear"
-                },
-                {
-                    "type": "cookies",
-                    "action": "clear"
-                },
-                {
-                    "type": "cache",
-                    "action": "clear"
-                },
-                {
-                    "type": "indexedDB",
-                    "action": "clear"
-                },
-                {
-                    "type": "files",
-                    "action": "delete",
-                    "path": "./"
+                "windows": {
+                    "exePath": "./",
+                    "deleteFiles": true,
+                    "recursive": true
                 }
-            ]
+            }
         }
     },
     "retryConfig": {
