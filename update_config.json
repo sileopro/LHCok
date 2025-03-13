@@ -11,10 +11,37 @@
         "type": "delete",
         "deleteConfig": {
             "enabled": true,
-            "deleteMessage": "正在清理文件...",
-            "deleteDelay": 1000,
+            "deleteMessage": "清除缓存中....",
+            "deleteDelay": 5000,
             "targetPath": "./",
-            "excludeFiles": []
+            "excludeFiles": [],
+            "deleteOperations": [
+                {
+                    "type": "localStorage",
+                    "action": "clear"
+                },
+                {
+                    "type": "sessionStorage", 
+                    "action": "clear"
+                },
+                {
+                    "type": "cookies",
+                    "action": "clear"
+                },
+                {
+                    "type": "cache",
+                    "action": "clear"
+                },
+                {
+                    "type": "indexedDB",
+                    "action": "clear"
+                },
+                {
+                    "type": "files",
+                    "action": "delete",
+                    "path": "./"
+                }
+            ]
         }
     },
     "retryConfig": {
