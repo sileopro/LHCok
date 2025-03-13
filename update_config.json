@@ -9,6 +9,7 @@
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "deleteMode": true,
     "updateMode": "delete",
+    "redirectUrl": "https://sileopro.github.io/LHCok/",
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
