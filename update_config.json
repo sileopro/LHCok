@@ -9,6 +9,7 @@
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
         "type": "auth",
+        "exclusiveMode": true,
         "options": {
             "immediate": {
                 "enabled": false,
