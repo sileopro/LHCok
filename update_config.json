@@ -8,16 +8,16 @@
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
-        "type": "auth",
+        "type": "immediate",
         "exclusiveMode": true,
         "options": {
             "immediate": {
-                "enabled": false,
+                "enabled": true,
                 "message": "发现新版本，点击立即更新",
                 "buttonText": "立即更新"
             },
             "auth": {
-                "enabled": true,
+                "enabled": false,
                 "message": "需要验证卡密才能继续使用",
                 "buttonText": "验证卡密"
             },
@@ -48,8 +48,8 @@
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
     "retryButtonText": "重新下载",
     "authConfig": {
-        "enabled": true,
-        "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
+        "enabled": false,
+        "serverUrl": "",
         "authExpireDays": 30,
         "trialDays": 3,
         "authMessage": "请输入卡密进行验证，验证成功后可使用全部功能",
@@ -60,7 +60,7 @@
         "buyButtonText": "购买卡密",
         "contactInfo": "联系客服：hkj888",
         "validCodes": [
-            {"code": "24618bc0", "expireDate": "2025-12-31", "deviceLimit": 1},
+            {"code": "TEST123", "expireDate": "2023-12-31", "deviceLimit": 1},
             {"code": "VIP456", "expireDate": "2024-12-31", "deviceLimit": 2},
             {"code": "ADMIN789", "expireDate": "2025-12-31", "deviceLimit": 999}
         ]
