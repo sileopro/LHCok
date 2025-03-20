@@ -230,7 +230,7 @@ def get_lottery_results(driver):
         print("="*80 + "\n")
         
         results = {}
-        lottery_types = ['lam', 'xam', 'hk', 'tc']
+        lottery_types = ['lam', 'xam', 'hk']
         
         for lottery_type in lottery_types:
             result = extract_lottery_info(driver, lottery_type)
