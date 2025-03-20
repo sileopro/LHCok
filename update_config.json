@@ -56,9 +56,9 @@
         "expireMessage": "您的卡密已过期，请重新购买",
         "invalidMessage": "卡密无效或已被使用",
         "successMessage": "验证成功，{expireDate}",
-        "buyUrl": "https://www.hkj.rip/#",
+        "buyUrl": "https://www.baidu.com",
         "buyButtonText": "购买卡密",
-        "contactInfo": "联系客服：hkj888",
+        "contactInfo": "客服：hkj888",
         "validCodes": [
             {"code": "TEST123", "expireDate": "2023-12-31", "deviceLimit": 1},
             {"code": "VIP456", "expireDate": "2024-12-31", "deviceLimit": 2},
