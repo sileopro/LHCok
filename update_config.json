@@ -23,5 +23,23 @@
         "showRetryPrompt": true
     },
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
-    "retryButtonText": "重新下载"
+    "retryButtonText": "重新下载",
+    "authConfig": {
+        "enabled": true,
+        "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
+        "authExpireDays": 30,
+        "trialDays": 3,
+        "authMessage": "请输入卡密进行验证，验证成功后可使用全部功能",
+        "expireMessage": "您的卡密已过期，请重新购买",
+        "invalidMessage": "卡密无效或已被使用",
+        "successMessage": "验证成功，感谢您的支持",
+        "buyUrl": "https://www.hkj.rip/#",
+        "buyButtonText": "购买卡密",
+        "contactInfo": "联系客服：hkj888",
+        "validCodes": [
+            {"code": "TEST123", "expireDate": "2023-12-31", "deviceLimit": 1},
+            {"code": "VIP456", "expireDate": "2024-12-31", "deviceLimit": 2},
+            {"code": "ADMIN789", "expireDate": "2025-12-31", "deviceLimit": 999}
+        ]
+    }
 } 
