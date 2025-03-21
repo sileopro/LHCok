@@ -62,7 +62,8 @@
         "contactInfo": "联系客服：hkj888",
         "validCodes": [
             {"code": "TEST123", "expireDate": "2023-12-31", "deviceLimit": 1},
-            {"code": "VIP456", "expireDate": "2024-12-31", "deviceLimit": 2},
+            {"code": "VIP345", "expireDate": "2025-12-31", "deviceLimit": 1},
+            {"code": "VIP456", "expireDate": "2025-12-31", "deviceLimit": 1},
             {"code": "VIP4567", "expireDate": "2025-03-22", "deviceLimit": 2},
             {"code": "ADMIN789", "expireDate": "2025-12-31", "deviceLimit": 999}
         ]
