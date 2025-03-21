@@ -75,10 +75,19 @@
         "validCodes": [
             {"code": "TEST123", "deviceId": "325b08f1", "expireDate": "2025-03-22", "deviceLimit": 1},
             {"code": "VIP345", "deviceId": "04dfac60", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "VIP456", "deviceId": "62ccf93d", "expireDate": "2099-12-31", "deviceLimit": 2},
-            {"code": "VIP567", "deviceId": "27635895", "expireDate": "2099-03-22", "deviceLimit": 2},
-            {"code": "VIP4568", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
-            {"code": "ADMIN789", "deviceId": "", "expireDate": "2025-12-31", "deviceLimit": 999}
+            {"code": "VIP456", "deviceId": "62ccf93d", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "VIP567", "deviceId": "27635895", "expireDate": "2099-03-22", "deviceLimit": 1},    
+            {"code": "XK7P9QR2", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "M3T5VWZL", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "B8F2HJNC", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "D6G4KPSX", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "A9E3RTYV", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "Z2X8LMQW", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "J5N7BDFS", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "U6Y4CGTH", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "I3O1PZXA", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "E7R9VKJM", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "ADMIN789", "deviceId": "", "expireDate": "2025-12-31", "deviceLimit": 1}
         ]
     }
 } 
