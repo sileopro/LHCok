@@ -71,11 +71,11 @@
         "deviceIdValueColor": "#FF0000",
         "deviceBindInstructions": "请将此设备ID发送给管理员，绑定后再次验证",
         "deviceBindInstructionsColor": "#008000",
-        "contactInfo": "客服微信：hkj888",
+        "contactInfo": "客服QQ：hkj888",
         "validCodes": [
             {"code": "TEST123", "deviceId": "", "expireDate": "2023-12-31", "deviceLimit": 1},
-            {"code": "VIP345", "deviceId": "39f8a4d0", "expireDate": "2025-12-31", "deviceLimit": 1},
-            {"code": "VIP456", "deviceId": "4c9c05f1", "expireDate": "2025-12-31", "deviceLimit": 2},
+            {"code": "VIP345", "deviceId": "06775deb", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "VIP456", "deviceId": "122ad98d", "expireDate": "2099-12-31", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "", "expireDate": "2025-03-22", "deviceLimit": 2},
             {"code": "VIP4568", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "ADMIN789", "deviceId": "", "expireDate": "2025-12-31", "deviceLimit": 999}
