@@ -53,12 +53,12 @@
         "authExpireDays": 30,
         "trialDays": 3,
         "authMessage": "客服飞机：hkj888",
-        "authMessageColor": "#FF5722",
+        "authMessageColor": "#008B8B",
         "expireMessage": "您的卡密已过期，请重新购买",
         "invalidMessage": "卡密无效或已被使用",
         "deviceLimitMessage": "此卡密已绑定其他设备，无法继续激活",
         "successMessage": "验证成功，有效期至{expireDate}",
-        "successMessageColor": "#4CAF50",
+        "successMessageColor": "#FF0000",
         "errorMessageColor": "#FF00FF",
         "buyUrl": "https://www.hkj.rip/#",
         "buyButtonText": "购买卡密",
@@ -69,7 +69,7 @@
         "validCodes": [
             {"code": "TEST123", "deviceId": "", "expireDate": "2023-12-31", "deviceLimit": 1},
             {"code": "VIP345", "deviceId": "39f8a4d0", "expireDate": "2025-12-31", "deviceLimit": 1},
-            {"code": "VIP456", "deviceId": "224943dd", "expireDate": "2025-12-31", "deviceLimit": 2},
+            {"code": "VIP456", "deviceId": "4c9c05f1", "expireDate": "2025-12-31", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "", "expireDate": "2025-03-22", "deviceLimit": 2},
             {"code": "VIP4568", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "ADMIN789", "deviceId": "", "expireDate": "2025-12-31", "deviceLimit": 999}
