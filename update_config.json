@@ -75,9 +75,11 @@
         "validCodes": [
             {"code": "TEST123", "deviceId": "", "expireDate": "2023-12-31", "deviceLimit": 1},
             {"code": "VIP345", "deviceId": "06775deb", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "VIP456", "deviceId": "122ad98d", "expireDate": "2099-12-31", "deviceLimit": 2},
-            {"code": "VIP4567", "deviceId": "", "expireDate": "2025-03-22", "deviceLimit": 2},
-            {"code": "VIP4568", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
+            {"code": "VIP456", "deviceId": "67dbe73c", "expireDate": "2099-12-31", "deviceLimit": 2},
+            {"code": "VIP567", "deviceId": "", "expireDate": "2025-03-22", "deviceLimit": 2},
+            {"code": "VIP678", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
+            {"code": "VIP4Q56", "deviceId": "", "expireDate": "2025-03-22", "deviceLimit": 2},
+            {"code": "VDIP168", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "ADMIN789", "deviceId": "", "expireDate": "2025-12-31", "deviceLimit": 999}
         ]
     }
