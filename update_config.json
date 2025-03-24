@@ -62,7 +62,7 @@
         "errorMessageColor": "#FF00FF",
         "warningMessageColor": "#008080",
         "contactInfoColor": "#9932CC",
-        "buyUrl": "https://www.hkj.rip" ,
+        "buyUrl": "https://www.baidu.com" ,
         "buyButtonText": "购买卡密",
         "unbindDeviceMessage": "此卡密尚未绑定设备，请联系管理员绑定",
         "unbindMessageColor": "#FF6347",
