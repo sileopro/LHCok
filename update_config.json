@@ -74,7 +74,7 @@
         "contactInfo": "客服微信：hkj888",
         "validCodes": [
             {"code": "TEST123", "deviceId": "5cb6c963", "expireDate": "2025-12-30", "deviceLimit": 1},
-            {"code": "TEST234", "deviceId": "45742516", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "TEST234", "deviceId": "7b219500", "expireDate": "2099-12-30", "deviceLimit": 1},
             {"code": "VIP345", "deviceId": "04dfac60", "expireDate": "2099-12-31", "deviceLimit": 1},
             {"code": "VIP456", "deviceId": "1316af4e", "expireDate": "2099-12-31", "deviceLimit": 1},
             {"code": "VIP567", "deviceId": "39706ab7", "expireDate": "2099-03-22", "deviceLimit": 1},    
