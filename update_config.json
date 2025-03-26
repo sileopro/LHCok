@@ -1,5 +1,5 @@
 {
-    "enableUpdate": false,
+    "enableUpdate": true,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.1",
     "promptInterval": 86400000,
@@ -48,7 +48,7 @@
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
     "retryButtonText": "重新下载",
     "authConfig": {
-        "enabled": false,
+        "enabled": true,
         "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
         "authExpireDays": 30,
         "trialDays": 3,
@@ -76,7 +76,7 @@
             {"code": "TEST123", "deviceId": "5cb6c963", "expireDate": "2025-12-30", "deviceLimit": 1},
             {"code": "TEST234", "deviceId": "7b48eb78", "expireDate": "2099-12-30", "deviceLimit": 1},
             {"code": "VIP345", "deviceId": "04dfac60", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "VIP456", "deviceId": "1316af4e", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "VIP456", "deviceId": "277d06b7", "expireDate": "2099-12-31", "deviceLimit": 1},
             {"code": "VIP567", "deviceId": "39706ab7", "expireDate": "2099-03-22", "deviceLimit": 1},    
             {"code": "XK7P9QR2", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
             {"code": "M3T5VWZL", "deviceId": "", "expireDate": "2099-12-30", "deviceLimit": 1},
