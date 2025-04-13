@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.1",
     "promptInterval": 86400000,
@@ -48,7 +48,7 @@
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
     "retryButtonText": "重新下载",
     "authConfig": {
-        "enabled": true,
+        "enabled": false,
         "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
         "authExpireDays": 30,
         "trialDays": 3,
