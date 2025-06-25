@@ -152,31 +152,81 @@ def parse_api_data(data_str, lottery_type):
                 # 获取下一期信息（如果存在）
                 next_issue = None
                 next_time = None
+                
                 if len(parts) >= 9:
                     next_issue = parts[8].zfill(3)[-3:]  # 下一期期号
                     
-                    # 尝试解析下一期开奖时间
+                    # 尝试解析下一期开奖日期和时间
                     if len(parts) >= 12:
-                        weekday = parts[10]  # 星期几
-                        time_str = parts[11]  # 时间字符串
-                        
-                        # 格式化时间字符串
-                        if '点' in time_str and '分' in time_str:
-                            time_match = re.search(r'(\d+)点(\d+)分', time_str)
+                        # 检查是否有月份和日期信息（通常在parts[9]和parts[10]位置）
+                        if len(parts) >= 11 and parts[9].isdigit() and parts[10].isdigit():
+                            # 这种情况下，parts[9]是月份，parts[10]是日期
+                            month = parts[9].zfill(2)
+                            day = parts[10].zfill(2)
+                            
+                            # 如果有时间信息，使用它
+                            if len(parts) >= 13 and '\u70b9' in parts[12]:  # 检查是否包含"点"字
+                                time_str = parts[12]
+                                time_match = re.search(r'(\d+)\u70b9(\d+)\u5206', time_str)  # 匹配"X点X分"
+                                if time_match:
+                                    hour = time_match.group(1).zfill(2)
+                                    minute = time_match.group(2).zfill(2)
+                                else:
+                                    # 使用默认时间
+                                    default_times = {
+                                        'hk': '21:32',
+                                        'xam': '21:32:30',
+                                        'lam': '21:32:30',
+                                        'tc': '21:32:00'
+                                    }
+                                    hour, minute = default_times[lottery_type].split(':')[:2]
+                            else:
+                                # 使用默认时间
+                                default_times = {
+                                    'hk': '21:32',
+                                    'xam': '21:32:30',
+                                    'lam': '21:32:30',
+                                    'tc': '21:32:00'
+                                }
+                                hour, minute = default_times[lottery_type].split(':')[:2]
+                                
+                            next_time = f"{month}月{day}日 {hour}点{minute}分"
+                        else:
+                            # 老的方式：检查星期几和时间
+                            weekday = parts[10] if len(parts) > 10 else ""  # 星期几
+                            time_str = parts[11] if len(parts) > 11 else ""  # 时间字符串
+                            
+                            # 尝试从Unicode转义的字符串中提取时间信息
+                            time_match = None
+                            if time_str:
+                                # 查找类似"21点32分"的模式
+                                time_match = re.search(r'(\d+)\u70b9(\d+)\u5206', time_str)  # Unicode for "点" and "分"
+                            
                             if time_match:
                                 hour = time_match.group(1).zfill(2)
                                 minute = time_match.group(2).zfill(2)
                                 
-                                # 获取当前日期
+                                # 当前日期
                                 today = datetime.now()
-                                next_date = today
                                 
-                                # 如果当前时间已过开奖时间，则为明天
-                                current_hour = today.hour
-                                current_minute = today.minute
-                                if (int(hour) < current_hour) or (int(hour) == current_hour and int(minute) <= current_minute):
-                                    next_date = today + timedelta(days=1)
-                                    
+                                # 获取下一期的月和日
+                                # 如果API没有提供月和日，则假设是明天
+                                next_date = today + timedelta(days=1)
+                                month = f"{next_date.month:02d}"
+                                day = f"{next_date.day:02d}"
+                                
+                                next_time = f"{month}月{day}日 {hour}点{minute}分"
+                            else:
+                                # 无法从API解析时间，使用默认时间
+                                today = datetime.now()
+                                next_date = today + timedelta(days=1)  # 假设是明天
+                                default_times = {
+                                    'hk': '21:32',
+                                    'xam': '21:32:30',
+                                    'lam': '21:32:30',
+                                    'tc': '21:32:00'
+                                }
+                                hour, minute = default_times[lottery_type].split(':')[:2]
                                 next_time = f"{next_date.month:02d}月{next_date.day:02d}日 {hour}点{minute}分"
                 
                 # 如果没有从API获取到下一期信息，尝试推算
