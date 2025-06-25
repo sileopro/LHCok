@@ -11,12 +11,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  scrape-first:
+  scrape-data:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     
     concurrency:
-      group: ${{ github.workflow }}-first-${{ github.ref }}
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     
     steps:
@@ -36,32 +36,23 @@ jobs:
         with:
           python-version: '3.x'
           
-      - name: 安装 Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget gnupg2
-          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install selenium webdriver-manager
+          pip install requests
           
-      - name: 运行第一个抓取脚本
+      - name: 运行抓取脚本
         run: python zuikuai.py
         env:
           TZ: Asia/Shanghai
           
-      - name: 检查第一个脚本文件
+      - name: 检查脚本生成文件
         run: |
           ls -la *.txt
           cat *.txt
           
-      - name: 提交第一个脚本的更新
-        id: commit-first
+      - name: 提交更新
+        id: commit-changes
         continue-on-error: true
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -81,147 +72,9 @@ jobs:
           git add -f *.txt
           
           # 即使没有变化也创建提交
-          git commit -m "更新开奖结果(hkj88) $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
+          git commit -m "更新开奖结果 $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
           
           # 尝试推送更改
-          git push origin main || true
-
-  scrape-second:
-    needs: scrape-first
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: 设置时区
-        uses: szenius/set-timezone@v1.0
-        with:
-          timezoneLinux: "Asia/Shanghai"
-          
-      - name: 设置Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-          
-      - name: 安装 Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget gnupg2
-          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          
-      - name: 安装依赖
-        run: |
-          python -m pip install --upgrade pip
-          pip install selenium webdriver-manager
-          
-      - name: 等待第一个job的更新同步
-        run: sleep 30
-      
-      - name: 拉取最新更改
-        run: |
-          git pull origin main --rebase
-          
-      - name: 运行第二个抓取脚本
-        run: python scrapered.py
-        env:
-          TZ: Asia/Shanghai
-          
-      - name: 检查第二个脚本文件
-        run: |
-          ls -la *.txt
-          cat *.txt
-          
-      - name: 提交第二个脚本的更新
-        continue-on-error: true
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
-          # 检查文件是否有实际更改
-          if git diff --quiet *.txt; then
-            echo "没有检测到文件更改，跳过提交"
-            exit 0
-          fi
-          
-          git add -f *.txt
-          git commit -m "更新开奖结果(6htv99) $(date '+%Y-%m-%d %H:%M:%S')" || true
-          git push origin main || true
-
-  scrape-third:
-    needs: scrape-second
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: 设置时区
-        uses: szenius/set-timezone@v1.0
-        with:
-          timezoneLinux: "Asia/Shanghai"
-          
-      - name: 设置Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-          
-      - name: 安装 Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget gnupg2
-          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          
-      - name: 安装依赖
-        run: |
-          python -m pip install --upgrade pip
-          pip install selenium webdriver-manager
-          
-      - name: 等待第二个job的更新同步
-        run: sleep 30
-      
-      - name: 拉取最新更改
-        run: |
-          git pull origin main --rebase
-          
-      - name: 运行第三个抓取脚本
-        run: python scraper.py
-        env:
-          TZ: Asia/Shanghai
-          
-      - name: 检查第三个脚本文件
-        run: |
-          ls -la *.txt
-          cat *.txt
-          
-      - name: 提交第三个脚本的更新
-        continue-on-error: true
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
-          # 检查文件是否有实际更改
-          if git diff --quiet *.txt; then
-            echo "没有检测到文件更改，跳过提交"
-            exit 0
-          fi
-          
-          git add -f *.txt
-          git commit -m "更新开奖结果(man33) $(date '+%Y-%m-%d %H:%M:%S')" || true
           git push origin main || true
         
       - name: 删除旧的工作流运行记录
