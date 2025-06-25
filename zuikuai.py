@@ -156,78 +156,59 @@ def parse_api_data(data_str, lottery_type):
                 if len(parts) >= 9:
                     next_issue = parts[8].zfill(3)[-3:]  # 下一期期号
                     
-                    # 尝试解析下一期开奖日期和时间
-                    if len(parts) >= 12:
-                        # 检查是否有月份和日期信息（通常在parts[9]和parts[10]位置）
-                        if len(parts) >= 11 and parts[9].isdigit() and parts[10].isdigit():
-                            # 这种情况下，parts[9]是月份，parts[10]是日期
-                            month = parts[9].zfill(2)
-                            day = parts[10].zfill(2)
-                            
-                            # 如果有时间信息，使用它
-                            if len(parts) >= 13 and '\u70b9' in parts[12]:  # 检查是否包含"点"字
-                                time_str = parts[12]
-                                time_match = re.search(r'(\d+)\u70b9(\d+)\u5206', time_str)  # 匹配"X点X分"
-                                if time_match:
-                                    hour = time_match.group(1).zfill(2)
-                                    minute = time_match.group(2).zfill(2)
-                                else:
-                                    # 使用默认时间
-                                    default_times = {
-                                        'hk': '21:32',
-                                        'xam': '21:32:30',
-                                        'lam': '21:32:30',
-                                        'tc': '21:32:00'
-                                    }
-                                    hour, minute = default_times[lottery_type].split(':')[:2]
-                            else:
-                                # 使用默认时间
-                                default_times = {
-                                    'hk': '21:32',
-                                    'xam': '21:32:30',
-                                    'lam': '21:32:30',
-                                    'tc': '21:32:00'
-                                }
-                                hour, minute = default_times[lottery_type].split(':')[:2]
-                                
-                            next_time = f"{month}月{day}日 {hour}点{minute}分"
+                    # 设置默认时间
+                    default_times = {
+                        'hk': '21:30',
+                        'xam': '21:30',
+                        'lam': '21:30',
+                        'tc': '21:30'
+                    }
+                    default_hour = "21"
+                    default_minute = "30"
+                    
+                    # 月份和日期
+                    month = None
+                    day = None
+                    hour = default_hour
+                    minute = default_minute
+                    
+                    # 检查是否有月份和日期信息
+                    if len(parts) >= 11 and parts[9].isdigit() and parts[10].isdigit():
+                        month = parts[9].zfill(2)
+                        day = parts[10].zfill(2)
+                    
+                    # 查找时间信息 - 检查标准时间格式 (HH:MM:SS)
+                    time_found = False
+                    for i in range(11, min(15, len(parts))):
+                        part = parts[i]
+                        # 检查是否为标准时间格式 "21:30:00"
+                        time_match = re.search(r'(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?', part)
+                        if time_match:
+                            hour = time_match.group(1).zfill(2)
+                            minute = time_match.group(2).zfill(2)
+                            time_found = True
+                            break
+                        
+                        # 检查中文格式 "21点30分"
+                        time_match = re.search(r'(\d+)\u70b9(\d+)\u5206', part)
+                        if time_match:
+                            hour = time_match.group(1).zfill(2)
+                            minute = time_match.group(2).zfill(2)
+                            time_found = True
+                            break
+                    
+                    # 如果没有找到月份和日期，使用当前日期计算
+                    if not month or not day:
+                        today = datetime.now()
+                        # 如果当前时间已过开奖时间，则为明天
+                        if (int(hour) < today.hour) or (int(hour) == today.hour and int(minute) <= today.minute):
+                            next_date = today + timedelta(days=1)
                         else:
-                            # 老的方式：检查星期几和时间
-                            weekday = parts[10] if len(parts) > 10 else ""  # 星期几
-                            time_str = parts[11] if len(parts) > 11 else ""  # 时间字符串
-                            
-                            # 尝试从Unicode转义的字符串中提取时间信息
-                            time_match = None
-                            if time_str:
-                                # 查找类似"21点32分"的模式
-                                time_match = re.search(r'(\d+)\u70b9(\d+)\u5206', time_str)  # Unicode for "点" and "分"
-                            
-                            if time_match:
-                                hour = time_match.group(1).zfill(2)
-                                minute = time_match.group(2).zfill(2)
-                                
-                                # 当前日期
-                                today = datetime.now()
-                                
-                                # 获取下一期的月和日
-                                # 如果API没有提供月和日，则假设是明天
-                                next_date = today + timedelta(days=1)
-                                month = f"{next_date.month:02d}"
-                                day = f"{next_date.day:02d}"
-                                
-                                next_time = f"{month}月{day}日 {hour}点{minute}分"
-                            else:
-                                # 无法从API解析时间，使用默认时间
-                                today = datetime.now()
-                                next_date = today + timedelta(days=1)  # 假设是明天
-                                default_times = {
-                                    'hk': '21:32',
-                                    'xam': '21:32:30',
-                                    'lam': '21:32:30',
-                                    'tc': '21:32:00'
-                                }
-                                hour, minute = default_times[lottery_type].split(':')[:2]
-                                next_time = f"{next_date.month:02d}月{next_date.day:02d}日 {hour}点{minute}分"
+                            next_date = today
+                        month = f"{next_date.month:02d}"
+                        day = f"{next_date.day:02d}"
+                    
+                    next_time = f"{month}月{day}日 {hour}点{minute}分"
                 
                 # 如果没有从API获取到下一期信息，尝试推算
                 if not next_issue or not next_time:
@@ -238,12 +219,12 @@ def parse_api_data(data_str, lottery_type):
                     today = datetime.now()
                     next_date = today + timedelta(days=1)  # 假设是明天
                     default_times = {
-                        'hk': '21:32',
-                        'xam': '21:32:30',
-                        'lam': '21:32:30',
-                        'tc': '21:32:00'
+                        'hk': '21:30',
+                        'xam': '21:30',
+                        'lam': '21:30',
+                        'tc': '21:30'
                     }
-                    hour, minute = default_times[lottery_type].split(':')[:2]
+                    hour, minute = default_times[lottery_type].split(':')
                     next_time = f"{next_date.month:02d}月{next_date.day:02d}日 {hour}点{minute}分"
                 
                 return {
@@ -273,13 +254,10 @@ def save_lottery_result(lottery_info, lottery_type):
         issue = lottery_info['issue']
         numbers = lottery_info['numbers']
         special_number = lottery_info['special_number']
-        zodiac = lottery_info['zodiac']
         
-        # 格式化结果字符串
+        # 格式化结果字符串 - 移除生肖显示
         result = f"第{issue}期：{' '.join(numbers)} 特码 {special_number}"
-        if zodiac:
-            result += f" {zodiac}"
-            
+        
         # 确定文件名
         filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
         
