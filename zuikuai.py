@@ -35,6 +35,7 @@ API_CONFIGS = {
     'lam': {  # 老澳
         'main': 'https://49xr.cc/data/tw.js',
         'backup': [
+            'https://005679.com/2chajian/bmjg.js',
             'https://api.493210.com/bm.js'
         ]
     },
