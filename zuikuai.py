@@ -20,7 +20,11 @@ API_CONFIGS = {
     'hk': {  # 港彩
         'main': 'https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json',
         'backup': [
+            'https://154.81.36.18:8925/kj/caiji/hkkj.js',
+            'https://154.198.233.78:6777/kj/caiji/hkkj.js',
+            'https://154.81.36.8:5935/kj/caiji/hkkj.js'
             'https://kjkj.kj88889.com/bmjg.js',
+            'https://001033.com/kj/js/xgjs.asp',
             'https://api.493210.com/bmxg.js',
             'https://001033.com/kj/js/xgjs.asp'
         ]
@@ -28,15 +32,18 @@ API_CONFIGS = {
     'xam': {  # 新澳
         'main': 'https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json',
         'backup': [
+            'https://154.81.36.18:8925/kj/caiji/amkj.js',
+            'https://154.198.233.78:6777/kj/caiji/amkj.js',
+            'https://154.81.36.8:5935/kj/caiji/amkj.js',
+            'https://001033.com/kj/js/amjs.asp',
             'https://api.493210.com/bmam.js',
-            'https://001033.com/kj/js/amjs.asp'
+            'https://001033.com/kj/js/xamjs.asp'
         ]
     },
     'lam': {  # 老澳
         'main': 'https://49xr.cc/data/tw.js',
         'backup': [
-            'https://005679.com/2chajian/bmjg.js',
-            'https://api.493210.com/bm.js'
+            'https://005679.com/2chajian/bmjg.js'
         ]
     },
     'tc': {  # 台彩
