@@ -279,7 +279,7 @@ def save_lottery_result(lottery_info, lottery_type):
         next_time = lottery_info['next_time']
         
         # 确保time.txt的写入模式（第一个彩种用w，其余用a）
-        mode = 'w' if lottery_type == 'lam' else 'a'
+        mode = 'w' if lottery_type == 'hk' else 'a'
         with open('time.txt', mode, encoding='utf-8') as f:
             f.write(f"{LOTTERY_NAMES[lottery_type]}第{next_issue}期：{next_time}\n")
         logger.info(f"✅ 已更新{LOTTERY_NAMES[lottery_type]}下一期开奖时间信息")
@@ -292,8 +292,8 @@ def save_lottery_result(lottery_info, lottery_type):
 def get_lottery_results():
     """获取所有彩票的开奖结果"""
     results = {}
-    lottery_types = ['lam', 'xam', 'hk', 'tc']
-    
+    lottery_types = ['hk', 'xam', 'lam', 'tc']
+        
     # 确保time.txt是空的或不存在
     try:
         open('time.txt', 'w', encoding='utf-8').close()
