@@ -44,6 +44,8 @@ API_CONFIGS = {
         'main': 'https://49xr.cc/data/tw.js',
         'backup': [
             'https://005679.com/2chajian/bmjg.js'
+            'https://zhibo.66kj.vip/kj/data/48am.js'
+            
         ]
     },
     'tc': {  # 台彩
