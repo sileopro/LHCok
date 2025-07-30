@@ -73,7 +73,7 @@
         "deviceBindInstructionsColor": "#008000",
         "contactInfo": "客服微信：hkj888",
         "validCodes": [
-            {"code": "VIP123", "deviceId": "73cb0e1d", "expireDate": "2099-12-30", "deviceLimit": 1},
+            {"code": "VIP123", "deviceId": "3cb0e1d", "expireDate": "2099-12-30", "deviceLimit": 1},
             {"code": "VIP1234", "deviceId": "1db6a753", "expireDate": "2099-12-30", "deviceLimit": 1},
             {"code": "VIP12345", "deviceId": "", "expireDate": "2099-12-31", "deviceLimit": 1},
             {"code": "VIP123456", "deviceId": "", "expireDate": "2099-12-31", "deviceLimit": 1},
