@@ -76,7 +76,7 @@ jobs:
           fi
           
           # 强制添加所有txt文件
-          git add -f *.txt
+          git add -f *.txt lottery.log
           
           # 即使没有变化也创建提交
           git commit -m "更新开奖结果 $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
