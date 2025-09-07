@@ -19,7 +19,7 @@ if os.path.exists(log_file):
     blocks = [b for b in blocks if b.strip()]
     # 只保留最后5次
     if len(blocks) > 1:
-        content = SEPARATOR.join(blocks[-5:]) + SEPARATOR
+        content = SEPARATOR.join(blocks[-1:]) + SEPARATOR
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(content)
 else:
