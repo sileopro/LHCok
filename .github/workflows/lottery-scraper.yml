@@ -49,11 +49,14 @@ jobs:
       - name: 检查脚本生成文件
         run: |
           ls -la *.txt
+          ls -la *.json || true
           echo "===== 文件内容 ====="
-          for file in *.txt; do
-            echo "文件: $file"
-            cat "$file"
-            echo ""
+          for file in *.txt *.json; do
+            if [ -f "$file" ]; then
+              echo "文件: $file"
+              cat "$file"
+              echo ""
+            fi
           done
           echo "===================="
           
@@ -79,8 +82,8 @@ jobs:
             echo '{"k":"001,43,19,06,22,23,34,11,002,09,09,二,21:30:00,2022","t":"1000","tool":"#492130#com","url":"","lhc":"","ok":"0"}' > xamkj.json
           fi
           
-          # 强制添加所有txt文件和log文件
-          git add -f *.txt lottery.log
+          # 强制添加所有txt和json文件以及log文件
+          git add -f *.txt *.json lottery.log
           
           # 即使没有变化也创建提交
           git commit -m "更新开奖结果 $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
