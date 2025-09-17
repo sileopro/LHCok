@@ -300,27 +300,23 @@ def parse_api_data(data_str, lottery_type):
         logger.error(f"解析API数据出错: {str(e)}")
         return None
 
-def save_lottery_result(lottery_info, lottery_type):
+def save_lottery_result(lottery_info, lottery_type, data_str=None):
     """保存彩票开奖结果到文件"""
     try:
         if not lottery_info:
             logger.error(f"没有可保存的{LOTTERY_NAMES[lottery_type]}开奖结果")
             return False
-            
         issue = lottery_info['issue']
         numbers = lottery_info['numbers']
         special_number = lottery_info['special_number']
-        
         # 格式化结果字符串 - 移除生肖显示
         result = f"第{issue}期：{' '.join(numbers)} 特码 {special_number}"
-        
         # 确定文件名
         filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
-        
-        # 保存结果到文件
+        # 保存结果到txt文件
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(result)
-        # 新增：保存为json文件
+        # 新增：保存API原始内容为json文件
         json_map = {
             'hk': 'hkkj.json',
             'xam': 'xamkj.json',
@@ -328,55 +324,18 @@ def save_lottery_result(lottery_info, lottery_type):
             'tc': 'tckj.json'
         }
         json_filename = json_map.get(lottery_type)
-        if json_filename:
-            # 动态拼接k字段内容（全部实时数据）
-            import re
-            from datetime import datetime
-            next_time = lottery_info.get('next_time', '')  # 例：09月09日 21点30分
-            next_issue = lottery_info.get('next_issue', '')
-            # 提取月、日、时间
-            match = re.match(r'(\d{2})月(\d{2})日\s+(\d{2})点(\d{2})分', next_time)
-            if match:
-                month = match.group(1)
-                day = match.group(2)
-                hour = match.group(3)
-                minute = match.group(4)
-                time_str = f"{hour}:{minute}:00"
-                # 获取星期
-                year = datetime.now().year
-                try:
-                    week_day = datetime(year, int(month), int(day)).weekday()  # 0=周一
-                    week_map = ['一', '二', '三', '四', '五', '六', '日']
-                    week_str = week_map[week_day]
-                except Exception:
-                    week_str = ''
-            else:
-                month = day = hour = minute = time_str = week_str = ''
-                year = datetime.now().year
-            k_value = f"{issue},{','.join(numbers)},{special_number},{next_issue},{month},{day},{week_str},{time_str},{year}"
-            json_data = {
-                "k": k_value,
-                "t": "1000",
-                "tool": "#492130#com",
-                "url": "",
-                "lhc": "",
-                "ok": "0"
-            }
+        if json_filename and data_str:
             with open(json_filename, 'w', encoding='utf-8') as jf:
-                json.dump(json_data, jf, ensure_ascii=False, separators=(',', ':'))
+                jf.write(data_str)
         logger.info(f"{LOTTERY_NAMES[lottery_type]}开奖结果：{result}")
         logger.info(f"✅ 已保存{LOTTERY_NAMES[lottery_type]}开奖结果到 {filename}")
-        
         # 保存下一期开奖时间信息到 time.txt
         next_issue = lottery_info['next_issue']
         next_time = lottery_info['next_time']
-        
-        # 确保time.txt的写入模式（第一个彩种用w，其余用a）
         mode = 'w' if lottery_type == 'hk' else 'a'
         with open('time.txt', mode, encoding='utf-8') as f:
             f.write(f"{LOTTERY_NAMES[lottery_type]}第{next_issue}期：{next_time}\n")
         logger.info(f"✅ 已更新{LOTTERY_NAMES[lottery_type]}下一期开奖时间信息")
-        
         return True
     except Exception as e:
         logger.error(f"保存{LOTTERY_NAMES[lottery_type]}结果失败: {str(e)}")
@@ -410,7 +369,7 @@ def get_lottery_results():
             continue
             
         # 保存结果
-        if save_lottery_result(lottery_info, lottery_type):
+        if save_lottery_result(lottery_info, lottery_type, data_str):
             # 将结果添加到返回值
             results[lottery_type] = {
                 'issue': lottery_info['issue'],
@@ -463,15 +422,22 @@ def wait_until_next_drawing_time():
     now = datetime.now()
     start = now.replace(hour=21, minute=25, second=0, microsecond=0)
     if now < start:
-        wait_seconds = (start - now).total_seconds()
+        wait_seconds = int((start - now).total_seconds())
     else:
         # 已过开奖时间，等到明天，自动执行时间修改 3-3
+        #  wait_seconds -= 60 这里3个60是每分钟输出一次剩余秒数日志
+
         tomorrow = now + timedelta(days=1)
         next_start = tomorrow.replace(hour=21, minute=25, second=0, microsecond=0)
-        wait_seconds = (next_start - now).total_seconds()
-    logger.info(f"⏳ 距离下一个开奖时间段还有 {int(wait_seconds)} 秒，等待中...")
-    time.sleep(wait_seconds)
-            #  间隔执行时间修改  `time.sleep(3)` 表示3秒
+        wait_seconds = int((next_start - now).total_seconds())
+    while wait_seconds > 600:
+        logger.info(f"⏳ 距离下一个开奖时间段还有 {wait_seconds} 秒，等待中...")
+        time.sleep(600)
+        wait_seconds -= 600
+    if wait_seconds > 0:
+        logger.info(f"⏳ 距离下一个开奖时间段还有 {wait_seconds} 秒，等待中...")
+        time.sleep(wait_seconds)
+            #  脚本间隔执行时间修改  `time.sleep(3)` 表示3秒
 def run_in_drawing_time():
     logger.info("进入开奖时间段自动循环模式（每3秒执行一次）...")
     while True:
