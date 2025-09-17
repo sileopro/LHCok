@@ -6,6 +6,7 @@ import os
 import random
 from datetime import datetime, timedelta
 import logging
+import sys
 
 # 配置日志
 log_file = os.path.abspath("lottery.log")
@@ -44,24 +45,47 @@ API_CONFIGS = {
     'hk': {  # 港彩
         'main': 'https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json',
         'backup': [
-            'https://154.81.36.18:8925/kj/caiji/hkkj.js',
             'https://154.198.233.78:6777/kj/caiji/hkkj.js',
-            'https://154.81.36.8:5935/kj/caiji/hkkj.js'
-            'https://kjkj.kj88889.com/bmjg.js',
-            'https://001033.com/kj/js/xgjs.asp',
-            'https://api.493210.com/bmxg.js',
-            'https://001033.com/kj/js/xgjs.asp'
+                    'https://154.81.36.17:8335/kj/caiji/hkkj.js',
+                    'https://154.81.36.8:5935/kj/caiji/hkkj.js',
+                    'https://154.81.36.18:8925/kj/caiji/hkkj.js',
+                    'https://156.225.94.42:7625/kj/caiji/hkkj.js',
+                    'https://156.225.89.155:6825/kj/caiji/hkkj.js',
+                    'https://156.225.94.15:5395/kj/caiji/hkkj.js',
+                    'https://156.225.94.25:7395/kj/caiji/hkkj.js',
+                    'https://156.225.94.30:2255/kj/caiji/hkkj.js',
+                    'https://156.225.89.149:2285/kj/caiji/hkkj.js',
+                    'https://156.225.94.47:6523/kj/caiji/hkkj.js',
+                    'https://156.225.89.140:8255/kj/caiji/hkkj.js',
+                    'https://156.225.89.144:5576/kj/caiji/hkkj.js',
+                    'https://45.221.97.29:8775/kj/caiji/hkkj.js',
+                    'https://45.221.97.23:6165/kj/caiji/hkkj.js',
+                    'https://156.225.94.20:3335/kj/caiji/hkkj.js',
+                    'https://kjkj.kj88889.com/bmjg.js',
+                    'https://001033.com/kj/js/xgjs.asp'
+                 
         ]
     },
     'xam': {  # 新澳
         'main': 'https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json',
         'backup': [
-            'https://154.81.36.18:8925/kj/caiji/amkj.js',
             'https://154.198.233.78:6777/kj/caiji/amkj.js',
+            'https://154.81.36.17:8335/kj/caiji/amkj.js',
             'https://154.81.36.8:5935/kj/caiji/amkj.js',
-            'https://001033.com/kj/js/amjs.asp',
-            'https://api.493210.com/bmam.js',
-            'https://001033.com/kj/js/xamjs.asp'
+            'https://154.81.36.18:8925/kj/caiji/amkj.js',
+            'https://156.225.94.42:7625/kj/caiji/amkj.js',
+            'https://156.225.89.155:6825/kj/caiji/amkj.js',
+            'https://156.225.94.15:5395/kj/caiji/amkj.js',
+            'https://156.225.94.25:7395/kj/caiji/amkj.js',
+            'https://156.225.94.30:2255/kj/caiji/amkj.js',
+            'https://156.225.89.149:2285/kj/caiji/amkj.js',
+            'https://156.225.94.47:6523/kj/caiji/amkj.js',
+            'https://156.225.89.140:8255/kj/caiji/amkj.js',
+            'https://156.225.89.144:5576/kj/caiji/amkj.js',
+            'https://45.221.97.29:8775/kj/caiji/amkj.js',
+            'https://45.221.97.23:6165/kj/caiji/amkj.js',
+            'https://156.225.94.20:3335/kj/caiji/amkj.js', 
+            'https://001033.com/kj/js/amjs.asp'
         ]
     },
     'lam': {  # 老澳
@@ -428,11 +452,45 @@ def main():
         logger.error(f"运行出错: {str(e)}")
         if os.environ.get('VERCEL_ENV'):
             return {"error": str(e)}
+            #  自动执行时间修改 1-3
+def is_in_drawing_time():
+    now = datetime.now()
+    start = now.replace(hour=21, minute=25, second=0, microsecond=0)
+    end = now.replace(hour=21, minute=40, second=0, microsecond=0)
+    return start <= now <= end
+        #  自动执行时间修改 2-3
+def wait_until_next_drawing_time():
+    now = datetime.now()
+    start = now.replace(hour=21, minute=25, second=0, microsecond=0)
+    if now < start:
+        wait_seconds = (start - now).total_seconds()
+    else:
+        # 已过开奖时间，等到明天，自动执行时间修改 3-3
+        tomorrow = now + timedelta(days=1)
+        next_start = tomorrow.replace(hour=21, minute=25, second=0, microsecond=0)
+        wait_seconds = (next_start - now).total_seconds()
+    logger.info(f"⏳ 距离下一个开奖时间段还有 {int(wait_seconds)} 秒，等待中...")
+    time.sleep(wait_seconds)
+            #  间隔执行时间修改  `time.sleep(3)` 表示3秒
+def run_in_drawing_time():
+    logger.info("进入开奖时间段自动循环模式（每3秒执行一次）...")
+    while True:
+        if is_in_drawing_time():
+            main()
+            for handler in logger.handlers:
+                handler.flush()
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(SEPARATOR)
+            time.sleep(3)
+        else:
+            wait_until_next_drawing_time()
 
 if __name__ == '__main__':
-    main()
-    for handler in logger.handlers:
-        handler.flush()
-    # 运行结束写入分隔符
-    with open(log_file, "a", encoding="utf-8") as f:
-        f.write(SEPARATOR)
+    if len(sys.argv) > 1 and sys.argv[1] == '--loop':
+        run_in_drawing_time()
+    else:
+        main()
+        for handler in logger.handlers:
+            handler.flush()
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(SEPARATOR)
