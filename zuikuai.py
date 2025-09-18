@@ -76,6 +76,7 @@ API_CONFIGS = {
     'xam': {  # 新澳
         'main': 'https://macaumarksix.com/api/macaujc2.com',
         'backup': [
+            'https://macaumarksix.com/api/live2',
             'https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json',
             'https://154.198.233.78:6777/kj/caiji/amkj.js',
             'https://154.81.36.17:8335/kj/caiji/amkj.js',
@@ -96,9 +97,11 @@ API_CONFIGS = {
             'https://001033.com/kj/js/amjs.asp'
         ]
     },
-    'lam': {  # 老澳
-        'main': 'https://49xr.cc/data/tw.js',
+    'lam': {  # 老澳 (macaumarksix.com 22:30开奖 )
+        'main': 'https://macaumarksix.com/api/live',
         'backup': [
+            'https://macaumarksix.com/api/macaujc.com',
+            'https://49xr.cc/data/tw.js',
             'https://005679.com/2chajian/bmjg.js'
         ]
     },
