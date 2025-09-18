@@ -48,8 +48,9 @@ logger.addHandler(stream_handler)
 # API配置
 API_CONFIGS = {
     'hk': {  # 港彩
-        'main': 'https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json',
+        'main': 'https://macaumarksix.com/api/hkjc.com',
         'backup': [
+            'https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json',
             'https://macaumarksix.com/api/hkjc.com',
             'https://154.198.233.78:6777/kj/caiji/hkkj.js',
             'https://154.81.36.17:8335/kj/caiji/hkkj.js',
@@ -313,6 +314,16 @@ def parse_api_data(data_str, lottery_type):
         logger.error(f"解析API数据出错: {str(e)}")
         return None
 
+def save_if_changed(filename, content):
+    if os.path.exists(filename):
+        with open(filename, 'r', encoding='utf-8') as f:
+            old = f.read()
+        if old == content:
+            return False  # 不变则不写
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return True
+
 def save_lottery_result(lottery_info, lottery_type, data_str=None):
     """保存彩票开奖结果到文件，老API也实时保存API原始内容为json文件，无论号码是否完整"""
     try:
@@ -338,8 +349,73 @@ def save_lottery_result(lottery_info, lottery_type, data_str=None):
         }
         json_filename = json_map.get(lottery_type)
         if json_filename and data_str:
-            with open(json_filename, 'w', encoding='utf-8') as jf:
-                jf.write(data_str)
+            # 新API原始格式转换为K格式json
+            try:
+                if data_str.strip().startswith('['):
+                    data = json.loads(data_str)
+                    if isinstance(data, list) and data:
+                        item = data[0]
+                        open_code = item.get('openCode', '')
+                        numbers = [n.strip() for n in open_code.split(',')]
+                        if len(numbers) < 7:
+                            logger.info(f"{LOTTERY_NAMES[lottery_type]} 正在开奖中，已开出号码：{open_code}（未开全）")
+                        expect = item.get('expect', '')
+                        issue = expect[-3:] if expect else ''
+                        # 处理号码区实时开奖提示
+                        tip_words = ['实','时','开','奖','将','开','始']
+                        if all((not n.strip()) for n in numbers):
+                            numbers = tip_words.copy()
+                        else:
+                            for i in range(len(numbers)):
+                                if not numbers[i].strip() and i < len(tip_words):
+                                    numbers[i] = tip_words[i]
+                        while len(numbers) < 7:
+                            numbers.append(tip_words[len(numbers)])
+                        # next_issue
+                        next_issue = str(int(issue) + 1).zfill(3) if issue.isdigit() else ''
+                        # 9,10,11: 备用号码、生肖、开奖时间
+                        # 生肖
+                        zodiacs = item.get('zodiac', '').split(',')
+                        zodiac = zodiacs[6].strip() if len(zodiacs) >= 7 else ''
+                        # 开奖时间
+                        open_time = item.get('openTime', '')
+                        time_part = ''
+                        try:
+                            dt = datetime.strptime(open_time, '%Y-%m-%d %H:%M:%S')
+                            time_part = dt.strftime('%H:%M:%S')
+                        except Exception:
+                            time_part = ''
+                        # 年份
+                        year = open_time[:4] if open_time else ''
+                        # 取开奖日期，月保持实时数据，日实时数据根据彩种加天数
+                        month_day = '09,19'
+                        try:
+                            if open_time:
+                                dt = datetime.strptime(open_time, '%Y-%m-%d %H:%M:%S')
+                                if lottery_type == 'hk':
+                                    next_dt = dt + timedelta(days=2)
+                                elif lottery_type == 'xam':
+                                    next_dt = dt + timedelta(days=1)
+                                elif lottery_type == 'lam':
+                                    next_dt = dt + timedelta(days=1)
+                                elif lottery_type == 'tc':
+                                    next_dt = dt + timedelta(days=1)
+                                else:
+                                    next_dt = dt
+                                month_day = f"{next_dt.month:02d},{next_dt.day:02d}"
+                        except Exception:
+                            pass
+                        # k字段严格拼接，日期为开奖日期+N天
+                        k_str = f"{issue},{','.join(numbers)},{next_issue},{month_day},六,{time_part},{year}"
+                        k_json = '{"k":"'+k_str+'","t":"1000","tool":"#492130#com","url":"","lhc":"","ok":"0"}'
+                        save_if_changed(json_filename, k_json)
+                    else:
+                        save_if_changed(json_filename, data_str)
+                else:
+                    save_if_changed(json_filename, data_str)
+            except Exception as e:
+                logger.error(f"新API原始格式转K格式保存失败: {str(e)}")
+                save_if_changed(json_filename, data_str)
         logger.info(f"{LOTTERY_NAMES[lottery_type]}开奖结果：{result}")
         logger.info(f"✅ 已保存{LOTTERY_NAMES[lottery_type]}开奖结果到 {filename}")
         # 保存下一期开奖时间信息到 time.txt
