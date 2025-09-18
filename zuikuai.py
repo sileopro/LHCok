@@ -322,6 +322,8 @@ def save_if_changed(filename, content):
         with open(filename, 'r', encoding='utf-8') as f:
             old = f.read()
         if old == content:
+            # 内容没变，只更新时间戳
+            os.utime(filename, None)
             return False  # 不变则不写
     with open(filename, 'w', encoding='utf-8') as f:
         f.write(content)
@@ -512,42 +514,60 @@ def main():
             #  自动执行时间范围21:25~21:40 修改 1-3
 def is_in_drawing_time():
     now = datetime.now()
-    start = now.replace(hour=21, minute=25, second=0, microsecond=0)
-    end = now.replace(hour=21, minute=40, second=0, microsecond=0)
-    return start <= now <= end
+    # 第一个时间段 21:25~21:37
+    start1 = now.replace(hour=21, minute=25, second=0, microsecond=0)
+    end1 = now.replace(hour=21, minute=37, second=0, microsecond=0)
+    # 第二个时间段 22:28~22:35
+    start2 = now.replace(hour=22, minute=28, second=0, microsecond=0)
+    end2 = now.replace(hour=22, minute=35, second=0, microsecond=0)
+    return (start1 <= now <= end1) or (start2 <= now <= end2)
         #  自动执行时间开始修改 2-3
 def wait_until_next_drawing_time():
     now = datetime.now()
-    start = now.replace(hour=21, minute=25, second=0, microsecond=0)
-    if now < start:
-        wait_seconds = int((start - now).total_seconds())
-    else:
-        # 已过开奖时间，等到明天，自动执行时间修改 3-3
-        #  wait_seconds -= 600 这里3个600是每10分钟输出一次剩余秒数日志
+    # 定义两个开奖时间段
+    today_start1 = now.replace(hour=21, minute=25, second=0, microsecond=0)
+    today_end1 = now.replace(hour=21, minute=37, second=0, microsecond=0)
+    today_start2 = now.replace(hour=22, minute=28, second=0, microsecond=0)
+    today_end2 = now.replace(hour=22, minute=35, second=0, microsecond=0)
 
+    # 计算下一个开奖时间段的开始时间
+    if now < today_start1:
+        next_start = today_start1
+    elif now < today_start2:
+        if now <= today_end1:
+            # 在第一个开奖段内或刚结束，直接等第二段
+            next_start = today_start2
+        else:
+            next_start = today_start2
+    else:
+        # 已过今天所有开奖段，等到明天第一个段 开始修改 3-3
         tomorrow = now + timedelta(days=1)
         next_start = tomorrow.replace(hour=21, minute=25, second=0, microsecond=0)
-        wait_seconds = int((next_start - now).total_seconds())
-    while wait_seconds > 600:
+
+    wait_seconds = int((next_start - now).total_seconds())
+    while wait_seconds > 60:
         logger.info(f"⏳ 距离下一个开奖时间段还有 {wait_seconds} 秒，等待中...")
-        time.sleep(600)
-        wait_seconds -= 600
+        time.sleep(60)
+        wait_seconds -= 60
     if wait_seconds > 0:
         logger.info(f"⏳ 距离下一个开奖时间段还有 {wait_seconds} 秒，等待中...")
         time.sleep(wait_seconds)
             #  脚本间隔执行时间修改  `time.sleep(3)` 表示3秒
 def run_in_drawing_time():
     logger.info("进入开奖时间段自动循环模式（每3秒执行一次）...")
-    while True:
-        if is_in_drawing_time():
-            main()
-            for handler in logger.handlers:
-                handler.flush()
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(SEPARATOR)
-            time.sleep(3)
-        else:
-            wait_until_next_drawing_time()
+    try:
+        while True:
+            if is_in_drawing_time():
+                main()
+                for handler in logger.handlers:
+                    handler.flush()
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(SEPARATOR)
+                time.sleep(3)
+            else:
+                wait_until_next_drawing_time()
+    except KeyboardInterrupt:
+        logger.info("⚠️ 自动循环已停止。")
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--loop':
