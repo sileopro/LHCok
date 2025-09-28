@@ -1,5 +1,5 @@
 {
-    "enableUpdate": false,
+    "enableUpdate": true,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.1",
     "promptInterval": 86400000,
@@ -91,3 +91,4 @@
         ]
     }
 } 
+
