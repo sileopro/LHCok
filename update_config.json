@@ -1,5 +1,5 @@
 {
-    "enableUpdate": false,
+    "enableUpdate": true,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.1",
     "promptInterval": 86400000,
@@ -17,7 +17,7 @@
                 "buttonText": "立即更新"
             },
             "auth": {
-                "enabled": false,
+                "enabled": true,
                 "message": "需要验证卡密才能继续使用",
                 "buttonText": "验证卡密"
             },
@@ -48,7 +48,7 @@
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
     "retryButtonText": "重新下载",
     "authConfig": {
-        "enabled": false,
+        "enabled": true,
         "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
         "authExpireDays": 30,
         "trialDays": 3,
@@ -82,3 +82,4 @@
         ]
     }
 } 
+
