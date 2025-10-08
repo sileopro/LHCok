@@ -1,0 +1,95 @@
+{
+    "enableUpdate": true,
+    "currentVersion": "1.0.0",
+    "latestVersion": "1.0.1",
+    "promptInterval": 86400000,
+    "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
+    "forceUpdate": true,
+    "minVersion": "1.0.0",
+    "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
+    "updateMode": {
+        "type": "auth",
+        "exclusiveMode": false,
+        "options": {
+            "immediate": {
+                "enabled": false,
+                "message": "发现新版本，点击立即更新",
+                "buttonText": "立即更新"
+            },
+            "auth": {
+                "enabled": true,
+                "message": "需要验证卡密才能继续使用",
+                "buttonText": "验证卡密"
+            },
+            "selective": {
+                "enabled": false,
+                "message": "发现新功能，是否需要更新？",
+                "buttonText": "选择更新",
+                "features": [
+                    {"id": "feature1", "name": "新增遗漏统计", "description": "更全面的遗漏分析功能", "required": false},
+                    {"id": "feature2", "name": "优化界面", "description": "更美观的用户界面", "required": false},
+                    {"id": "feature3", "name": "修复问题", "description": "修复已知的稳定性问题", "required": true}
+                ]
+            }
+        },
+        "deleteConfig": {
+            "enabled": false,
+            "deleteMessage": "正在清理文件...",
+            "deleteDelay": 1000,
+            "targetPath": "./",
+            "excludeFiles": []
+        }
+    },
+    "retryConfig": {
+        "maxRetries": 3,
+        "retryInterval": 5000,
+        "showRetryPrompt": true
+    },
+    "networkErrorMessage": "网络连接失败，请检查网络后重试",
+    "retryButtonText": "重新下载",
+    "authConfig": {
+        "enabled": true,
+        "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
+        "authExpireDays": 30,
+        "trialDays": 3,
+        "authMessage": "客服飞机：hkj888",
+        "authMessageColor": "#008B8B",
+        "expireMessage": "您的卡密已过期，请重新购买",
+        "invalidMessage": "卡密无效或已被使用",
+        "deviceLimitMessage": "此卡密已绑定其他设备，无法继续激活",
+        "successMessage": "验证成功，有效期至{expireDate}",
+        "successMessageColor": "#FF0000",
+        "errorMessageColor": "#FF00FF",
+        "warningMessageColor": "#008080",
+        "contactInfoColor": "#9932CC",
+        "buyUrl": "https://macaujc.com/" ,
+        "buyButtonText": "购买卡密",
+        "unbindDeviceMessage": "此卡密尚未绑定设备，请联系管理员绑定",
+        "unbindMessageColor": "#FF6347",
+        "deviceIdTitle": "您的设备ID",
+        "deviceIdTitleColor": "#4169E1",
+        "deviceIdValueColor": "#FF0000",
+        "deviceBindInstructions": "请将此设备ID发送给管理员，绑定后再次验证",
+        "deviceBindInstructionsColor": "#008000",
+        "contactInfo": "客服微信：hkj888",
+        "validCodes": [
+            {"code": "TEST123", "deviceId": "", "expireDate": "2023-12-31", "deviceLimit": 1},
+            {"code": "VIP345", "deviceId": "39f8a4d0", "expireDate": "2025-12-31", "deviceLimit": 1},
+            {"code": "VIP456", "deviceId": "4c9c05f1", "expireDate": "2025-12-31", "deviceLimit": 2},
+            {"code": "VIP4567", "deviceId": "0866dd51", "expireDate": "2099-03-08", "deviceLimit": 2},
+            {"code": "VIP4568", "deviceId": "2c4b892d", "expireDate": "2025-12-23", "deviceLimit": 2},
+            {"code": "ABC123", "deviceId": "2f63382c", "expireDate": "2025-12-31", "deviceLimit": 999}
+        ]
+    }
+} 
+
+
+
+
+
+
+
+
+
+
+
