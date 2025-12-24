@@ -73,8 +73,8 @@
         "deviceBindInstructionsColor": "#008000",
         "contactInfo": "客服微信：hkj888",
         "validCodes": [
-            {"code": "dnx123", "deviceId": "09962dc5", "expireDate": "2029-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "device_1765708021133_uld65xqq7", "expireDate": "2030-12-31", "deviceLimit": 1},
+            {"code": "dnx123", "deviceId": "3db3a803", "expireDate": "2029-12-31", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "2b96f3ee", "expireDate": "2030-12-31", "deviceLimit": 1},
             {"code": "sj123", "deviceId": "653a187d", "expireDate": "2025-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "394c2809", "expireDate": "2027-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
@@ -89,6 +89,7 @@
         ]
     }
 } 
+
 
 
 
