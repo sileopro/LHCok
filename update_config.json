@@ -78,8 +78,8 @@
             {"code": "sj123", "deviceId": "653a187d", "expireDate": "2025-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "394c2809", "expireDate": "2027-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
-            {"code": "fc123", "deviceId": "yt3t4wr5tw1y0m9a", "expireDate": "2029-12-29", "deviceLimit": 2},
-            {"code": "VIP4567", "deviceId": "", "expireDate": "2025-12-31-22", "deviceLimit": 2},
+            {"code": "dnfc123", "deviceId": "yb9qu4g01u5jbcaj", "expireDate": "2029-12-29", "deviceLimit": 2},
+            {"code": "sjfc1234", "deviceId": "", "sqmeffc786ak1tzq": "2025-12-31-22", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "", "expireDate": "2025-12-22", "deviceLimit": 2},
@@ -89,6 +89,7 @@
         ]
     }
 } 
+
 
 
 
