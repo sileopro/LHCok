@@ -27,11 +27,22 @@ class LotteryCrawler:
     
     def fetch_page(self, url, max_retries=3):
         """获取网页内容"""
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Referer': 'https://m.ssqzj.com/'
+        }
         for i in range(max_retries):
             try:
                 sess = requests.session()
-                jsPage = sess.get(url).text
-                return jsPage
+                sess.headers.update(headers)
+                response = sess.get(url, timeout=10)
+                response.encoding = 'utf-8'
+                return response.text
             except Exception as e:
                 print(f"请求失败 {url}: {e}, 重试 {i+1}/{max_retries}")
                 if i < max_retries - 1:
