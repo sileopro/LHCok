@@ -52,6 +52,26 @@ def get_current_year():
     """获取当前年份"""
     return datetime.now().year
 
+def test_connection():
+    """测试网络连接"""
+    print("测试网络连接...")
+    test_urls = [
+        'https://www.55128.cn/',
+        'https://www.baidu.com/',  # 测试基本网络连接
+    ]
+    
+    for test_url in test_urls:
+        try:
+            response = requests.get(test_url, timeout=5, verify=False)
+            if response.status_code == 200:
+                print(f"✓ 可以访问: {test_url}")
+                return True
+        except:
+            pass
+    
+    print("✗ 网络连接测试失败")
+    return False
+
 def fetch_page(url, retry=3):
     """抓取网页内容，支持重试（参考 happy8_crawler.py 的简单方式）"""
     sess = requests.Session()
@@ -394,6 +414,14 @@ def main():
     print(f"当前年份: {current_year}")
     print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
+    # 测试网络连接
+    if not test_connection():
+        print("\n警告: 网络连接测试失败，可能无法访问目标网站")
+        print("如果是在 GitHub Actions 中运行，可能需要:")
+        print("1. 配置代理服务器")
+        print("2. 使用本地运行后手动提交数据")
+        print("3. 或使用其他可访问的数据源\n")
+    
     # 检查并清除旧年份数据
     for lottery_type, output_file in OUTPUT_FILES.items():
         if os.path.exists(output_file):
@@ -427,9 +455,13 @@ def main():
         print("所有数据源连接失败，可能的原因：")
         print("1. 网络连接问题：请检查网络连接")
         print("2. 网站访问限制：www.55128.cn 可能阻止了当前IP")
-        print("3. GitHub Actions 环境：如果是在 GitHub Actions 中运行，")
-        print("   可能需要配置代理或使用其他数据源")
-        print("4. 建议：先在本地环境测试脚本是否能正常连接")
+        print("3. GitHub Actions 环境限制：")
+        print("   - GitHub Actions 服务器可能无法访问某些中国网站")
+        print("   - 建议：在本地环境运行脚本，然后手动提交数据")
+        print("   - 或者：配置代理服务器（需要设置代理环境变量）")
+        print("4. 本地测试：")
+        print("   - 在浏览器中访问: https://www.55128.cn/kjh/history_fcssq.aspx?year=2026")
+        print("   - 如果浏览器可以访问，但脚本不行，可能是反爬虫机制")
         print("="*60)
     
     return success_count == 3
