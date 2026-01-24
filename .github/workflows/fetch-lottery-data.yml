@@ -35,11 +35,16 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add fc/
-          if git diff --staged --quiet; then
-            echo "没有更改需要提交"
+          # 检查是否有文件需要提交
+          if [ -d "fc" ] && [ -n "$(ls -A fc/*.txt 2>/dev/null)" ]; then
+            git add fc/*.txt
+            if git diff --staged --quiet; then
+              echo "没有更改需要提交"
+            else
+              git commit -m "自动更新彩票数据 [$(date +'%Y-%m-%d %H:%M:%S')]"
+              git push
+            fi
           else
-            git commit -m "自动更新彩票数据 [$(date +'%Y-%m-%d %H:%M:%S')]"
-            git push
+            echo "没有数据文件需要提交"
           fi
 
