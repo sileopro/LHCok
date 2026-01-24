@@ -43,6 +43,20 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 }
 
+# 备用数据源请求头（需要更完整的请求头来避免 403）
+BACKUP_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Referer': 'https://m.ssqzj.com/',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'same-origin'
+}
+
 def get_current_year():
     """获取当前年份"""
     return datetime.now().year
@@ -50,7 +64,18 @@ def get_current_year():
 def fetch_page(url, retry=3, use_backup=False):
     """抓取网页内容，支持重试（参考 happy8_crawler.py 的简单方式）"""
     sess = requests.Session()
-    sess.headers.update(HEADERS)
+    
+    # 根据是否使用备用数据源选择不同的请求头
+    if use_backup:
+        sess.headers.update(BACKUP_HEADERS)
+        # 先访问主页获取 cookies（避免 403）
+        try:
+            sess.get('https://m.ssqzj.com/', timeout=10, verify=False)
+            time.sleep(1)
+        except:
+            pass
+    else:
+        sess.headers.update(HEADERS)
     
     for attempt in range(retry):
         try:
@@ -65,6 +90,10 @@ def fetch_page(url, retry=3, use_backup=False):
             
             if response.status_code == 200:
                 return response.text
+            elif response.status_code == 403:
+                print(f"403 禁止访问 (尝试 {attempt + 1}/{retry}) {url}")
+                if attempt < retry - 1:
+                    time.sleep(3)
             else:
                 print(f"HTTP错误 {response.status_code}: {url}")
         except requests.exceptions.SSLError as e:
@@ -411,6 +440,19 @@ def main():
     
     print(f"完成: 成功抓取 {success_count}/3 个彩票数据")
     print(f"结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 如果全部失败，提供诊断信息
+    if success_count == 0:
+        print("\n" + "="*60)
+        print("诊断信息：")
+        print("所有数据源连接失败，可能的原因：")
+        print("1. 网络连接问题：请检查网络连接")
+        print("2. 网站访问限制：www.55128.cn 可能阻止了当前IP")
+        print("3. GitHub Actions 环境：如果是在 GitHub Actions 中运行，")
+        print("   可能需要配置代理或使用其他数据源")
+        print("4. 建议：先在本地环境测试脚本是否能正常连接")
+        print("="*60)
+    
     return success_count == 3
 
 if __name__ == '__main__':
