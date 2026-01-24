@@ -1,468 +1,346 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-彩票数据抓取脚本
-从 datachart.500.com 抓取双色球、3D、快乐8的历史开奖数据
-参考 lotteryhistorygrabber.py 的实现
-"""
-
 import requests
 from bs4 import BeautifulSoup
-import os
 import re
-from datetime import datetime
 import time
+import os
+from datetime import datetime
+from collections import OrderedDict
 
-# 数据源URL（参考 lotteryhistorygrabber.py）
-# 使用 history.php 接口获取数据
-URLS = {
-    'ssq': 'http://datachart.500.com/ssq/history/newinc/history.php',
-    'sd': 'http://datachart.500.com/sd/history/newinc/history.php',
-    'kl8': 'http://datachart.500.com/kl8/history/newinc/history.php'
-}
-
-# 输出文件路径
-OUTPUT_DIR = 'fc'
-OUTPUT_FILES = {
-    'ssq': os.path.join(OUTPUT_DIR, 'ssq.txt'),
-    'sd': os.path.join(OUTPUT_DIR, 'sd.txt'),
-    'kl8': os.path.join(OUTPUT_DIR, 'kl8.txt')
-}
-
-# 请求头（参考 lotteryhistorygrabber.py）
-HEADERS = {
-    'Host': 'datachart.500.com',
-    'Connection': 'keep-alive',
-    'Accept': '*/*',
-    'X-Requested-With': 'XMLHttpRequest',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Referer': 'http://datachart.500.com/ssq/history/history.shtml',
-    'Accept-Encoding': 'gzip, deflate',
-    'Accept-Language': 'zh-CN,zh;q=0.9'
-}
-
-
-def get_current_year():
-    """获取当前年份"""
-    return datetime.now().year
-
-
-def fetch_page(url, params=None, retry=3):
-    """抓取网页内容（参考 lotteryhistorygrabber.py 的 getHtml）"""
-    for attempt in range(retry):
-        try:
-            response = requests.get(url, headers=HEADERS, params=params, timeout=30)
-            response.encoding = 'utf-8'
-            
-            if response.status_code == 200:
-                return response.text
-            else:
-                print(f"HTTP错误 {response.status_code} (尝试 {attempt + 1}/{retry})")
-        except requests.exceptions.RequestException as e:
-            print(f"请求失败 (尝试 {attempt + 1}/{retry}): {e}")
+class LotteryCrawler:
+    def __init__(self):
+        self.base_urls = {
+            'ssq': 'https://m.ssqzj.com/kaijiang/ssq/',
+            '3d': 'https://m.ssqzj.com/kaijiang/3d/',
+            'kl8': 'https://m.ssqzj.com/kaijiang/fckl8/'
+        }
+        self.output_dir = 'fc'
+        self.output_files = {
+            'ssq': 'ssq.txt',
+            '3d': 'sd.txt',
+            'kl8': 'kl8.txt'
+        }
         
-        if attempt < retry - 1:
-            time.sleep(2)
+    def ensure_output_dir(self):
+        """确保输出目录存在"""
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
     
-    return None
-
-
-def parse_ssq(html):
-    """解析双色球数据（参考 lotteryhistorygrabber.py 的 Parser500ssq）
-    从 tbody#tdata 中提取数据
-    """
-    records = []
-    try:
+    def fetch_page(self, url, max_retries=3):
+        """获取网页内容"""
+        for i in range(max_retries):
+            try:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                response = requests.get(url, headers=headers, timeout=10)
+                response.encoding = 'utf-8'
+                return response.text
+            except Exception as e:
+                print(f"请求失败 {url}: {e}, 重试 {i+1}/{max_retries}")
+                if i < max_retries - 1:
+                    time.sleep(2)
+                else:
+                    return None
+    
+    def parse_ssq(self, html):
+        """解析双色球数据"""
         soup = BeautifulSoup(html, 'html.parser')
+        data = []
         
-        # 查找 id="tdata" 的 tbody（参考 lotteryhistorygrabber.py）
-        tbody = soup.find('tbody', id='tdata')
-        if not tbody:
-            tbody = soup.find('tbody')
-        
-        if not tbody:
-            print("双色球: 未找到数据表格")
-            return records
-        
-        rows = tbody.find_all('tr')
-        for row in rows:
-            cells = row.find_all('td')
-            if len(cells) < 8:  # 至少需要：期号 + 7个号码
-                continue
-            
-            # 第一列是期号
-            period_text = cells[0].get_text(strip=True)
-            period_match = re.search(r'(\d{7}|\d{3})', period_text)
+        # 查找最新开奖结果
+        results = soup.find_all("div", class_="kb_num kj_num public_num")
+        for result in results:
+            period_text = result.get_text(strip=True)
+            period_match = re.search(r"第(\d+)期", period_text)
             if not period_match:
                 continue
             
-            period_full = period_match.group(1)
-            if len(period_full) == 7:
-                year = period_full[:4]
-                period = period_full[4:]
-            else:
-                year = str(get_current_year())
-                period = period_full.zfill(3)
+            period_num = period_match.group(1)
             
-            # 提取号码：红球在第2-7列，蓝球在第8列
-            numbers = []
-            for i in range(1, 8):
-                if i < len(cells):
-                    num_text = cells[i].get_text(strip=True)
-                    try:
-                        num = int(num_text)
-                        numbers.append(num)
-                    except ValueError:
-                        continue
+            # 提取红球和蓝球
+            red_balls = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="qiu_red")]
+            blue_ball = None
+            blue_elem = result.find("span", class_="qiu_blue")
+            if blue_elem:
+                blue_ball = blue_elem.get_text(strip=True).zfill(2)
             
-            # 验证：6个红球(1-33) + 1个蓝球(1-16)
-            if len(numbers) == 7:
-                reds = numbers[:6]
-                blue = numbers[6]
-                if all(1 <= r <= 33 for r in reds) and 1 <= blue <= 16:
-                    records.append({
-                        'year': year,
-                        'period': period,
-                        'numbers': sorted(reds) + [blue]
-                    })
+            if red_balls and blue_ball and len(red_balls) == 6:
+                data.append({
+                    'period': period_num,
+                    'red': red_balls,
+                    'blue': blue_ball
+                })
         
-        print(f"双色球: 解析到 {len(records)} 条记录")
-        return records
-        
-    except Exception as e:
-        print(f"双色球解析错误: {e}")
-        return records
-
-
-def parse_sd(html):
-    """解析3D数据"""
-    records = []
-    try:
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        tbody = soup.find('tbody', id='tdata')
-        if not tbody:
-            tbody = soup.find('tbody')
-        
-        if not tbody:
-            print("3D: 未找到数据表格")
-            return records
-        
-        rows = tbody.find_all('tr')
-        for row in rows:
-            cells = row.find_all('td')
-            if len(cells) < 4:  # 至少需要：期号 + 3个号码
-                continue
-            
-            # 第一列是期号
-            period_text = cells[0].get_text(strip=True)
-            period_match = re.search(r'(\d{7}|\d{3})', period_text)
+        # 查找历史开奖结果
+        results = soup.find_all("div", class_="kb_num kj_num kj_erj")
+        for index, result in enumerate(results):
+            period_text = result.get_text(strip=True)
+            period_match = re.search(r"第(\d+)期", period_text)
             if not period_match:
                 continue
             
-            period_full = period_match.group(1)
-            if len(period_full) == 7:
-                year = period_full[:4]
-                period = period_full[4:]
+            period_num = period_match.group(1)
+            
+            # 提取号码
+            if index == 0:
+                red_balls = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="qiu_red")]
+                blue_elem = result.find("span", class_="qiu_blue")
             else:
-                year = str(get_current_year())
-                period = period_full.zfill(3)
+                red_balls = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="red_white")]
+                blue_elem = result.find("span", class_="blue_white")
             
-            # 提取号码：3个数字(0-9)
-            numbers = []
-            for i in range(1, 4):
-                if i < len(cells):
-                    num_text = cells[i].get_text(strip=True)
-                    try:
-                        num = int(num_text)
-                        if 0 <= num <= 9:
-                            numbers.append(num)
-                    except ValueError:
-                        continue
+            blue_ball = None
+            if blue_elem:
+                blue_ball = blue_elem.get_text(strip=True).zfill(2)
             
-            # 验证：3个数字(0-9)
+            if red_balls and blue_ball and len(red_balls) == 6:
+                data.append({
+                    'period': period_num,
+                    'red': red_balls,
+                    'blue': blue_ball
+                })
+        
+        return data
+    
+    def parse_3d(self, html):
+        """解析3D数据"""
+        soup = BeautifulSoup(html, 'html.parser')
+        data = []
+        
+        # 查找最新开奖结果
+        results = soup.find_all("div", class_="kb_num kj_num public_num")
+        for result in results:
+            period_text = result.get_text(strip=True)
+            period_match = re.search(r"第(\d+)期", period_text)
+            if not period_match:
+                continue
+            
+            period_num = period_match.group(1)
+            
+            # 提取号码
+            numbers = [num.get_text(strip=True) for num in result.find_all("span", class_="qiu_red")]
             if len(numbers) == 3:
-                records.append({
-                    'year': year,
-                    'period': period,
+                data.append({
+                    'period': period_num,
                     'numbers': numbers
                 })
         
-        print(f"3D: 解析到 {len(records)} 条记录")
-        return records
-        
-    except Exception as e:
-        print(f"3D解析错误: {e}")
-        return records
-
-
-def parse_kl8(html):
-    """解析快乐8数据"""
-    records = []
-    try:
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        tbody = soup.find('tbody', id='tdata')
-        if not tbody:
-            tbody = soup.find('tbody')
-        
-        if not tbody:
-            print("快乐8: 未找到数据表格")
-            return records
-        
-        rows = tbody.find_all('tr')
-        for row in rows:
-            cells = row.find_all('td')
-            if len(cells) < 21:  # 至少需要：期号 + 20个号码
-                continue
-            
-            # 第一列是期号
-            period_text = cells[0].get_text(strip=True)
-            period_match = re.search(r'(\d{7}|\d{3})', period_text)
+        # 查找历史开奖结果
+        results = soup.find_all("div", class_="kb_num kj_num kj_erj")
+        for index, result in enumerate(results):
+            period_text = result.get_text(strip=True)
+            period_match = re.search(r"第(\d+)期", period_text)
             if not period_match:
                 continue
             
-            period_full = period_match.group(1)
-            if len(period_full) == 7:
-                year = period_full[:4]
-                period = period_full[4:]
+            period_num = period_match.group(1)
+            
+            # 提取号码
+            if index == 0:
+                numbers = [num.get_text(strip=True) for num in result.find_all("span", class_="qiu_red")]
             else:
-                year = str(get_current_year())
-                period = period_full.zfill(3)
+                numbers = [num.get_text(strip=True) for num in result.find_all("span", class_="red_white")]
             
-            # 提取号码：20个数字(1-80)
-            numbers = []
-            for i in range(1, 21):
-                if i < len(cells):
-                    num_text = cells[i].get_text(strip=True)
-                    try:
-                        num = int(num_text)
-                        if 1 <= num <= 80:
-                            numbers.append(num)
-                    except ValueError:
-                        continue
-            
-            # 验证：20个不重复的数字(1-80)
-            if len(numbers) == 20 and len(set(numbers)) == 20:
-                records.append({
-                    'year': year,
-                    'period': period,
-                    'numbers': sorted(numbers)
+            if len(numbers) == 3:
+                data.append({
+                    'period': period_num,
+                    'numbers': numbers
                 })
         
-        print(f"快乐8: 解析到 {len(records)} 条记录")
-        return records
+        return data
+    
+    def parse_kl8(self, html):
+        """解析快乐8数据"""
+        soup = BeautifulSoup(html, 'html.parser')
+        data = []
         
-    except Exception as e:
-        print(f"快乐8解析错误: {e}")
-        return records
-
-
-def format_ssq_record(record):
-    """格式化双色球记录
-    格式: 第xxx期: 01 02 03 04 05 06 + 07
-    """
-    period = record['period']
-    numbers = record['numbers']
-    reds = ' '.join(str(n).zfill(2) for n in numbers[:6])
-    blue = str(numbers[6]).zfill(2)
-    return f"第{period}期: {reds} + {blue}"
-
-
-def format_sd_record(record):
-    """格式化3D记录
-    格式: 第xxx期: 1 2 3
-    """
-    period = record['period']
-    numbers = record['numbers']
-    nums_str = ' '.join(str(n) for n in numbers)
-    return f"第{period}期: {nums_str}"
-
-
-def format_kl8_record(record):
-    """格式化快乐8记录
-    格式: 第xxx期: 01 02 03 04 05 06 07 08 09 10
-                  11 12 13 14 15 16 17 18 19 20
-    """
-    period = record['period']
-    numbers = record['numbers']
-    first_row = ' '.join(str(n).zfill(2) for n in numbers[:10])
-    second_row = ' '.join(str(n).zfill(2) for n in numbers[10:])
-    return f"第{period}期: {first_row}\n          {second_row}"
-
-
-def get_file_year(filepath):
-    """从文件中获取已保存数据的年份"""
-    if not os.path.exists(filepath):
-        return None
+        # 查找最新开奖结果
+        results = soup.find_all("div", class_="kb_num kj_num public_num")
+        for result in results:
+            period_text = result.get_text(strip=True)
+            period_match = re.search(r"第(\d+)期", period_text)
+            if not period_match:
+                continue
+            
+            period_num = period_match.group(1)
+            
+            # 提取号码
+            numbers = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="qiu_red")]
+            if len(numbers) == 20:
+                data.append({
+                    'period': period_num,
+                    'numbers': numbers
+                })
+        
+        # 查找历史开奖结果
+        results = soup.find_all("div", class_="kb_num kj_num kj_erj")
+        for index, result in enumerate(results):
+            period_text = result.get_text(strip=True)
+            period_match = re.search(r"第(\d+)期", period_text)
+            if not period_match:
+                continue
+            
+            period_num = period_match.group(1)
+            
+            # 提取号码
+            if index == 0:
+                numbers = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="qiu_red")]
+            else:
+                numbers = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="red_white")]
+            
+            if len(numbers) == 20:
+                data.append({
+                    'period': period_num,
+                    'numbers': numbers
+                })
+        
+        return data
     
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            first_line = f.readline().strip()
-            if first_line:
-                match = re.search(r'#\s*(\d{4})', first_line)
-                if match:
-                    return match.group(1)
-    except:
-        pass
+    def crawl_all_pages(self, lottery_type):
+        """爬取所有页面的数据"""
+        base_url = self.base_urls[lottery_type]
+        all_data = []
+        page = 1
+        max_pages = 50  # 设置最大页数，防止无限循环
+        seen_periods = set()  # 用于去重
+        
+        print(f"开始爬取 {lottery_type} 数据...")
+        
+        while page <= max_pages:
+            try:
+                if page == 1:
+                    url = base_url
+                else:
+                    url = f"{base_url}p{page}/"
+                
+                print(f"正在爬取第 {page} 页: {url}")
+                html = self.fetch_page(url)
+                
+                if not html:
+                    print(f"第 {page} 页获取失败，停止爬取")
+                    break
+                
+                # 根据彩种类型解析数据
+                if lottery_type == 'ssq':
+                    page_data = self.parse_ssq(html)
+                elif lottery_type == '3d':
+                    page_data = self.parse_3d(html)
+                elif lottery_type == 'kl8':
+                    page_data = self.parse_kl8(html)
+                else:
+                    break
+                
+                # 去重并添加到总数据
+                for item in page_data:
+                    period = item['period']
+                    if period not in seen_periods:
+                        seen_periods.add(period)
+                        all_data.append(item)
+                
+                if not page_data:
+                    print(f"第 {page} 页没有数据，停止爬取")
+                    break
+                
+                print(f"第 {page} 页获取到 {len(page_data)} 条数据，累计 {len(all_data)} 条")
+                
+                page += 1
+                time.sleep(1)  # 防止请求过快
+                
+            except Exception as e:
+                print(f"爬取第 {page} 页时出错: {e}")
+                break
+        
+        print(f"{lottery_type} 爬取完成，共获取 {len(all_data)} 条数据")
+        return all_data
     
-    return None
-
-
-def save_records(lottery_type, records):
-    """保存所有记录到文件
+    def extract_year_from_period(self, period):
+        """从期号中提取年份"""
+        # 期号格式可能是：2024001 或 001
+        # 如果是6位或7位数字，前4位是年份
+        if len(period) >= 6:
+            year_str = period[:4]
+            if year_str.isdigit():
+                return int(year_str)
+        # 如果期号较短，尝试从当前日期推断
+        current_year = datetime.now().year
+        return current_year
     
-    规则：
-    1. 保存当前年份的所有期数
-    2. 如果最新一期是下一年的，清除上一年的数据，只保存新年的数据
-    """
-    if not records:
-        return False
+    def format_ssq_data(self, data):
+        """格式化双色球数据"""
+        red_str = ' '.join(data['red'])
+        return f"第{data['period']}期: {red_str} + {data['blue']}"
     
-    # 确保目录存在
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    def format_3d_data(self, data):
+        """格式化3D数据"""
+        numbers_str = ' '.join(data['numbers'])
+        return f"第{data['period']}期: {numbers_str}"
     
-    output_file = OUTPUT_FILES[lottery_type]
-    lottery_names = {'ssq': '双色球', 'sd': '3D', 'kl8': '快乐8'}
+    def format_kl8_data(self, data):
+        """格式化快乐8数据"""
+        numbers = data['numbers']
+        line1 = ' '.join(numbers[:10])
+        line2 = ' '.join(numbers[10:])
+        return f"第{data['period']}期: {line1}\n        {line2}"
     
-    # 找出最新一期的年份
-    latest_year = None
-    for record in records:
-        if latest_year is None or int(record['year']) > int(latest_year):
-            latest_year = record['year']
-    
-    if not latest_year:
-        return False
-    
-    # 检查文件中已保存的年份
-    existing_year = get_file_year(output_file)
-    
-    # 如果年份变了，只保存新年份的数据
-    if existing_year and existing_year != latest_year:
-        print(f"{lottery_type}: 年份变更 {existing_year} -> {latest_year}，清空旧数据")
-    
-    # 只保存最新年份的记录
-    year_records = [r for r in records if r['year'] == latest_year]
-    
-    # 按期号排序
-    year_records.sort(key=lambda x: int(x['period']))
-    
-    # 去重
-    seen_periods = set()
-    unique_records = []
-    for record in year_records:
-        if record['period'] not in seen_periods:
-            seen_periods.add(record['period'])
-            unique_records.append(record)
-    
-    # 格式化记录
-    if lottery_type == 'ssq':
-        format_func = format_ssq_record
-    elif lottery_type == 'sd':
-        format_func = format_sd_record
-    elif lottery_type == 'kl8':
-        format_func = format_kl8_record
-    else:
-        return False
-    
-    # 写入文件
-    try:
+    def save_to_file(self, lottery_type, all_data):
+        """保存数据到文件，按年份倒序排列，年份之间空2行"""
+        if not all_data:
+            print(f"{lottery_type} 没有数据需要保存")
+            return
+        
+        # 按年份分组
+        year_data = {}
+        for item in all_data:
+            year = self.extract_year_from_period(item['period'])
+            if year not in year_data:
+                year_data[year] = []
+            year_data[year].append(item)
+        
+        # 按年份倒序排列
+        sorted_years = sorted(year_data.keys(), reverse=True)
+        
+        # 格式化数据
+        output_lines = []
+        for year in sorted_years:
+            # 按期号排序（倒序，最新的在前）
+            year_items = sorted(year_data[year], key=lambda x: int(x['period']), reverse=True)
+            
+            for item in year_items:
+                if lottery_type == 'ssq':
+                    output_lines.append(self.format_ssq_data(item))
+                elif lottery_type == '3d':
+                    output_lines.append(self.format_3d_data(item))
+                elif lottery_type == 'kl8':
+                    output_lines.append(self.format_kl8_data(item))
+            
+            # 年份之间空2行（最后一个年份后不添加空行）
+            if year != sorted_years[-1]:
+                output_lines.append('')
+                output_lines.append('')
+        
+        # 写入文件
+        output_file = os.path.join(self.output_dir, self.output_files[lottery_type])
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(f"# {latest_year}年{lottery_names[lottery_type]}开奖记录\n")
-            for record in unique_records:
-                f.write(format_func(record) + '\n')
+            f.write('\n'.join(output_lines))
         
-        print(f"{lottery_type}: 保存 {len(unique_records)} 条 {latest_year}年 记录")
-        return True
+        print(f"{lottery_type} 数据已保存到 {output_file}，共 {len(all_data)} 条记录")
+    
+    def run(self):
+        """运行爬虫"""
+        self.ensure_output_dir()
         
-    except Exception as e:
-        print(f"{lottery_type}: 保存失败 - {e}")
-        return False
-
-
-def fetch_and_save(lottery_type):
-    """抓取并保存数据"""
-    url = URLS[lottery_type]
-    lottery_names = {'ssq': '双色球', 'sd': '3D', 'kl8': '快乐8'}
-    
-    # 设置查询参数（获取当前年份的所有数据）
-    current_year = get_current_year()
-    # start=1 表示从第1期开始，end=年份999 表示到该年份最后一期
-    params = {
-        'start': '1',
-        'end': f'{current_year}999'
-    }
-    
-    # 更新 Referer
-    referers = {
-        'ssq': 'http://datachart.500.com/ssq/history/history.shtml',
-        'sd': 'http://datachart.500.com/sd/history/history.shtml',
-        'kl8': 'http://datachart.500.com/kl8/history/history.shtml'
-    }
-    HEADERS['Referer'] = referers.get(lottery_type, HEADERS['Referer'])
-    
-    print(f"\n抓取 {lottery_names[lottery_type]}: {url}")
-    print(f"参数: start={params['start']}, end={params['end']}")
-    
-    html = fetch_page(url, params=params)
-    
-    if not html:
-        print(f"{lottery_type}: 抓取失败")
-        return False
-    
-    print(f"{lottery_type}: 获取到HTML，长度 {len(html)}")
-    
-    # 解析数据
-    if lottery_type == 'ssq':
-        records = parse_ssq(html)
-    elif lottery_type == 'sd':
-        records = parse_sd(html)
-    elif lottery_type == 'kl8':
-        records = parse_kl8(html)
-    else:
-        records = []
-    
-    if not records:
-        print(f"{lottery_type}: 解析失败，未获取到有效数据")
-        return False
-    
-    # 保存数据
-    return save_records(lottery_type, records)
-
-
-def main():
-    """主函数"""
-    print("=" * 50)
-    print(f"彩票数据抓取 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("数据源: datachart.500.com")
-    print("=" * 50)
-    
-    success_count = 0
-    lottery_types = ['ssq', 'sd', 'kl8']
-    
-    for lottery_type in lottery_types:
-        try:
-            if fetch_and_save(lottery_type):
-                success_count += 1
-        except Exception as e:
-            print(f"{lottery_type}: 处理异常 - {e}")
-            import traceback
-            traceback.print_exc()
-    
-    print("\n" + "=" * 50)
-    print(f"完成: 成功处理 {success_count}/{len(lottery_types)} 个彩票数据")
-    print("=" * 50)
-    
-    # 列出生成的文件
-    if os.path.exists(OUTPUT_DIR):
-        print(f"\n生成的文件:")
-        for f in os.listdir(OUTPUT_DIR):
-            filepath = os.path.join(OUTPUT_DIR, f)
-            if os.path.isfile(filepath):
-                size = os.path.getsize(filepath)
-                print(f"  {f}: {size} bytes")
+        # 爬取三个彩种
+        for lottery_type in ['ssq', '3d', 'kl8']:
+            try:
+                all_data = self.crawl_all_pages(lottery_type)
+                self.save_to_file(lottery_type, all_data)
+            except Exception as e:
+                print(f"处理 {lottery_type} 时出错: {e}")
+                continue
+        
+        print("所有彩种数据爬取完成！")
 
 
 if __name__ == '__main__':
-    main()
+    crawler = LotteryCrawler()
+    crawler.run()
