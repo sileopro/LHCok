@@ -29,12 +29,9 @@ class LotteryCrawler:
         """获取网页内容"""
         for i in range(max_retries):
             try:
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-                response = requests.get(url, headers=headers, timeout=10)
-                response.encoding = 'utf-8'
-                return response.text
+                sess = requests.session()
+                jsPage = sess.get(url).text
+                return jsPage
             except Exception as e:
                 print(f"请求失败 {url}: {e}, 重试 {i+1}/{max_retries}")
                 if i < max_retries - 1:
@@ -44,7 +41,7 @@ class LotteryCrawler:
     
     def parse_ssq(self, html):
         """解析双色球数据"""
-        soup = BeautifulSoup(html, 'html.parser')
+        soup = BeautifulSoup(html, "html.parser")
         data = []
         
         # 查找最新开奖结果
@@ -104,7 +101,7 @@ class LotteryCrawler:
     
     def parse_3d(self, html):
         """解析3D数据"""
-        soup = BeautifulSoup(html, 'html.parser')
+        soup = BeautifulSoup(html, "html.parser")
         data = []
         
         # 查找最新开奖结果
@@ -151,7 +148,7 @@ class LotteryCrawler:
     
     def parse_kl8(self, html):
         """解析快乐8数据"""
-        soup = BeautifulSoup(html, 'html.parser')
+        soup = BeautifulSoup(html, "html.parser")
         data = []
         
         # 查找最新开奖结果
@@ -165,8 +162,10 @@ class LotteryCrawler:
             period_num = period_match.group(1)
             
             # 提取号码
-            numbers = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="qiu_red")]
+            numbers = [num.get_text(strip=True) for num in result.find_all("span", class_="qiu_red")]
             if len(numbers) == 20:
+                # 转换为两位数格式
+                numbers = [num.zfill(2) for num in numbers]
                 data.append({
                     'period': period_num,
                     'numbers': numbers
@@ -184,11 +183,13 @@ class LotteryCrawler:
             
             # 提取号码
             if index == 0:
-                numbers = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="qiu_red")]
+                numbers = [num.get_text(strip=True) for num in result.find_all("span", class_="qiu_red")]
             else:
-                numbers = [num.get_text(strip=True).zfill(2) for num in result.find_all("span", class_="red_white")]
+                numbers = [num.get_text(strip=True) for num in result.find_all("span", class_="red_white")]
             
             if len(numbers) == 20:
+                # 转换为两位数格式
+                numbers = [num.zfill(2) for num in numbers]
                 data.append({
                     'period': period_num,
                     'numbers': numbers
@@ -220,6 +221,11 @@ class LotteryCrawler:
                     print(f"第 {page} 页获取失败，停止爬取")
                     break
                 
+                # 调试：检查HTML内容
+                if page == 1 and len(html) < 1000:
+                    print(f"警告：获取到的HTML内容过短，长度: {len(html)}")
+                    print(f"HTML前500字符: {html[:500]}")
+                
                 # 根据彩种类型解析数据
                 if lottery_type == 'ssq':
                     page_data = self.parse_ssq(html)
@@ -239,6 +245,13 @@ class LotteryCrawler:
                 
                 if not page_data:
                     print(f"第 {page} 页没有数据，停止爬取")
+                    if page == 1:
+                        # 第一页没有数据，可能是解析问题，输出一些调试信息
+                        soup = BeautifulSoup(html, "html.parser")
+                        all_divs = soup.find_all("div", class_=lambda x: x and ("kb_num" in x or "kj_num" in x))
+                        print(f"调试：找到 {len(all_divs)} 个包含 kb_num 或 kj_num 的div")
+                        if all_divs:
+                            print(f"第一个div的class: {all_divs[0].get('class')}")
                     break
                 
                 print(f"第 {page} 页获取到 {len(page_data)} 条数据，累计 {len(all_data)} 条")
@@ -248,6 +261,8 @@ class LotteryCrawler:
                 
             except Exception as e:
                 print(f"爬取第 {page} 页时出错: {e}")
+                import traceback
+                traceback.print_exc()
                 break
         
         print(f"{lottery_type} 爬取完成，共获取 {len(all_data)} 条数据")
