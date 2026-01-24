@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 彩票数据抓取脚本
-参考 ssqiu.js, sand.js, kuaileba.js 的抓取逻辑
-从 www.cjcp.cn 抓取双色球、3D、快乐8的最新开奖数据
+从 datachart.500.com 抓取双色球、3D、快乐8的历史开奖数据
+参考 lotteryhistorygrabber.py 的实现
 """
 
 import requests
@@ -13,11 +13,12 @@ import re
 from datetime import datetime
 import time
 
-# 数据源URL（与JS文件保持一致）
+# 数据源URL（参考 lotteryhistorygrabber.py）
+# 使用 history.php 接口获取数据
 URLS = {
-    'ssq': 'https://www.cjcp.cn/kaijiang/ssq/',      # 双色球
-    'sd': 'https://www.cjcp.cn/kaijiang/3d/',        # 3D
-    'kl8': 'https://www.cjcp.cn/kaijiang/fckl8/'     # 快乐8
+    'ssq': 'http://datachart.500.com/ssq/history/newinc/history.php',
+    'sd': 'http://datachart.500.com/sd/history/newinc/history.php',
+    'kl8': 'http://datachart.500.com/kl8/history/newinc/history.php'
 }
 
 # 输出文件路径
@@ -28,14 +29,16 @@ OUTPUT_FILES = {
     'kl8': os.path.join(OUTPUT_DIR, 'kl8.txt')
 }
 
-# 请求头
+# 请求头（参考 lotteryhistorygrabber.py）
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'zh-CN,zh;q=0.9',
-    'Accept-Encoding': 'gzip, deflate',
+    'Host': 'datachart.500.com',
     'Connection': 'keep-alive',
-    'Cache-Control': 'no-cache'
+    'Accept': '*/*',
+    'X-Requested-With': 'XMLHttpRequest',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Referer': 'http://datachart.500.com/ssq/history/history.shtml',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'zh-CN,zh;q=0.9'
 }
 
 
@@ -44,14 +47,11 @@ def get_current_year():
     return datetime.now().year
 
 
-def fetch_page(url, retry=3):
-    """抓取网页内容"""
-    # 添加时间戳参数，避免缓存（参考JS文件）
-    url_with_ts = url + ('&' if '?' in url else '?') + '_t=' + str(int(time.time() * 1000))
-    
+def fetch_page(url, params=None, retry=3):
+    """抓取网页内容（参考 lotteryhistorygrabber.py 的 getHtml）"""
     for attempt in range(retry):
         try:
-            response = requests.get(url_with_ts, headers=HEADERS, timeout=30)
+            response = requests.get(url, headers=HEADERS, params=params, timeout=30)
             response.encoding = 'utf-8'
             
             if response.status_code == 200:
@@ -67,461 +67,195 @@ def fetch_page(url, retry=3):
     return None
 
 
-def is_valid_ssq_numbers(numbers):
-    """验证双色球号码是否有效（参考 ssqiu.js 的 isValidSSQNumbers）
-    6个红球(1-33) + 1个蓝球(1-16)
-    """
-    if not isinstance(numbers, list) or len(numbers) != 7:
-        return False
-    # 前6个是红球(1-33)
-    for i in range(6):
-        if not isinstance(numbers[i], int) or numbers[i] < 1 or numbers[i] > 33:
-            return False
-    # 第7个是蓝球(1-16)
-    if not isinstance(numbers[6], int) or numbers[6] < 1 or numbers[6] > 16:
-        return False
-    return True
-
-
-def is_valid_3d_numbers(numbers):
-    """验证3D号码是否有效（参考 sand.js 的 isValid3DNumbers）
-    3个数字(0-9)
-    """
-    if not isinstance(numbers, list) or len(numbers) != 3:
-        return False
-    for n in numbers:
-        if not isinstance(n, int) or n < 0 or n > 9:
-            return False
-    return True
-
-
-def is_valid_kl8_numbers(numbers):
-    """验证快乐8号码是否有效（参考 kuaileba.js 的 validateNumbers）
-    20个不重复的数字(1-80)
-    """
-    if not isinstance(numbers, list) or len(numbers) != 20:
-        return False
-    for n in numbers:
-        if not isinstance(n, int) or n < 1 or n > 80:
-            return False
-    # 检查是否有重复
-    if len(set(numbers)) != 20:
-        return False
-    return True
-
-
-def is_invalid_ball_text(text):
-    """检查是否是无效的号码球文本（参考 kuaileba.js）
-    开奖时可能显示 "-"、"—"、"－"、"−" 等占位符
-    """
-    if not text:
-        return True
-    text = text.strip()
-    if not text:
-        return True
-    # 检查是否是各种横线符号
-    invalid_chars = ['-', '—', '－', '−', '–', '―']
-    if text in invalid_chars:
-        return True
-    # 检查是否全是横线符号
-    if re.match(r'^[\s\-—－−–―]+$', text):
-        return True
-    return False
-
-
 def parse_ssq(html):
-    """解析双色球数据（参考 ssqiu.js 的 parseLatestSSQFromHtml）"""
+    """解析双色球数据（参考 lotteryhistorygrabber.py 的 Parser500ssq）
+    从 tbody#tdata 中提取数据
+    """
+    records = []
     try:
         soup = BeautifulSoup(html, 'html.parser')
         
-        # 查找候选容器（参考JS的candidateSelectors）
-        candidate_selectors = [
-            '.kj_num',
-            '.kj_num_box',
-            '.kj_num_list',
-            'div[class*="kj"]',
-            'div[class*="num"]'
-        ]
+        # 查找 id="tdata" 的 tbody（参考 lotteryhistorygrabber.py）
+        tbody = soup.find('tbody', id='tdata')
+        if not tbody:
+            tbody = soup.find('tbody')
         
-        container = None
-        for selector in candidate_selectors:
-            nodes = soup.select(selector)
-            for node in nodes:
-                text = node.get_text(strip=True)
-                if not text:
-                    continue
-                # 检查是否包含期号信息
-                if '期' in text or re.search(r'\d{4}\d{3}', text) or re.search(r'\d{1,4}期', text):
-                    # 查找红球和蓝球
-                    red_balls = node.select('span.qiu_red, span[class*="red"], span[class*="ball_red"], i.red, em.red')
-                    blue_balls = node.select('span.qiu_blue, span[class*="blue"], span[class*="ball_blue"], i.blue, em.blue')
-                    
-                    reds = []
-                    for ball in red_balls:
-                        t = ball.get_text(strip=True)
-                        if is_invalid_ball_text(t):
-                            continue
-                        try:
-                            num = int(t)
-                            if 1 <= num <= 33:
-                                reds.append(num)
-                        except ValueError:
-                            continue
-                    
-                    blues = []
-                    for ball in blue_balls:
-                        t = ball.get_text(strip=True)
-                        if is_invalid_ball_text(t):
-                            continue
-                        try:
-                            num = int(t)
-                            if 1 <= num <= 16:
-                                blues.append(num)
-                        except ValueError:
-                            continue
-                    
-                    if len(reds) >= 6 and len(blues) >= 1:
-                        container = node
-                        break
-            if container:
-                break
+        if not tbody:
+            print("双色球: 未找到数据表格")
+            return records
         
-        # 提取期号
-        text_for_period = container.get_text() if container else html
-        text_for_period = re.sub(r'\s+', ' ', text_for_period)
-        
-        year = None
-        period = None
-        
-        # 优先匹配 2026009 格式
-        match_full = re.search(r'(20\d{2})(\d{3})', text_for_period)
-        if match_full:
-            year = match_full.group(1)
-            period = match_full.group(2)
-        else:
-            # 尝试匹配 "第xxx期" 格式
-            match_period = re.search(r'第\s*(\d{1,4})\s*期', text_for_period)
-            if match_period:
-                period = match_period.group(1)
-            match_year = re.search(r'(20\d{2})', text_for_period)
-            year = match_year.group(1) if match_year else str(get_current_year())
-        
-        if not year or not period:
-            print("双色球: 未找到期号")
-            return None
-        
-        # 标准化期号为3位
-        period = period.zfill(3)
-        if period == '000' or int(period) == 0:
-            print("双色球: 期号无效")
-            return None
-        
-        # 提取号码
-        numbers = []
-        if container:
-            red_balls = container.select('span.qiu_red, span[class*="red"], span[class*="ball_red"], i.red, em.red')
-            blue_balls = container.select('span.qiu_blue, span[class*="blue"], span[class*="ball_blue"], i.blue, em.blue')
+        rows = tbody.find_all('tr')
+        for row in rows:
+            cells = row.find_all('td')
+            if len(cells) < 8:  # 至少需要：期号 + 7个号码
+                continue
             
-            reds = []
-            for ball in red_balls:
-                t = ball.get_text(strip=True)
-                if is_invalid_ball_text(t):
-                    print(f"双色球: 发现无效红球 '{t}'，号码不完整")
-                    return None
-                try:
-                    num = int(t)
-                    if 1 <= num <= 33:
-                        reds.append(num)
-                except ValueError:
-                    continue
+            # 第一列是期号
+            period_text = cells[0].get_text(strip=True)
+            period_match = re.search(r'(\d{7}|\d{3})', period_text)
+            if not period_match:
+                continue
             
-            blues = []
-            for ball in blue_balls:
-                t = ball.get_text(strip=True)
-                if is_invalid_ball_text(t):
-                    print(f"双色球: 发现无效蓝球 '{t}'，号码不完整")
-                    return None
-                try:
-                    num = int(t)
-                    if 1 <= num <= 16:
-                        blues.append(num)
-                except ValueError:
-                    continue
+            period_full = period_match.group(1)
+            if len(period_full) == 7:
+                year = period_full[:4]
+                period = period_full[4:]
+            else:
+                year = str(get_current_year())
+                period = period_full.zfill(3)
             
-            if len(reds) >= 6 and len(blues) >= 1:
-                numbers = sorted(reds[:6]) + [blues[0]]
+            # 提取号码：红球在第2-7列，蓝球在第8列
+            numbers = []
+            for i in range(1, 8):
+                if i < len(cells):
+                    num_text = cells[i].get_text(strip=True)
+                    try:
+                        num = int(num_text)
+                        numbers.append(num)
+                    except ValueError:
+                        continue
+            
+            # 验证：6个红球(1-33) + 1个蓝球(1-16)
+            if len(numbers) == 7:
+                reds = numbers[:6]
+                blue = numbers[6]
+                if all(1 <= r <= 33 for r in reds) and 1 <= blue <= 16:
+                    records.append({
+                        'year': year,
+                        'period': period,
+                        'numbers': sorted(reds) + [blue]
+                    })
         
-        # 验证号码
-        if not is_valid_ssq_numbers(numbers):
-            print(f"双色球: 号码不完整或无效 (红球: {len(reds) if 'reds' in dir() else 0}, 蓝球: {len(blues) if 'blues' in dir() else 0})")
-            return None
-        
-        return {
-            'year': year,
-            'period': period,
-            'numbers': numbers
-        }
+        print(f"双色球: 解析到 {len(records)} 条记录")
+        return records
         
     except Exception as e:
         print(f"双色球解析错误: {e}")
-        return None
+        return records
 
 
 def parse_sd(html):
-    """解析3D数据（参考 sand.js 的 parseLatest3DFromHtml）"""
+    """解析3D数据"""
+    records = []
     try:
         soup = BeautifulSoup(html, 'html.parser')
         
-        # 查找候选容器
-        candidate_selectors = [
-            '.kj_num',
-            '.kj_num_box',
-            '.kj_num_list',
-            'div[class*="kj"]',
-            'div[class*="num"]'
-        ]
+        tbody = soup.find('tbody', id='tdata')
+        if not tbody:
+            tbody = soup.find('tbody')
         
-        container = None
-        for selector in candidate_selectors:
-            nodes = soup.select(selector)
-            for node in nodes:
-                text = node.get_text(strip=True)
-                if not text:
-                    continue
-                # 3D页面通常包含"期"字或期号信息
-                if '期' in text or re.search(r'\d{4}\d{3}', text) or re.search(r'\d{1,4}期', text):
-                    # 找里面的球元素
-                    balls = node.select('span.qiu_red, span[class*="red"], span[class*="ball"], [class*="qiu"], i, em')
-                    digits = []
-                    for ball in balls:
-                        t = ball.get_text(strip=True)
-                        if is_invalid_ball_text(t):
-                            continue
-                        if re.match(r'^\d$', t):
-                            digits.append(int(t))
-                    
-                    if len(digits) >= 3:
-                        container = node
-                        break
-            if container:
-                break
+        if not tbody:
+            print("3D: 未找到数据表格")
+            return records
         
-        # 如果没找到容器，尝试全页面找
-        digits_fallback = []
-        if not container:
-            all_spans = soup.select('span, i, em, b')
-            for el in all_spans:
-                t = el.get_text(strip=True)
-                if is_invalid_ball_text(t):
-                    continue
-                if re.match(r'^\d$', t):
-                    digits_fallback.append(int(t))
-                    if len(digits_fallback) >= 3:
-                        break
+        rows = tbody.find_all('tr')
+        for row in rows:
+            cells = row.find_all('td')
+            if len(cells) < 4:  # 至少需要：期号 + 3个号码
+                continue
+            
+            # 第一列是期号
+            period_text = cells[0].get_text(strip=True)
+            period_match = re.search(r'(\d{7}|\d{3})', period_text)
+            if not period_match:
+                continue
+            
+            period_full = period_match.group(1)
+            if len(period_full) == 7:
+                year = period_full[:4]
+                period = period_full[4:]
+            else:
+                year = str(get_current_year())
+                period = period_full.zfill(3)
+            
+            # 提取号码：3个数字(0-9)
+            numbers = []
+            for i in range(1, 4):
+                if i < len(cells):
+                    num_text = cells[i].get_text(strip=True)
+                    try:
+                        num = int(num_text)
+                        if 0 <= num <= 9:
+                            numbers.append(num)
+                    except ValueError:
+                        continue
+            
+            # 验证：3个数字(0-9)
+            if len(numbers) == 3:
+                records.append({
+                    'year': year,
+                    'period': period,
+                    'numbers': numbers
+                })
         
-        # 提取期号
-        text_for_period = container.get_text() if container else html
-        text_for_period = re.sub(r'\s+', ' ', text_for_period)
-        
-        year = None
-        period = None
-        
-        match_full = re.search(r'(20\d{2})(\d{3})', text_for_period)
-        if match_full:
-            year = match_full.group(1)
-            period = match_full.group(2)
-        else:
-            match_period = re.search(r'第\s*(\d{1,4})\s*期', text_for_period)
-            if match_period:
-                period = match_period.group(1)
-            match_year = re.search(r'(20\d{2})', text_for_period)
-            year = match_year.group(1) if match_year else str(get_current_year())
-        
-        if not year or not period:
-            print("3D: 未找到期号")
-            return None
-        
-        period = period.zfill(3)
-        if period == '000' or int(period) == 0:
-            print("3D: 期号无效")
-            return None
-        
-        # 提取号码
-        numbers = []
-        if container:
-            balls = container.select('span.qiu_red, span[class*="red"], span[class*="ball"], [class*="qiu"], i, em')
-            for ball in balls:
-                t = ball.get_text(strip=True)
-                if is_invalid_ball_text(t):
-                    print(f"3D: 发现无效号码 '{t}'，号码不完整")
-                    return None
-                if re.match(r'^\d$', t):
-                    numbers.append(int(t))
-                    if len(numbers) >= 3:
-                        break
-        else:
-            numbers = digits_fallback[:3]
-        
-        # 验证号码
-        if not is_valid_3d_numbers(numbers):
-            print(f"3D: 号码不完整或无效 (找到 {len(numbers)} 个)")
-            return None
-        
-        return {
-            'year': year,
-            'period': period,
-            'numbers': numbers
-        }
+        print(f"3D: 解析到 {len(records)} 条记录")
+        return records
         
     except Exception as e:
         print(f"3D解析错误: {e}")
-        return None
+        return records
 
 
 def parse_kl8(html):
-    """解析快乐8数据（参考 kuaileba.js 的 parseLatestFromHtml）"""
+    """解析快乐8数据"""
+    records = []
     try:
         soup = BeautifulSoup(html, 'html.parser')
         
-        # 方案1：查找 class="kb_num kj_num public_num" 的元素（m.ssqzj.com风格）
-        public_num_results = soup.select('div.kb_num.kj_num.public_num')
-        if public_num_results:
-            result = public_num_results[0]
-            period_text = result.get_text(strip=True)
-            period_match = re.search(r'第(\d+)期', period_text)
-            
-            if period_match:
-                period_num = period_match.group(1)
-                number_spans = result.select('span.qiu_red')
-                
-                # 检查号码球数量
-                if len(number_spans) < 20:
-                    print(f"快乐8: 号码球元素不足20个 ({len(number_spans)})")
-                else:
-                    number_list = []
-                    for span in number_spans:
-                        t = span.get_text(strip=True)
-                        if is_invalid_ball_text(t):
-                            print(f"快乐8: 发现无效号码 '{t}'，号码不完整")
-                            number_list = []
-                            break
-                        try:
-                            num = int(t)
-                            if 1 <= num <= 80 and num not in number_list:
-                                number_list.append(num)
-                        except ValueError:
-                            continue
-                    
-                    if len(number_list) == 20:
-                        year_match = re.search(r'(\d{4})', period_text)
-                        year = year_match.group(1) if year_match else str(get_current_year())
-                        period = period_num.zfill(3)
-                        numbers = sorted(number_list)
-                        
-                        if is_valid_kl8_numbers(numbers):
-                            return {
-                                'year': year,
-                                'period': period,
-                                'numbers': numbers
-                            }
+        tbody = soup.find('tbody', id='tdata')
+        if not tbody:
+            tbody = soup.find('tbody')
         
-        # 方案2：通用容器查找
-        candidate_selectors = [
-            'div.kj_num',
-            'div.kb_num',
-            '.kj_num_box',
-            '.kj_num_list',
-            '[class*="kj"]',
-            '[class*="num"]'
-        ]
+        if not tbody:
+            print("快乐8: 未找到数据表格")
+            return records
         
-        container = None
-        for selector in candidate_selectors:
-            elements = soup.select(selector)
-            for elem in elements:
-                text = elem.get_text() or ''
-                if '开奖号' in text or '期' in text or re.search(r'\d{7}', text):
-                    red_balls = elem.select('span.qiu_red, span[class*="red"], span[class*="ball"], .qiu_red, [class*="qiu"]')
-                    if len(red_balls) >= 20:
-                        container = elem
-                        break
-            if container:
-                break
-        
-        if container:
-            # 提取期号
-            period_text = ''
-            search_elem = container
-            for _ in range(5):
-                period_text = search_elem.get_text() or ''
-                if re.search(r'\d{7}', period_text) or re.search(r'第\d+期', period_text) or '开奖号' in period_text:
-                    break
-                search_elem = search_elem.parent
-                if not search_elem:
-                    break
+        rows = tbody.find_all('tr')
+        for row in rows:
+            cells = row.find_all('td')
+            if len(cells) < 21:  # 至少需要：期号 + 20个号码
+                continue
             
-            # 提取期号
-            period_match = re.search(r'(\d{4})(\d{3})', period_text)
-            year = None
-            period = None
+            # 第一列是期号
+            period_text = cells[0].get_text(strip=True)
+            period_match = re.search(r'(\d{7}|\d{3})', period_text)
+            if not period_match:
+                continue
             
-            if period_match:
-                year = period_match.group(1)
-                period = period_match.group(2)
+            period_full = period_match.group(1)
+            if len(period_full) == 7:
+                year = period_full[:4]
+                period = period_full[4:]
             else:
-                period_match2 = re.search(r'第(\d+)期', period_text)
-                if period_match2:
-                    period = period_match2.group(1)
-                year_match = re.search(r'(\d{4})', period_text)
-                year = year_match.group(1) if year_match else str(get_current_year())
+                year = str(get_current_year())
+                period = period_full.zfill(3)
             
-            if not year or not period:
-                print("快乐8: 未找到期号")
-                return None
+            # 提取号码：20个数字(1-80)
+            numbers = []
+            for i in range(1, 21):
+                if i < len(cells):
+                    num_text = cells[i].get_text(strip=True)
+                    try:
+                        num = int(num_text)
+                        if 1 <= num <= 80:
+                            numbers.append(num)
+                    except ValueError:
+                        continue
             
-            period = period.zfill(3)
-            if period == '000' or int(period) == 0:
-                print("快乐8: 期号无效")
-                return None
-            
-            # 提取号码
-            number_spans = container.select('span.qiu_red, span[class*="red"], span[class*="ball"], .qiu_red, [class*="qiu"]')
-            
-            if len(number_spans) < 20:
-                print(f"快乐8: 号码球元素不足20个 ({len(number_spans)})")
-                return None
-            
-            number_list = []
-            for span in number_spans:
-                t = span.get_text(strip=True)
-                if is_invalid_ball_text(t):
-                    print(f"快乐8: 发现无效号码 '{t}'，号码不完整")
-                    return None
-                try:
-                    num = int(t)
-                    if 1 <= num <= 80 and num not in number_list:
-                        number_list.append(num)
-                        if len(number_list) == 20:
-                            break
-                except ValueError:
-                    continue
-            
-            if not is_valid_kl8_numbers(number_list):
-                print(f"快乐8: 号码不完整或无效 (找到 {len(number_list)} 个)")
-                return None
-            
-            return {
-                'year': year,
-                'period': period,
-                'numbers': sorted(number_list)
-            }
+            # 验证：20个不重复的数字(1-80)
+            if len(numbers) == 20 and len(set(numbers)) == 20:
+                records.append({
+                    'year': year,
+                    'period': period,
+                    'numbers': sorted(numbers)
+                })
         
-        print("快乐8: 未找到有效的开奖容器")
-        return None
+        print(f"快乐8: 解析到 {len(records)} 条记录")
+        return records
         
     except Exception as e:
         print(f"快乐8解析错误: {e}")
-        return None
+        return records
 
 
 def format_ssq_record(record):
@@ -566,19 +300,23 @@ def get_file_year(filepath):
         with open(filepath, 'r', encoding='utf-8') as f:
             first_line = f.readline().strip()
             if first_line:
-                # 尝试从内容中提取年份信息
                 match = re.search(r'#\s*(\d{4})', first_line)
                 if match:
-                    return int(match.group(1))
+                    return match.group(1)
     except:
         pass
     
     return None
 
 
-def save_record(lottery_type, record):
-    """保存单条记录到文件"""
-    if not record:
+def save_records(lottery_type, records):
+    """保存所有记录到文件
+    
+    规则：
+    1. 保存当前年份的所有期数
+    2. 如果最新一期是下一年的，清除上一年的数据，只保存新年的数据
+    """
+    if not records:
         return False
     
     # 确保目录存在
@@ -586,65 +324,56 @@ def save_record(lottery_type, record):
         os.makedirs(OUTPUT_DIR)
     
     output_file = OUTPUT_FILES[lottery_type]
-    year = record['year']
-    period = record['period']
+    lottery_names = {'ssq': '双色球', 'sd': '3D', 'kl8': '快乐8'}
+    
+    # 找出最新一期的年份
+    latest_year = None
+    for record in records:
+        if latest_year is None or int(record['year']) > int(latest_year):
+            latest_year = record['year']
+    
+    if not latest_year:
+        return False
+    
+    # 检查文件中已保存的年份
+    existing_year = get_file_year(output_file)
+    
+    # 如果年份变了，只保存新年份的数据
+    if existing_year and existing_year != latest_year:
+        print(f"{lottery_type}: 年份变更 {existing_year} -> {latest_year}，清空旧数据")
+    
+    # 只保存最新年份的记录
+    year_records = [r for r in records if r['year'] == latest_year]
+    
+    # 按期号排序
+    year_records.sort(key=lambda x: int(x['period']))
+    
+    # 去重
+    seen_periods = set()
+    unique_records = []
+    for record in year_records:
+        if record['period'] not in seen_periods:
+            seen_periods.add(record['period'])
+            unique_records.append(record)
     
     # 格式化记录
     if lottery_type == 'ssq':
-        formatted = format_ssq_record(record)
+        format_func = format_ssq_record
     elif lottery_type == 'sd':
-        formatted = format_sd_record(record)
+        format_func = format_sd_record
     elif lottery_type == 'kl8':
-        formatted = format_kl8_record(record)
+        format_func = format_kl8_record
     else:
-        return False
-    
-    # 读取现有记录
-    existing_records = []
-    existing_year = None
-    
-    if os.path.exists(output_file):
-        try:
-            with open(output_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                # 检查文件头中的年份
-                year_match = re.search(r'#\s*(\d{4})年', content)
-                if year_match:
-                    existing_year = year_match.group(1)
-                
-                # 提取现有期号
-                for line in content.split('\n'):
-                    if line.startswith('第'):
-                        period_match = re.search(r'第(\d+)期', line)
-                        if period_match:
-                            existing_records.append(period_match.group(1))
-        except:
-            pass
-    
-    # 如果年份变了，清空文件
-    if existing_year and existing_year != year:
-        print(f"{lottery_type}: 年份变更 {existing_year} -> {year}，清空旧数据")
-        existing_records = []
-    
-    # 检查是否已存在该期
-    if period in existing_records:
-        print(f"{lottery_type}: 第{period}期已存在，跳过")
         return False
     
     # 写入文件
     try:
-        # 如果是新文件或年份变更，写入文件头
-        if not existing_records:
-            with open(output_file, 'w', encoding='utf-8') as f:
-                lottery_names = {'ssq': '双色球', 'sd': '3D', 'kl8': '快乐8'}
-                f.write(f"# {year}年{lottery_names[lottery_type]}开奖记录\n")
-                f.write(formatted + '\n')
-        else:
-            # 追加记录
-            with open(output_file, 'a', encoding='utf-8') as f:
-                f.write(formatted + '\n')
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(f"# {latest_year}年{lottery_names[lottery_type]}开奖记录\n")
+            for record in unique_records:
+                f.write(format_func(record) + '\n')
         
-        print(f"{lottery_type}: 保存第{period}期成功")
+        print(f"{lottery_type}: 保存 {len(unique_records)} 条 {latest_year}年 记录")
         return True
         
     except Exception as e:
@@ -656,9 +385,27 @@ def fetch_and_save(lottery_type):
     """抓取并保存数据"""
     url = URLS[lottery_type]
     lottery_names = {'ssq': '双色球', 'sd': '3D', 'kl8': '快乐8'}
-    print(f"\n抓取 {lottery_names[lottery_type]}: {url}")
     
-    html = fetch_page(url)
+    # 设置查询参数（获取当前年份的所有数据）
+    current_year = get_current_year()
+    # start=1 表示从第1期开始，end=年份999 表示到该年份最后一期
+    params = {
+        'start': '1',
+        'end': f'{current_year}999'
+    }
+    
+    # 更新 Referer
+    referers = {
+        'ssq': 'http://datachart.500.com/ssq/history/history.shtml',
+        'sd': 'http://datachart.500.com/sd/history/history.shtml',
+        'kl8': 'http://datachart.500.com/kl8/history/history.shtml'
+    }
+    HEADERS['Referer'] = referers.get(lottery_type, HEADERS['Referer'])
+    
+    print(f"\n抓取 {lottery_names[lottery_type]}: {url}")
+    print(f"参数: start={params['start']}, end={params['end']}")
+    
+    html = fetch_page(url, params=params)
     
     if not html:
         print(f"{lottery_type}: 抓取失败")
@@ -668,29 +415,27 @@ def fetch_and_save(lottery_type):
     
     # 解析数据
     if lottery_type == 'ssq':
-        record = parse_ssq(html)
+        records = parse_ssq(html)
     elif lottery_type == 'sd':
-        record = parse_sd(html)
+        records = parse_sd(html)
     elif lottery_type == 'kl8':
-        record = parse_kl8(html)
+        records = parse_kl8(html)
     else:
-        record = None
+        records = []
     
-    if not record:
-        print(f"{lottery_type}: 解析失败或号码不完整（可能正在开奖中）")
+    if not records:
+        print(f"{lottery_type}: 解析失败，未获取到有效数据")
         return False
     
-    print(f"{lottery_type}: 解析成功 - {record['year']}年第{record['period']}期")
-    
     # 保存数据
-    return save_record(lottery_type, record)
+    return save_records(lottery_type, records)
 
 
 def main():
     """主函数"""
     print("=" * 50)
     print(f"彩票数据抓取 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("数据源: www.cjcp.cn")
+    print("数据源: datachart.500.com")
     print("=" * 50)
     
     success_count = 0
@@ -702,10 +447,21 @@ def main():
                 success_count += 1
         except Exception as e:
             print(f"{lottery_type}: 处理异常 - {e}")
+            import traceback
+            traceback.print_exc()
     
     print("\n" + "=" * 50)
     print(f"完成: 成功处理 {success_count}/{len(lottery_types)} 个彩票数据")
     print("=" * 50)
+    
+    # 列出生成的文件
+    if os.path.exists(OUTPUT_DIR):
+        print(f"\n生成的文件:")
+        for f in os.listdir(OUTPUT_DIR):
+            filepath = os.path.join(OUTPUT_DIR, f)
+            if os.path.isfile(filepath):
+                size = os.path.getsize(filepath)
+                print(f"  {f}: {size} bytes")
 
 
 if __name__ == '__main__':
