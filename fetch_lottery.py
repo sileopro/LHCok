@@ -16,11 +16,18 @@ import urllib3
 # 禁用 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 网站URL模板
+# 网站URL模板（主数据源）
 URLS = {
     'ssq': 'https://www.55128.cn/kjh/history_fcssq.aspx?year={year}',
     'sd': 'https://www.55128.cn/kjh/history_fcsd.aspx?year={year}',
     'kl8': 'https://www.55128.cn/kjh/history_fckl8.aspx?year={year}'
+}
+
+# 备用数据源（如果主数据源失败）
+BACKUP_URLS = {
+    'ssq': 'https://m.ssqzj.com/kaijiang/fcssq/',
+    'sd': 'https://m.ssqzj.com/kaijiang/fcsd/',
+    'kl8': 'https://m.ssqzj.com/kaijiang/fckl8/'
 }
 
 # 输出文件路径
@@ -31,42 +38,26 @@ OUTPUT_FILES = {
     'kl8': os.path.join(OUTPUT_DIR, 'kl8.txt')
 }
 
-# 请求头
+# 请求头（简化版，参考 happy8_crawler.py）
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Referer': 'https://www.55128.cn/',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin',
-    'Cache-Control': 'max-age=0'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 }
 
 def get_current_year():
     """获取当前年份"""
     return datetime.now().year
 
-def fetch_page(url, retry=3):
-    """抓取网页内容，支持重试"""
-    session = requests.Session()
-    session.headers.update(HEADERS)
-    
-    # 先访问主页获取 cookies
-    try:
-        session.get('https://www.55128.cn/', timeout=30, verify=False)
-        time.sleep(1)
-    except:
-        pass
+def fetch_page(url, retry=3, use_backup=False):
+    """抓取网页内容，支持重试（参考 happy8_crawler.py 的简单方式）"""
+    sess = requests.Session()
+    sess.headers.update(HEADERS)
     
     for attempt in range(retry):
         try:
-            # 尝试禁用 SSL 验证（某些情况下可能有效）
-            response = session.get(url, timeout=60, verify=False, allow_redirects=True)
-            # 尝试自动检测编码
+            # 使用简单的方式获取（参考 happy8_crawler.py）
+            response = sess.get(url, timeout=30, verify=False, allow_redirects=True)
+            
+            # 自动检测编码
             if response.encoding == 'ISO-8859-1':
                 response.encoding = response.apparent_encoding or 'utf-8'
             else:
@@ -79,21 +70,25 @@ def fetch_page(url, retry=3):
         except requests.exceptions.SSLError as e:
             print(f"SSL错误 (尝试 {attempt + 1}/{retry}) {url}: {e}")
             if attempt < retry - 1:
-                time.sleep(3)
+                time.sleep(2)
         except requests.exceptions.ConnectionError as e:
             print(f"连接错误 (尝试 {attempt + 1}/{retry}) {url}: {e}")
             if attempt < retry - 1:
-                time.sleep(5)  # 连接错误时等待更久
+                time.sleep(3)  # 连接错误时等待
         except Exception as e:
             print(f"抓取失败 (尝试 {attempt + 1}/{retry}) {url}: {e}")
             if attempt < retry - 1:
-                time.sleep(3)
+                time.sleep(2)
     return None
 
 def parse_ssq(html, year):
     """解析双色球数据"""
     records = []
-    soup = BeautifulSoup(html, 'lxml')
+    # 优先使用 lxml，如果失败则使用 html.parser（参考 happy8_crawler.py）
+    try:
+        soup = BeautifulSoup(html, 'lxml')
+    except:
+        soup = BeautifulSoup(html, 'html.parser')
     
     # 查找所有表格
     tables = soup.find_all('table')
@@ -161,7 +156,11 @@ def parse_ssq(html, year):
 def parse_sd(html, year):
     """解析3D数据"""
     records = []
-    soup = BeautifulSoup(html, 'lxml')
+    # 优先使用 lxml，如果失败则使用 html.parser
+    try:
+        soup = BeautifulSoup(html, 'lxml')
+    except:
+        soup = BeautifulSoup(html, 'html.parser')
     
     # 查找所有表格
     tables = soup.find_all('table')
@@ -222,7 +221,11 @@ def parse_sd(html, year):
 def parse_kl8(html, year):
     """解析快乐8数据"""
     records = []
-    soup = BeautifulSoup(html, 'lxml')
+    # 优先使用 lxml，如果失败则使用 html.parser
+    try:
+        soup = BeautifulSoup(html, 'lxml')
+    except:
+        soup = BeautifulSoup(html, 'html.parser')
     
     # 查找所有表格
     tables = soup.find_all('table')
@@ -335,12 +338,23 @@ def save_records(records, output_file, format_func, current_year):
 
 def fetch_and_save(lottery_type, year):
     """抓取并保存数据"""
+    # 先尝试主数据源
     url = URLS[lottery_type].format(year=year)
     print(f"抓取 {lottery_type} {year}年数据: {url}")
     
     html = fetch_page(url)
+    
+    # 如果主数据源失败，尝试备用数据源
+    if not html and lottery_type in BACKUP_URLS:
+        backup_url = BACKUP_URLS[lottery_type]
+        print(f"主数据源失败，尝试备用数据源: {backup_url}")
+        html = fetch_page(backup_url, use_backup=True)
+        if html:
+            print(f"备用数据源连接成功，但需要适配解析逻辑")
+            # 注意：备用数据源的HTML结构可能不同，需要单独处理
+    
     if not html:
-        print(f"抓取失败: {lottery_type}")
+        print(f"抓取失败: {lottery_type} (主数据源和备用数据源都失败)")
         return False
     
     # 解析数据
