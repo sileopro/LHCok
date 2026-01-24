@@ -23,12 +23,6 @@ URLS = {
     'kl8': 'https://www.55128.cn/kjh/history_fckl8.aspx?year={year}'
 }
 
-# 备用数据源（如果主数据源失败）
-BACKUP_URLS = {
-    'ssq': 'https://m.ssqzj.com/kaijiang/fcssq/',
-    'sd': 'https://m.ssqzj.com/kaijiang/fcsd/',
-    'kl8': 'https://m.ssqzj.com/kaijiang/fckl8/'
-}
 
 # 输出文件路径
 OUTPUT_DIR = 'fc'
@@ -38,44 +32,38 @@ OUTPUT_FILES = {
     'kl8': os.path.join(OUTPUT_DIR, 'kl8.txt')
 }
 
-# 请求头（简化版，参考 happy8_crawler.py）
+# 请求头（完整版，模拟真实浏览器）
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-}
-
-# 备用数据源请求头（需要更完整的请求头来避免 403）
-BACKUP_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
     'Accept-Encoding': 'gzip, deflate, br',
     'Connection': 'keep-alive',
     'Upgrade-Insecure-Requests': '1',
-    'Referer': 'https://m.ssqzj.com/',
+    'Referer': 'https://www.55128.cn/',
     'Sec-Fetch-Dest': 'document',
     'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin'
+    'Sec-Fetch-Site': 'same-origin',
+    'Cache-Control': 'max-age=0'
 }
+
 
 def get_current_year():
     """获取当前年份"""
     return datetime.now().year
 
-def fetch_page(url, retry=3, use_backup=False):
+def fetch_page(url, retry=3):
     """抓取网页内容，支持重试（参考 happy8_crawler.py 的简单方式）"""
     sess = requests.Session()
+    sess.headers.update(HEADERS)
     
-    # 根据是否使用备用数据源选择不同的请求头
-    if use_backup:
-        sess.headers.update(BACKUP_HEADERS)
-        # 先访问主页获取 cookies（避免 403）
-        try:
-            sess.get('https://m.ssqzj.com/', timeout=10, verify=False)
-            time.sleep(1)
-        except:
-            pass
-    else:
-        sess.headers.update(HEADERS)
+    # 先访问主页获取 cookies（可能有助于连接）
+    try:
+        base_url = '/'.join(url.split('/')[:3])
+        sess.get(base_url, timeout=10, verify=False)
+        time.sleep(1)
+    except:
+        pass
     
     for attempt in range(retry):
         try:
@@ -373,17 +361,8 @@ def fetch_and_save(lottery_type, year):
     
     html = fetch_page(url)
     
-    # 如果主数据源失败，尝试备用数据源
-    if not html and lottery_type in BACKUP_URLS:
-        backup_url = BACKUP_URLS[lottery_type]
-        print(f"主数据源失败，尝试备用数据源: {backup_url}")
-        html = fetch_page(backup_url, use_backup=True)
-        if html:
-            print(f"备用数据源连接成功，但需要适配解析逻辑")
-            # 注意：备用数据源的HTML结构可能不同，需要单独处理
-    
     if not html:
-        print(f"抓取失败: {lottery_type} (主数据源和备用数据源都失败)")
+        print(f"抓取失败: {lottery_type}")
         return False
     
     # 解析数据
