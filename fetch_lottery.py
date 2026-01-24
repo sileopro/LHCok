@@ -11,6 +11,10 @@ import os
 import re
 from datetime import datetime
 import time
+import urllib3
+
+# 禁用 SSL 警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 网站URL模板
 URLS = {
@@ -51,9 +55,17 @@ def fetch_page(url, retry=3):
     session = requests.Session()
     session.headers.update(HEADERS)
     
+    # 先访问主页获取 cookies
+    try:
+        session.get('https://www.55128.cn/', timeout=30, verify=False)
+        time.sleep(1)
+    except:
+        pass
+    
     for attempt in range(retry):
         try:
-            response = session.get(url, timeout=60, verify=True)
+            # 尝试禁用 SSL 验证（某些情况下可能有效）
+            response = session.get(url, timeout=60, verify=False, allow_redirects=True)
             # 尝试自动检测编码
             if response.encoding == 'ISO-8859-1':
                 response.encoding = response.apparent_encoding or 'utf-8'
@@ -81,7 +93,7 @@ def fetch_page(url, retry=3):
 def parse_ssq(html, year):
     """解析双色球数据"""
     records = []
-    soup = BeautifulSoup(html, 'html.parser')
+    soup = BeautifulSoup(html, 'lxml')
     
     # 查找所有表格
     tables = soup.find_all('table')
@@ -91,22 +103,23 @@ def parse_ssq(html, year):
         rows = table.find_all('tr')
         for row in rows:
             cells = row.find_all(['td', 'th'])
-            if len(cells) < 2:
+            if len(cells) < 3:  # 至少需要3列：开奖时间、期数、号码
                 continue
             
             # 跳过表头
             first_cell_text = cells[0].get_text(strip=True).upper()
-            if first_cell_text in ['期号', '期数', 'PERIOD', '期', '开奖日期']:
+            if first_cell_text in ['开奖时间', '期号', '期数', 'PERIOD', '期', '开奖日期']:
                 continue
             
-            # 提取期号（从第一个单元格）
-            period_text = cells[0].get_text(strip=True)
-            period_match = re.search(r'(\d{3,4})', period_text)
+            # 提取期号（从第2列，索引1）
+            period_text = cells[1].get_text(strip=True)
+            # 匹配7位期号（如2026010）或3位期号（如010）
+            period_match = re.search(r'(\d{7}|\d{3})', period_text)
             if not period_match:
                 continue
             
             period = period_match.group(1)
-            if len(period) > 3:
+            if len(period) == 7:
                 period = period[-3:]  # 取后3位
             period = period.zfill(3)
             
@@ -115,27 +128,27 @@ def parse_ssq(html, year):
                 continue
             seen_periods.add(period)
             
-            # 提取号码（从后续单元格）
-            all_numbers = []
-            for cell in cells[1:]:
-                cell_text = cell.get_text(strip=True)
-                # 提取所有数字
-                nums = re.findall(r'\d+', cell_text)
-                for n in nums:
-                    num = int(n)
-                    if 1 <= num <= 33:  # 红球范围
-                        all_numbers.append(num)
-                    elif 1 <= num <= 16:  # 蓝球范围
-                        all_numbers.append(num)
+            # 提取号码（从第3列，索引2，即"号码"列）
+            numbers_cell = cells[2]
+            numbers_text = numbers_cell.get_text(strip=True)
             
-            # 双色球：6个红球(1-33) + 1个蓝球(1-16)
-            red_balls = [n for n in all_numbers if 1 <= n <= 33]
-            blue_balls = [n for n in all_numbers if 1 <= n <= 16]
+            # 提取所有数字
+            all_nums = re.findall(r'\d+', numbers_text)
+            red_balls = []
+            blue_balls = []
             
-            # 去重红球和蓝球
+            for n in all_nums:
+                num = int(n)
+                if 1 <= num <= 33:  # 红球范围
+                    red_balls.append(num)
+                elif 1 <= num <= 16:  # 蓝球范围
+                    blue_balls.append(num)
+            
+            # 去重并排序
             red_balls = sorted(list(set(red_balls)))
             blue_balls = sorted(list(set(blue_balls)))
             
+            # 双色球：6个红球 + 1个蓝球
             if len(red_balls) >= 6 and len(blue_balls) >= 1:
                 records.append({
                     'period': period,
@@ -148,7 +161,7 @@ def parse_ssq(html, year):
 def parse_sd(html, year):
     """解析3D数据"""
     records = []
-    soup = BeautifulSoup(html, 'html.parser')
+    soup = BeautifulSoup(html, 'lxml')
     
     # 查找所有表格
     tables = soup.find_all('table')
@@ -158,22 +171,23 @@ def parse_sd(html, year):
         rows = table.find_all('tr')
         for row in rows:
             cells = row.find_all(['td', 'th'])
-            if len(cells) < 2:
+            if len(cells) < 3:  # 至少需要3列：开奖时间、期数、号码
                 continue
             
             # 跳过表头
             first_cell_text = cells[0].get_text(strip=True).upper()
-            if first_cell_text in ['期号', '期数', 'PERIOD', '期', '开奖日期']:
+            if first_cell_text in ['开奖时间', '期号', '期数', 'PERIOD', '期', '开奖日期']:
                 continue
             
-            # 提取期号
-            period_text = cells[0].get_text(strip=True)
-            period_match = re.search(r'(\d{3,4})', period_text)
+            # 提取期号（从第2列，索引1）
+            period_text = cells[1].get_text(strip=True)
+            # 匹配7位期号（如2026023）或3位期号（如023）
+            period_match = re.search(r'(\d{7}|\d{3})', period_text)
             if not period_match:
                 continue
             
             period = period_match.group(1)
-            if len(period) > 3:
+            if len(period) == 7:
                 period = period[-3:]  # 取后3位
             period = period.zfill(3)
             
@@ -182,20 +196,20 @@ def parse_sd(html, year):
                 continue
             seen_periods.add(period)
             
-            # 提取号码（3D是3个0-9的数字）
+            # 提取号码（从第3列，索引2，即"号码"列）
+            numbers_cell = cells[2]
+            numbers_text = numbers_cell.get_text(strip=True)
+            
+            # 提取3个0-9的数字
             numbers = []
-            for cell in cells[1:]:
-                cell_text = cell.get_text(strip=True)
-                # 提取单个数字
-                nums = re.findall(r'\d', cell_text)
-                for n in nums:
-                    num = int(n)
-                    if 0 <= num <= 9:
-                        numbers.append(num)
-                        if len(numbers) >= 3:
-                            break
-                if len(numbers) >= 3:
-                    break
+            # 先尝试提取所有单个数字
+            digits = re.findall(r'\d', numbers_text)
+            for d in digits:
+                num = int(d)
+                if 0 <= num <= 9:
+                    numbers.append(num)
+                    if len(numbers) >= 3:
+                        break
             
             if len(numbers) >= 3:
                 records.append({
@@ -208,7 +222,7 @@ def parse_sd(html, year):
 def parse_kl8(html, year):
     """解析快乐8数据"""
     records = []
-    soup = BeautifulSoup(html, 'html.parser')
+    soup = BeautifulSoup(html, 'lxml')
     
     # 查找所有表格
     tables = soup.find_all('table')
@@ -218,22 +232,23 @@ def parse_kl8(html, year):
         rows = table.find_all('tr')
         for row in rows:
             cells = row.find_all(['td', 'th'])
-            if len(cells) < 2:
+            if len(cells) < 3:  # 至少需要3列：开奖时间、期数、号码
                 continue
             
             # 跳过表头
             first_cell_text = cells[0].get_text(strip=True).upper()
-            if first_cell_text in ['期号', '期数', 'PERIOD', '期', '开奖日期']:
+            if first_cell_text in ['开奖时间', '期号', '期数', 'PERIOD', '期', '开奖日期']:
                 continue
             
-            # 提取期号
-            period_text = cells[0].get_text(strip=True)
-            period_match = re.search(r'(\d{3,4})', period_text)
+            # 提取期号（从第2列，索引1）
+            period_text = cells[1].get_text(strip=True)
+            # 匹配7位期号（如2026023）或3位期号（如023）
+            period_match = re.search(r'(\d{7}|\d{3})', period_text)
             if not period_match:
                 continue
             
             period = period_match.group(1)
-            if len(period) > 3:
+            if len(period) == 7:
                 period = period[-3:]  # 取后3位
             period = period.zfill(3)
             
@@ -242,19 +257,19 @@ def parse_kl8(html, year):
                 continue
             seen_periods.add(period)
             
-            # 提取号码（快乐8是20个1-80的数字）
+            # 提取号码（从第3列，索引2，即"号码"列）
+            numbers_cell = cells[2]
+            numbers_text = numbers_cell.get_text(strip=True)
+            
+            # 提取20个1-80的数字
             numbers = []
-            for cell in cells[1:]:
-                cell_text = cell.get_text(strip=True)
-                nums = re.findall(r'\d+', cell_text)
-                for n in nums:
-                    num = int(n)
-                    if 1 <= num <= 80:
-                        numbers.append(num)
-                        if len(numbers) >= 20:
-                            break
-                if len(numbers) >= 20:
-                    break
+            nums = re.findall(r'\d+', numbers_text)
+            for n in nums:
+                num = int(n)
+                if 1 <= num <= 80:
+                    numbers.append(num)
+                    if len(numbers) >= 20:
+                        break
             
             if len(numbers) >= 20:
                 # 去重并排序
