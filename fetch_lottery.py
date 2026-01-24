@@ -27,22 +27,16 @@ class LotteryCrawler:
     
     def fetch_page(self, url, max_retries=3):
         """获取网页内容"""
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Referer': 'https://m.ssqzj.com/'
-        }
         for i in range(max_retries):
             try:
                 sess = requests.session()
-                sess.headers.update(headers)
-                response = sess.get(url, timeout=10)
-                response.encoding = 'utf-8'
-                return response.text
+                jsPage = sess.get(url).text
+                # 检查是否被阻止
+                if '403 Forbidden' in jsPage or 'GeoWL' in jsPage:
+                    print(f"警告：访问被阻止（可能是IP地理位置限制），URL: {url}")
+                    print("提示：GitHub Actions的IP可能被阻止，请在本地环境运行")
+                    return None
+                return jsPage
             except Exception as e:
                 print(f"请求失败 {url}: {e}, 重试 {i+1}/{max_retries}")
                 if i < max_retries - 1:
@@ -230,12 +224,21 @@ class LotteryCrawler:
                 
                 if not html:
                     print(f"第 {page} 页获取失败，停止爬取")
+                    if page == 1:
+                        print("错误：无法访问网站，可能是IP地理位置限制（GeoWL4）")
+                        print("提示：GitHub Actions的IP可能被阻止，请在本地环境运行此脚本")
                     break
                 
                 # 调试：检查HTML内容
                 if page == 1 and len(html) < 1000:
-                    print(f"警告：获取到的HTML内容过短，长度: {len(html)}")
-                    print(f"HTML前500字符: {html[:500]}")
+                    if '403 Forbidden' in html or 'GeoWL' in html:
+                        print(f"错误：网站返回403 Forbidden，可能是IP地理位置限制")
+                        print(f"HTML内容: {html[:500]}")
+                        print("提示：GitHub Actions的IP可能被阻止，请在本地环境运行此脚本")
+                        break
+                    else:
+                        print(f"警告：获取到的HTML内容过短，长度: {len(html)}")
+                        print(f"HTML前500字符: {html[:500]}")
                 
                 # 根据彩种类型解析数据
                 if lottery_type == 'ssq':
