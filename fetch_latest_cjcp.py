@@ -16,6 +16,13 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
+# 尝试导入 cloudscraper（用于绕过 Cloudflare 等反爬虫），如果未安装则回退到 requests
+try:
+    import cloudscraper
+    HAS_CLOUDSCRAPER = True
+except ImportError:
+    HAS_CLOUDSCRAPER = False
+
 BASE_DIR = Path(__file__).resolve().parent
 LOTTERY_DIR = BASE_DIR / "lottery"
 
@@ -34,23 +41,67 @@ LOTTERY_FILES = {
 
 
 def fetch_html(url: str, timeout: int = 20) -> str | None:
+    """使用完整的浏览器请求头模拟真实访问。"""
+    # 优先使用 cloudscraper（如果可用）来绕过反爬虫
+    if HAS_CLOUDSCRAPER:
+        session = cloudscraper.create_scraper()
+    else:
+        session = requests.Session()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Cache-Control": "max-age=0",
+    }
+    
     for attempt in range(3):
         try:
-            r = requests.get(
-                url,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            # 先访问首页建立会话（如果需要）
+            if attempt == 0:
+                try:
+                    session.get("https://www.cjcp.cn/", headers=headers, timeout=10, allow_redirects=True)
+                    time.sleep(0.5)
+                except:
+                    pass
+            
+            # 添加 Referer
+            if "kaijiang" in url:
+                headers["Referer"] = "https://www.cjcp.cn/"
+            
+            r = session.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+            r.raise_for_status()
+            
+            # 检查是否被重定向到错误页或返回 403
+            if r.status_code == 403:
+                print(f"  403 Forbidden - 可能需要更真实的浏览器环境或 IP 白名单")
+                # 尝试移除一些可能被检测的头部
+                headers_simple = {
+                    "User-Agent": headers["User-Agent"],
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                     "Accept-Language": "zh-CN,zh;q=0.9",
-                },
-                timeout=timeout,
-            )
-            r.raise_for_status()
+                }
+                r = session.get(url, headers=headers_simple, timeout=timeout, allow_redirects=True)
+                r.raise_for_status()
+            
             return r.text
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                print(f"  fetch {url} attempt {attempt + 1}/3: 403 Forbidden (可能被反爬虫拦截)")
+            else:
+                print(f"  fetch {url} attempt {attempt + 1}/3: HTTP {e.response.status_code}")
+            if attempt < 2:
+                time.sleep(2 + attempt)
         except Exception as e:
             print(f"  fetch {url} attempt {attempt + 1}/3: {e}")
             if attempt < 2:
-                time.sleep(2)
+                time.sleep(2 + attempt)
     return None
 
 
