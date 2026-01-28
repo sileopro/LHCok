@@ -10,8 +10,42 @@ import json
 import re
 import sys
 import time
+import subprocess
 from datetime import datetime
 from pathlib import Path
+
+# 自动检查和安装依赖
+def check_and_install_dependencies():
+    """检查并自动安装缺失的依赖包"""
+    required_packages = {
+        'requests': 'requests>=2.28.0',
+        'bs4': 'beautifulsoup4>=4.11.0',
+    }
+    
+    missing_packages = []
+    for module_name, package_name in required_packages.items():
+        try:
+            __import__(module_name)
+        except ImportError:
+            missing_packages.append(package_name)
+    
+    if missing_packages:
+        print(f"检测到缺失的依赖包: {', '.join(missing_packages)}")
+        print("正在自动安装...")
+        try:
+            subprocess.check_call([
+                sys.executable, '-m', 'pip', 'install', '--quiet', '--user'
+            ] + missing_packages)
+            print("依赖安装完成！")
+            # 重新导入
+            import importlib
+            importlib.invalidate_caches()
+        except subprocess.CalledProcessError:
+            print("自动安装失败，请手动运行: pip install -r requirements.txt")
+            sys.exit(1)
+
+# 在导入之前检查依赖
+check_and_install_dependencies()
 
 import requests
 from bs4 import BeautifulSoup
