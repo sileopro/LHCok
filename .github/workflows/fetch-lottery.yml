@@ -1,6 +1,6 @@
 # 每天 21:00~21:50（北京时间）高频抓取 500.com 开奖数据，写入 lottery/
 # 目标：ssq / 3d；参考 grab500_ssq.py 解析逻辑
-name: 福彩数据抓取 (21:00–21:50)
+name: 福彩数据抓取 (zx.500.com)
 
 on:
   schedule:
@@ -38,7 +38,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Fetch latest lottery (500.com)
-        run: python fetch_latest_cjcp.py
+        run: python fetchmaney.py
 
       - name: Commit and push if lottery changed
         run: |
