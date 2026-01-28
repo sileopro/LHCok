@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-高频抓取 www.cjcp.cn 最新一期开奖数据，合并写入 lottery/。
-对应 ssqiu.js / sand.js / kuaileba.js 的抓取解析逻辑。
+高频抓取 500.com 最新一期开奖数据，合并写入 lottery/。
+参考 grab500_ssq.py 的解析逻辑。
 """
 from __future__ import annotations
 
@@ -16,19 +16,13 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
-# 尝试导入 cloudscraper（用于绕过 Cloudflare 等反爬虫），如果未安装则回退到 requests
-try:
-    import cloudscraper
-    HAS_CLOUDSCRAPER = True
-except ImportError:
-    HAS_CLOUDSCRAPER = False
-
 BASE_DIR = Path(__file__).resolve().parent
 LOTTERY_DIR = BASE_DIR / "lottery"
 
 URLS = {
-    "ssq": "https://www.cjcp.cn/kaijiang/ssq/",
-    "3d": "https://www.cjcp.cn/kaijiang/3d/",
+    "ssq": "http://zx.500.com/ssq/",
+    "3d": "https://zx.500.com/sd/",
+    # 快乐8 暂时保留，如果 500.com 没有则跳过
     "kl8": "https://www.cjcp.cn/kaijiang/fckl8/",
 }
 
@@ -41,70 +35,26 @@ LOTTERY_FILES = {
 
 
 def fetch_html(url: str, timeout: int = 20) -> str | None:
-    """使用完整的浏览器请求头模拟真实访问。"""
-    # 优先使用 cloudscraper（如果可用）来绕过反爬虫
-    if HAS_CLOUDSCRAPER:
-        session = cloudscraper.create_scraper()
-    else:
-        session = requests.Session()
+    """获取网页内容，参考 grab500_ssq.py 的简单方式。"""
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Cache-Control": "max-age=0",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9",
     }
     
     for attempt in range(3):
         try:
-            # 先访问首页建立会话（如果需要）
-            if attempt == 0:
-                try:
-                    session.get("https://www.cjcp.cn/", headers=headers, timeout=10, allow_redirects=True)
-                    time.sleep(0.5)
-                except:
-                    pass
-            
-            # 添加 Referer
-            if "kaijiang" in url:
-                headers["Referer"] = "https://www.cjcp.cn/"
-            
-            r = session.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+            r = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
             r.raise_for_status()
-            
-            # 检查是否被重定向到错误页或返回 403
-            if r.status_code == 403:
-                print(f"  403 Forbidden - 可能需要更真实的浏览器环境或 IP 白名单")
-                # 尝试移除一些可能被检测的头部
-                headers_simple = {
-                    "User-Agent": headers["User-Agent"],
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language": "zh-CN,zh;q=0.9",
-                }
-                r = session.get(url, headers=headers_simple, timeout=timeout, allow_redirects=True)
-                r.raise_for_status()
-            
             return r.text
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 403:
-                print(f"  fetch {url} attempt {attempt + 1}/3: 403 Forbidden (可能被反爬虫拦截)")
-            else:
-                print(f"  fetch {url} attempt {attempt + 1}/3: HTTP {e.response.status_code}")
-            if attempt < 2:
-                time.sleep(2 + attempt)
         except Exception as e:
             print(f"  fetch {url} attempt {attempt + 1}/3: {e}")
             if attempt < 2:
-                time.sleep(2 + attempt)
+                time.sleep(1)
     return None
 
 
+# _year_period_from_text 函数已不再需要，保留以防 kl8 使用
 def _year_period_from_text(text: str) -> tuple[str | None, str | None]:
     text = re.sub(r"\s+", " ", text)
     m = re.search(r"(20\d{2})(\d{3})", text)
@@ -118,65 +68,89 @@ def _year_period_from_text(text: str) -> tuple[str | None, str | None]:
 
 
 def parse_latest_ssq(html: str) -> dict | None:
-    """解析双色球最新一期，与 ssqiu.js parseLatestSSQFromHtml 逻辑一致。"""
-    soup = BeautifulSoup(html, "html.parser")
-    # 优先 div.kb_num.kj_num.public_num
-    latest = soup.select_one("div.kb_num.kj_num.public_num")
-    if not latest:
-        latest = soup.select_one("div.kb_num.kj_num")
-    if not latest:
+    """解析双色球最新一期，参考 grab500_ssq.py 的正则表达式方式。"""
+    # 期号：<dt>([0-9]\d*).*</dt>
+    period_match = re.search(r'<dt>([0-9]\d*).*?</dt>', html)
+    if not period_match:
         return None
-
-    text = latest.get_text(" ", strip=True)
-    year, period = _year_period_from_text(text)
-    if not year or not period:
-        return None
-
+    
+    period_full = period_match.group(1)
+    # 期号可能是 7 位（如 2026001）或 3 位（如 001）
+    if len(period_full) >= 7:
+        year = period_full[:4]
+        period = period_full[4:]
+    elif len(period_full) >= 3:
+        year = str(datetime.now().year)
+        period = period_full[-3:]
+    else:
+        year = str(datetime.now().year)
+        period = period_full.zfill(3)
+    
     period = period.zfill(3)
-    if period == "000":
-        return None
-
-    reds = [int(s.get_text(strip=True)) for s in latest.select("span.qiu_red") if s.get_text(strip=True).isdigit()]
-    blue_el = latest.select_one("span.qiu_blue")
-    blue = int(blue_el.get_text(strip=True)) if blue_el and blue_el.get_text(strip=True).isdigit() else None
-
+    
+    # 红球：<li class="redball">([0-9]\d*)</li>
+    red_matches = re.findall(r'<li class="redball">([0-9]\d*)</li>', html)
+    reds = [int(r) for r in red_matches if r.isdigit() and 1 <= int(r) <= 33]
+    
+    # 蓝球：<li class="blueball">([0-9]\d*)</li>
+    blue_match = re.search(r'<li class="blueball">([0-9]\d*)</li>', html)
+    blue = int(blue_match.group(1)) if blue_match and blue_match.group(1).isdigit() else None
+    
     if len(reds) != 6 or blue is None or not (1 <= blue <= 16):
         return None
-    for r in reds:
-        if not (1 <= r <= 33):
-            return None
-
+    
     reds.sort()
     numbers = reds + [blue]
     return {"year": year, "period": period, "numbers": numbers}
 
 
 def parse_latest_3d(html: str) -> dict | None:
-    """解析3D最新一期，与 sand.js parseLatest3DFromHtml 逻辑一致。"""
-    soup = BeautifulSoup(html, "html.parser")
-    latest = soup.select_one("div.kb_num.kj_num.public_num") or soup.select_one("div.kb_num.kj_num")
-    if not latest:
+    """解析3D最新一期，参考 500.com 的 HTML 结构。"""
+    # 尝试使用类似双色球的解析方式
+    # 期号：<dt>([0-9]\d*).*</dt>
+    period_match = re.search(r'<dt>([0-9]\d*).*?</dt>', html)
+    if not period_match:
         return None
-
-    text = latest.get_text(" ", strip=True)
-    year, period = _year_period_from_text(text)
-    if not year or not period:
-        return None
-
+    
+    period_full = period_match.group(1)
+    if len(period_full) >= 7:
+        year = period_full[:4]
+        period = period_full[4:]
+    elif len(period_full) >= 3:
+        year = str(datetime.now().year)
+        period = period_full[-3:]
+    else:
+        year = str(datetime.now().year)
+        period = period_full.zfill(3)
+    
     period = period.zfill(3)
-    if period == "000":
-        return None
-
+    
+    # 3D 号码：可能是 <li class="ball"> 或类似结构
+    # 尝试多种可能的选择器
     nums = []
-    for s in latest.select("span.qiu_red, span[class*='red'], span[class*='ball'], [class*='qiu']"):
-        t = (s.get_text(strip=True) or "").strip()
-        if re.match(r"^\d$", t):
-            nums.append(int(t))
-            if len(nums) >= 3:
-                break
+    
+    # 方式1：查找 <li class="ball"> 或 <li class="redball">
+    ball_matches = re.findall(r'<li class="(?:ball|redball)">([0-9])</li>', html)
+    if ball_matches:
+        nums = [int(b) for b in ball_matches if b.isdigit() and 0 <= int(b) <= 9]
+    
+    # 方式2：如果方式1失败，尝试 BeautifulSoup
+    if len(nums) != 3:
+        soup = BeautifulSoup(html, "html.parser")
+        balls = soup.select('li.ball, li.redball, li[class*="ball"]')
+        nums = []
+        for ball in balls:
+            text = ball.get_text(strip=True)
+            if re.match(r"^\d$", text):
+                n = int(text)
+                if 0 <= n <= 9:
+                    nums.append(n)
+                    if len(nums) >= 3:
+                        break
+    
     if len(nums) != 3 or any(n < 0 or n > 9 for n in nums):
         return None
-
+    
     return {"year": year, "period": period, "numbers": nums}
 
 
@@ -298,7 +272,7 @@ def main() -> int:
 
         print(f"[{key}] fetch {url}")
         html = fetch_html(url)
-        if not html or len(html) < 500:
+        if not html or len(html) < 200:
             print(f"  skip {key}: no html")
             continue
 
