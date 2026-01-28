@@ -1,6 +1,6 @@
-# 每天 21:00~21:50（北京时间）高频抓取 cjcp.cn 开奖数据，写入 lottery/
-# 目标：ssq / 3d / fckl8；对应 ssqiu.js、sand.js、kuaileba.js 解析逻辑
-name: Fetch Lottery (21:00–21:50)
+# 每天 21:00~21:50（北京时间）高频抓取 500.com 开奖数据，写入 lottery/
+# 目标：ssq / 3d；参考 grab500_ssq.py 解析逻辑
+name: 福彩数据抓取 (21:00–21:50)
 
 on:
   schedule:
@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Fetch latest lottery (cjcp.cn)
+      - name: Fetch latest lottery (500.com)
         run: python fetch_latest_cjcp.py
 
       - name: Commit and push if lottery changed
@@ -48,6 +48,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No lottery changes, skip commit."
           else
-            git commit -m "chore(lottery): update from cjcp.cn [skip ci]"
+            git commit -m "chore(lottery): update from 500.com [skip ci]"
             git push
           fi
