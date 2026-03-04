@@ -135,6 +135,95 @@ ZODIAC_MAPPING = {
     '49': '鼠'
 }
 
+DAY_ZODIAC = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']
+
+
+def _julian_day_noon(dt):
+    """
+    计算给定日期中午12点的儒略日（算法参考 lunar-python 的 Solar.getJulianDay）
+    只使用年月日，忽略时区影响，精度对日柱/日支足够。
+    """
+    y = dt.year
+    m = dt.month
+    # 按中午12点计算
+    d = dt.day + (12 / 24.0)
+    n = 0
+    g = False
+    if y * 372 + m * 31 + int(d) >= 588829:
+        g = True
+    if m <= 2:
+        m += 12
+        y -= 1
+    if g:
+        n = int(y / 100)
+        n = 2 - n + int(n / 4)
+    return int(365.25 * (y + 4716)) + int(30.6001 * (m + 1)) + d + n - 1524.5
+
+
+def get_day_zodiac_and_chong(dt=None):
+    """
+    根据公历日期计算日柱的地支所对应的生肖，以及该日的冲生肖。
+    返回 (日生肖, 冲生肖) 例如 ('牛', '羊')。
+    """
+    if dt is None:
+        dt = datetime.now()
+    jd = _julian_day_noon(dt)
+    # 对齐 lunar-python：noon.getJulianDay() 转 int 后减 11
+    offset = int(jd) - 11
+    day_zhi_index = offset % 12  # 0-11 -> 子丑寅...
+    day_zodiac = DAY_ZODIAC[day_zhi_index]
+    # 六冲：子午冲、丑未冲、寅申冲、卯酉冲、辰戌冲、巳亥冲
+    chong_index = (day_zhi_index + 6) % 12
+    chong_zodiac = DAY_ZODIAC[chong_index]
+    return day_zodiac, chong_zodiac
+
+
+def update_hkrc_file(issue_str, special_number, special_zodiac):
+    """
+    更新港彩日冲记录 hkrc.txt：
+    - 行格式：024期：45狗 → 牛日冲羊
+    - 按期数倒序排列
+    - 若最新一期为 001 期，则视为新一年：清空旧记录，从 001 期重新开始
+    """
+    try:
+        try:
+            issue_int = int(issue_str)
+        except ValueError:
+            return
+
+        day_zodiac, chong_zodiac = get_day_zodiac_and_chong()
+        line = f"{str(issue_int).zfill(3)}期：{special_number}{special_zodiac} → {day_zodiac}日冲{chong_zodiac}"
+
+        filename = 'hkrc.txt'
+        existing_lines = []
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                existing_lines = [ln.rstrip('\n') for ln in f if ln.strip()]
+
+        issue_to_line = {}
+        for ln in existing_lines:
+            m = re.search(r'(\d{1,3})期', ln)
+            if not m:
+                continue
+            try:
+                old_issue_int = int(m.group(1))
+            except ValueError:
+                continue
+            issue_to_line[old_issue_int] = ln
+
+        # 新一年第一期，从该期开始重记
+        if issue_int == 1:
+            issue_to_line = {}
+
+        issue_to_line[issue_int] = line
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            for k in sorted(issue_to_line.keys(), reverse=True):
+                f.write(issue_to_line[k] + '\n')
+    except Exception as e:
+        logger.error(f"更新港彩日冲记录失败: {str(e)}")
+
+
 def random_sleep(min_time=1, max_time=3):
     """随机等待一段时间"""
     time.sleep(random.uniform(min_time, max_time))
@@ -394,6 +483,13 @@ def save_lottery_result(lottery_info, lottery_type, data_str=None):
             with open(filename, 'w', encoding='utf-8') as f:
                 for issue_int in sorted(issue_to_line.keys(), reverse=True):
                     f.write(issue_to_line[issue_int] + '\n')
+
+            # 港彩专用：hk.txt 更新时，同时更新日冲生肖记录 hkrc.txt
+            if lottery_type == 'hk':
+                # 优先使用 API 返回的生肖，没有则按号码映射
+                special_zodiac = lottery_info.get('zodiac') or ZODIAC_MAPPING.get(special_number.zfill(2), '')
+                update_hkrc_file(new_issue_str, special_number, special_zodiac)
+
         # 保存API原始内容为json文件（无论号码是否完整都保存）
         json_map = {
             'hk': 'hkkj.json',
