@@ -343,12 +343,69 @@ def save_lottery_result(lottery_info, lottery_type, data_str=None):
         result = f"第{issue}期：{' '.join(numbers)} 特码 {special_number}"
         # 确定文件名
         filename = 'klb.txt' if lottery_type == 'tc' else f'{lottery_type}.txt'
-        # 保存结果到txt文件（仅号码全部为1~49数字时才保存）
+
+        # =========================
+        # 按“年份+期数”保存历史记录：
+        # - txt 中保存当年所有记录
+        # - 如果最新一期属于新的年份，则自动丢弃往年记录
+        # =========================
         def is_valid_num(n):
             return n.isdigit() and 1 <= int(n) <= 49
+
         if all(is_valid_num(n) for n in numbers) and is_valid_num(special_number):
+            current_year = datetime.now().year
+            new_line_body = result
+            new_issue = issue
+
+            # 读取已有记录，只保留当前年份的行
+            existing_records = []
+            if os.path.exists(filename):
+                with open(filename, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        m = re.match(r'^(\d{4})-(.+)$', line)
+                        if m:
+                            year = int(m.group(1))
+                            body = m.group(2)
+                        else:
+                            # 旧格式行（无年份前缀），视为往年数据，
+                            # 当写入当前年份记录时会被整体丢弃
+                            continue
+                        if year != current_year:
+                            # 只保留当前年份
+                            continue
+
+                        # 提取已有期号，便于去重/更新
+                        issue_match = re.search(r'第(\d{1,3})期', body)
+                        issue_value = issue_match.group(1) if issue_match else None
+                        existing_records.append((issue_value, body))
+
+            # 更新或追加当前期号
+            updated = False
+            for idx, (issue_value, body) in enumerate(existing_records):
+                if issue_value == new_issue:
+                    existing_records[idx] = (issue_value, new_line_body)
+                    updated = True
+                    break
+
+            if not updated:
+                existing_records.append((new_issue, new_line_body))
+
+            # 按期数排序（升序），再写回文件，加上年份前缀
+            def issue_key(item):
+                iv, _ = item
+                try:
+                    return int(iv)
+                except (TypeError, ValueError):
+                    return 0
+
+            existing_records.sort(key=issue_key)
+
             with open(filename, 'w', encoding='utf-8') as f:
-                f.write(result)
+                for _, body in existing_records:
+                    f.write(f"{current_year}-{body}\n")
         # 保存API原始内容为json文件（无论号码是否完整都保存）
         json_map = {
             'hk': 'hkkj.json',
