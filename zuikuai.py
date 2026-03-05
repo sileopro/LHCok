@@ -184,6 +184,7 @@ def update_hkrc_file(issue_str, special_number, special_zodiac):
     - 行格式：024期：45狗 → 牛日冲羊
     - 按期数倒序排列
     - 若最新一期为 001 期，则视为新一年：清空旧记录，从 001 期重新开始
+    - 若 hkrc.txt 最新一期的期数、特码与当前相同，则不更新（避免重复计算日冲生肖）
     """
     try:
         try:
@@ -191,14 +192,29 @@ def update_hkrc_file(issue_str, special_number, special_zodiac):
         except ValueError:
             return
 
-        day_zodiac, chong_zodiac = get_day_zodiac_and_chong()
-        line = f"{str(issue_int).zfill(3)}期：{special_number}{special_zodiac} → {day_zodiac}日冲{chong_zodiac}"
-
         filename = 'hkrc.txt'
         existing_lines = []
         if os.path.exists(filename):
             with open(filename, 'r', encoding='utf-8') as f:
                 existing_lines = [ln.rstrip('\n') for ln in f if ln.strip()]
+
+        # 若最新一期期数、特码与当前相同，则跳过更新
+        if existing_lines:
+            first_line = existing_lines[0]
+            m = re.search(r'(\d{1,3})期：(\d{1,2})', first_line)
+            if m:
+                old_issue_int = int(m.group(1))
+                old_special = m.group(2)
+                try:
+                    new_special_int = int(special_number) if special_number.isdigit() else 0
+                    old_special_int = int(old_special)
+                    if old_issue_int == issue_int and old_special_int == new_special_int:
+                        return  # 期数、特码未变，不更新
+                except (ValueError, AttributeError):
+                    pass
+
+        day_zodiac, chong_zodiac = get_day_zodiac_and_chong()
+        line = f"{str(issue_int).zfill(3)}期：{special_number}{special_zodiac} → {day_zodiac}日冲{chong_zodiac}"
 
         issue_to_line = {}
         for ln in existing_lines:
