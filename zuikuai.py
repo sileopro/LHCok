@@ -236,6 +236,7 @@ def update_hkrc_file(issue_str, special_number, special_zodiac):
         with open(filename, 'w', encoding='utf-8') as f:
             for k in sorted(issue_to_line.keys(), reverse=True):
                 f.write(issue_to_line[k] + '\n')
+        logger.info("✅ 已保存港彩日冲记录到 hkrc.txt")
     except Exception as e:
         logger.error(f"更新港彩日冲记录失败: {str(e)}")
 
