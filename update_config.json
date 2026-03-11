@@ -74,11 +74,11 @@
         "contactInfo": "客服微信：hkj888",
         "validCodes": [
             {"code": "dnx123", "deviceId": "3db3a803", "expireDate": "2029-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "07e536a9", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "04e445a0", "expireDate": "2099-02-02", "deviceLimit": 1},
             {"code": "sj123", "deviceId": "4c7e8a02", "expireDate": "2035-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
-            {"code": "dnfc123", "deviceId": "7ycib2b5zq11xkvs", "expireDate": "2099-12-29", "deviceLimit": 2},
+            {"code": "dnfc123", "deviceId": "kzqisbwmliovg669", "expireDate": "2099-12-29", "deviceLimit": 2},
             {"code": "sjfc123", "deviceId": "wrd51b4qw92o57d5", "expireDate": "2099-12-22", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
@@ -90,6 +90,7 @@
         ]
     }
 } 
+
 
 
 
