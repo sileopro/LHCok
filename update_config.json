@@ -17,7 +17,7 @@
                 "buttonText": "立即更新"
             },
             "auth": {
-                "enabled": true,
+                "enabled": false,
                 "message": "需要验证卡密才能继续使用",
                 "buttonText": "验证卡密"
             },
@@ -90,6 +90,7 @@
         ]
     }
 } 
+
 
 
 
