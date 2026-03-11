@@ -1,7 +1,7 @@
 {
     "enableUpdate": true,
     "currentVersion": "1.0.0",
-    "latestVersion": "1.0.1",
+    "latestVersion": "1.0.5",
     "promptInterval": 86400000,
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
     "forceUpdate": true,
@@ -22,7 +22,7 @@
                 "buttonText": "验证卡密"
             },
             "selective": {
-                "enabled": false,
+                "enabled": true,
                 "message": "发现新功能，是否需要更新？",
                 "buttonText": "选择更新",
                 "features": [
@@ -43,7 +43,7 @@
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
-        "showRetryPrompt": false
+        "showRetryPrompt": true
     },
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
     "retryButtonText": "重新下载",
@@ -90,6 +90,7 @@
         ]
     }
 } 
+
 
 
 
