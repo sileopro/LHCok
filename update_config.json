@@ -22,7 +22,7 @@
                 "buttonText": "验证卡密"
             },
             "selective": {
-                "enabled": true,
+                "enabled": false,
                 "message": "发现新功能，是否需要更新？",
                 "buttonText": "选择更新",
                 "features": [
