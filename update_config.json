@@ -4,12 +4,12 @@
     "latestVersion": "1.0.5",
     "promptInterval": 86400000,
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
-    "forceUpdate": true,
+    "forceUpdate": false,
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
         "type": "auth",
-        "exclusiveMode": true,
+        "exclusiveMode": false,
         "options": {
             "immediate": {
                 "enabled": false,
@@ -22,7 +22,7 @@
                 "buttonText": "验证卡密"
             },
             "selective": {
-                "enabled": false,
+                "enabled": true,
                 "message": "发现新功能，是否需要更新？",
                 "buttonText": "选择更新",
                 "features": [
@@ -73,14 +73,14 @@
         "deviceBindInstructionsColor": "#008000",
         "contactInfo": "客服微信：hkj888",
         "validCodes": [
-            {"code": "dnx123", "deviceId": "04e445a0", "expireDate": "2029-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "38acb78d", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "dnx123", "deviceId": "3db3a803", "expireDate": "2029-12-31", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "7aad0960", "expireDate": "2099-02-02", "deviceLimit": 1},
             {"code": "sj123", "deviceId": "4c7e8a02", "expireDate": "2035-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
-            {"code": "dnfc123", "deviceId": "kzqisbwmliovg669", "expireDate": "2099-12-29", "deviceLimit": 2},
+            {"code": "dnfc123", "deviceId": "7ycib2b5zq11xkvs", "expireDate": "2099-12-29", "deviceLimit": 2},
             {"code": "sjfc123", "deviceId": "wrd51b4qw92o57d5", "expireDate": "2099-12-22", "deviceLimit": 2},
-            {"code": "VIP4567", "deviceId": "0172f91b", "expireDate": "2095-12-22", "deviceLimit": 2},
+            {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
@@ -88,15 +88,33 @@
             {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "ADMIN789", "deviceId": "", "expireDate": "2025-12-31", "deviceLimit": 999}
         ]
+    },
+    "aboutConfig": {
+        "enabled": true,
+        "title": "彩票系统",
+        "titleColor": "#FF00FF",
+        "lines": [
+            {
+                "parts": [
+                    { "text": "国内彩票系列大全 功能齐全 根据各彩种的规则进行预测", "color": "#DC143C" }
+                ]
+            },
+            {
+                "parts": [
+                    { "text": "历史记录数据完整 长期跟踪  梦想成功  祝你发大财", "color": "#32CD32" }
+                ]
+            },
+            {
+                "parts": [
+                    { "text": "三肖 记录创造世界吉尼斯记录 千万福娃属于你", "color": "#B8860B" }
+                ]
+            },
+            {
+                "parts": [
+                    { "text": "风险提示：", "color": "#FF00FF" },
+                    { "text": "彩票是公益与娱乐，非投资，理性投注、不追号、不透支", "color": "#4169E1" }
+                ]
+            }
+        ]
     }
 } 
-
-
-
-
-
-
-
-
-
-
