@@ -1,5 +1,5 @@
 // 大乐透开奖数据
-const ssqdefaultData = {
+const dltdefaultData = {
   "2025": [
     { period: "145", numbers: [5, 7, 20, 22, 25, 4, 5] },
     { period: "146", numbers: [6, 11, 13, 16, 22, 2, 3] },
@@ -44,7 +44,7 @@ const ssqdefaultData = {
     { period: "033", numbers: [3, 5, 7, 9, 18, 2, 10] },
     { period: "034", numbers: [11, 12, 25, 26, 27, 8, 11] },
     { period: "035", numbers: [2, 22, 30, 33, 34, 8, 12] },
-    { period: "036", numbers: [4, 7, 16, 26, 32, 5, 8] }
-   
+    { period: "036", numbers: [4, 7, 16, 26, 32, 5, 8] },
+    { period: "037", numbers: [7, 12, 13, 28, 32, 6, 8] }
   ]
 };
