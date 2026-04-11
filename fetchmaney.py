@@ -57,6 +57,11 @@ URLS = {
     "ssq": "http://zx.500.com/ssq/",
     "3d": "https://zx.500.com/sd/",
     "kl8": "https://kaijiang.500.com/kl8.shtml",
+    # 大乐透：优先 500 走势页，失败再试彩经网开奖页
+    "dlt": [
+        "https://zx.500.com/dlt/",
+        "https://www.cjcp.cn/kaijiang/dlt/",
+    ],
 }
 
 # 对应 lottery 下的 .js 文件及变量名
@@ -64,6 +69,7 @@ LOTTERY_FILES = {
     "ssq": ("ssqdefaultData.js", "ssqdefaultData", "// 双色球开奖数据\n"),
     "3d": ("sddefaultData.js", "sddefaultData", "// 3D开奖数据\n"),
     "kl8": ("defaultData.js", "defaultData", "// 快乐8开奖数据\n"),
+    "dlt": ("dltdefaultData.js", "dltdefaultData", "// 大乐透开奖数据\n"),
 }
 
 
@@ -187,6 +193,68 @@ def parse_latest_3d(html: str) -> dict | None:
     return {"year": year, "period": period, "numbers": nums}
 
 
+def split_year_period_dlt_issue(issue: str) -> tuple[str, str] | None:
+    """
+    大乐透期号：7 位 2026037，或 500 下拉 value 如 26037（= 2026 年第 037 期）。
+    """
+    issue = issue.strip()
+    if not issue.isdigit():
+        return None
+    if len(issue) >= 7 and issue.startswith("20"):
+        return issue[:4], issue[4:].zfill(3)
+    if len(issue) >= 5:
+        return "20" + issue[:2], issue[2:].zfill(3)
+    return None
+
+
+def _validate_dlt_numbers(nums: list[int]) -> bool:
+    if len(nums) != 7:
+        return False
+    return all(1 <= nums[i] <= 35 for i in range(5)) and all(
+        1 <= nums[i] <= 12 for i in range(5, 7)
+    )
+
+
+def parse_latest_dlt(html: str) -> dict | None:
+    """
+    解析大乐透最新一期：前区 5（1–35）+ 后区 2（1–12）。
+    支持 zx.500.com/dlt/（gbk 页中标签名仍为 ASCII）与 www.cjcp.cn/kaijiang/dlt/。
+    """
+    # ---------- 500.com：kj_expect 选中项 + redball / blueball ----------
+    m_opt = re.search(r'<option value="(\d{5,})"\s+selected="selected"', html)
+    reds_500 = re.findall(r'<li class="redball">(\d{1,2})</li>', html)
+    blues_500 = re.findall(r'<li class="blueball">(\d{1,2})</li>', html)
+    if m_opt and len(reds_500) >= 5 and len(blues_500) >= 2:
+        yp = split_year_period_dlt_issue(m_opt.group(1))
+        if yp:
+            year, period = yp
+            nums = [int(x) for x in reds_500[:5]] + [int(x) for x in blues_500[:2]]
+            if _validate_dlt_numbers(nums):
+                return {"year": year, "period": period, "numbers": nums}
+
+    # ---------- 彩经网：kj_data 内期号 + xin_kjinfo 内 qiu_red / qiu_blue ----------
+    m_span = re.search(
+        r'<div class="kj_data"[^>]*>[\s\S]*?<span>(20\d{5})',
+        html,
+    )
+    idx = html.find('class="xin_kjinfo"')
+    if m_span is not None and idx != -1:
+        end = html.find('class="xin_kjshape"', idx)
+        chunk = html[idx : end if end != -1 else idx + 4500]
+        reds_c = re.findall(r'<span class="qiu_red">(\d{1,2})</span>', chunk)
+        blues_c = re.findall(r'<span class="qiu_blue">(\d{1,2})</span>', chunk)
+        if len(reds_c) >= 5 and len(blues_c) >= 2:
+            issue = m_span.group(1)
+            yp = split_year_period_dlt_issue(issue)
+            if yp:
+                year, period = yp
+                nums = [int(x) for x in reds_c[:5]] + [int(x) for x in blues_c[:2]]
+                if _validate_dlt_numbers(nums):
+                    return {"year": year, "period": period, "numbers": nums}
+
+    return None
+
+
 def parse_latest_kl8(html: str) -> dict | None:
     """解析快乐8最新一期，参考 500.com 的 HTML 结构。"""
     # 查找期号：可能是链接中的 2025212 格式，或页面中的期号文本
@@ -262,6 +330,7 @@ PARSERS = {
     "ssq": parse_latest_ssq,
     "3d": parse_latest_3d,
     "kl8": parse_latest_kl8,
+    "dlt": parse_latest_dlt,
 }
 
 
@@ -334,19 +403,27 @@ def main() -> int:
     updated = []
 
     for key, (filename, var_name, comment) in LOTTERY_FILES.items():
-        url = URLS[key]
+        urls = URLS[key]
+        if isinstance(urls, str):
+            urls = [urls]
         parse_fn = PARSERS[key]
         path = lottery_dir / filename
 
-        print(f"[{key}] fetch {url}")
-        html = fetch_html(url)
-        if not html or len(html) < 200:
-            print(f"  skip {key}: no html")
-            continue
+        rec = None
+        for url in urls:
+            print(f"[{key}] fetch {url}")
+            html = fetch_html(url)
+            if not html or len(html) < 200:
+                print(f"  no html or too short")
+                continue
+            rec = parse_fn(html)
+            if rec:
+                print(f"  parsed OK")
+                break
+            print(f"  parse failed, try next URL" if len(urls) > 1 else f"  parse failed")
 
-        rec = parse_fn(html)
         if not rec:
-            print(f"  skip {key}: parse latest failed")
+            print(f"  skip {key}: parse latest failed for all URLs")
             continue
         print(f"  latest: {rec['year']} {rec['period']}")
 
