@@ -75,7 +75,7 @@
         "validCodes": [
             {"code": "VIP4567", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": "2ebe6795", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "2086f56b", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "24e549d0", "expireDate": "2099-02-02", "deviceLimit": 1},
             {"code": "sj123", "deviceId": "4af6768d", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
