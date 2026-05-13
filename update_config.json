@@ -27,7 +27,7 @@
                 "buttonText": "验证卡密"
             },
             "selective": {
-                "enabled": false,
+                "enabled": true,
                 "message": "发现新功能，是否需要更新？",
                 "buttonText": "广告预设",
                 "welcome": {
