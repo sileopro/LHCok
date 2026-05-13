@@ -3,6 +3,11 @@
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.5",
     "promptInterval": 120000,
+    "updatePopupTiming": {
+        "initialDelayMs": 1000,
+        "periodicCheckIntervalMs": 300000,
+        "networkErrorRetryDelayMs": 30000
+    },
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
     "forceUpdate": true,
     "minVersion": "1.0.0",
@@ -24,12 +29,27 @@
             "selective": {
                 "enabled": false,
                 "message": "发现新功能，是否需要更新？",
-                "buttonText": "选择更新",
-                "features": [
-                    {"id": "feature1", "name": "新增遗漏统计", "description": "更全面的遗漏分析功能", "required": false},
-                    {"id": "feature2", "name": "优化界面", "description": "更美观的用户界面", "required": false},
-                    {"id": "feature3", "name": "修复问题", "description": "修复已知的稳定性问题", "required": true}
-                ]
+                "buttonText": "广告预设",
+                "welcome": {
+                    "title": "欢迎使用",
+                    "titleColor": "#1E90FF",
+                    "currentVersionColor": "#90EE90",
+                    "latestVersionColor": "#FF1493",
+                    "lines": [
+                        { "parts": [ { "text": "精准记录全维度数据", "color": "#DC143C" } ] },
+                        { "parts": [
+                            { "text": "科学精准", "color": "#32CD32" },
+                            { "text": "超高预测", "color": "#FF00FF" }
+                        ] },
+                        { "parts": [
+                            { "text": "天天中奖", "color": "#8470FF" },
+                            { "text": "领引未来", "color": "#808000" }
+                        ] }
+                    ],
+                    "buttonText": "进入系统",
+                    "buttonTextColor": "#FFFFFF",
+                    "buttonBackground": "#FF6347"
+                }
             }
         },
         "deleteConfig": {
@@ -75,7 +95,7 @@
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": "57cb8039", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "33ba97fa", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "53a97f02", "expireDate": "2099-02-02", "deviceLimit": 1},
             {"code": "sj123", "deviceId": "655e1a51", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
