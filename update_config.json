@@ -2,7 +2,7 @@
     "enableUpdate": true,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.5",
-    "promptInterval": 240000,
+    "promptInterval": 120000,
     "updatePopupTiming": {
         "initialDelayMs": 1000,
         "periodicCheckIntervalMs": 300000,
