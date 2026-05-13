@@ -2,7 +2,7 @@
     "enableUpdate": true,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.5",
-    "promptInterval": 120000,
+    "promptInterval": 86400000,
     "updatePopupTiming": {
         "initialDelayMs": 1000,
         "periodicCheckIntervalMs": 300000,
@@ -92,7 +92,7 @@
         "deviceIdValueColor": "#FF0000",
         "deviceBindInstructions": "请将此设备ID发送给管理员，绑定后再次验证",
         "deviceBindInstructionsColor": "#008000",
-        "contactInfo": "农家土猪",
+        "contactInfo": "福利彩票",
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": "57cb8039", "expireDate": "2099-12-31", "deviceLimit": 1},
