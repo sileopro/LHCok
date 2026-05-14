@@ -39,8 +39,8 @@
                     "lines": [
                         { "parts": [ { "text": "精准记录全维度数据", "color": "#DC143C" } ] },
                         { "parts": [
-                            { "text": "科学精准1", "color": "#32CD32" },
-                            { "text": "超高预测2", "color": "#FF00FF" }
+                            { "text": "科学精准", "color": "#32CD32" },
+                            { "text": "超高预测", "color": "#FF00FF" }
                         ] },
                         { "parts": [
                             { "text": "天天中奖", "color": "#8470FF" },
