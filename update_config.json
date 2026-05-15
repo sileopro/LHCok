@@ -73,7 +73,7 @@
         "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
         "authExpireDays": 30,
         "trialDays": 3,
-        "authMessage": "泉港批发中心",
+        "authMessage": "香港赛马会",
         "authMessageColor": "#008B8B",
         "expireMessage": "您的卡密已过期，请重新购买",
         "invalidMessage": "卡密无效或已被使用",
@@ -92,7 +92,7 @@
         "deviceIdValueColor": "#FF0000",
         "deviceBindInstructions": "请将此设备ID发送给管理员，绑定后再次验证",
         "deviceBindInstructionsColor": "#008000",
-        "contactInfo": "福利彩票",
+        "contactInfo": "百万彩票",
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": 02952bf3", "expireDate": "2099-12-31", "deviceLimit": 1},
