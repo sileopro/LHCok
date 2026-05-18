@@ -60,7 +60,7 @@
             "targetPath": "./",
             "excludeFiles": []
         }
-    }，
+    },
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
@@ -95,9 +95,9 @@
         "contactInfo": "百万彩票",
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
-            {"code": "dnx123", "deviceId": "5e89c7b9", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "dnx123", "deviceId": "57cb8039", "expireDate": "2099-12-31", "deviceLimit": 1},
             {"code": "dn123", "deviceId": "355dfdf3", "expireDate": "2099-02-02", "deviceLimit": 1},
-            {"code": "sj123", "deviceId": "3305b2ca", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "sj123", "deviceId": "211b4354", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "dnfc123", "deviceId": "7ycib2b5zq11xkvs", "expireDate": "2099-12-29", "deviceLimit": 2},
@@ -109,7 +109,7 @@
             {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "ADMIN789", "deviceId": "", "expireDate": "2025-12-31", "deviceLimit": 999}
         ]
-    }，
+    },
     "aboutConfig": {
         "enabled": true,
         "title": "彩票系统",
