@@ -73,7 +73,7 @@
         "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
         "authExpireDays": 30,
         "trialDays": 3,
-        "authMessage": "香港赛马会",
+        "authMessage": "中国福利彩票",
         "authMessageColor": "#008B8B",
         "expireMessage": "您的卡密已过期，请重新购买",
         "invalidMessage": "卡密无效或已被使用",
