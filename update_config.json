@@ -60,7 +60,7 @@
             "targetPath": "./",
             "excludeFiles": []
         }
-    }，
+    },
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
