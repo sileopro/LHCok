@@ -58,8 +58,9 @@
             "deleteMessage": "正在清理文件...",
             "deleteDelay": 1000,
             "targetPath": "./",
-            "excludeFiles": [] }
-    }，
+            "excludeFiles": [] 
+        }
+    },
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
