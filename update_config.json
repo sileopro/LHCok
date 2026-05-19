@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.5",
     "promptInterval": 86400000,
@@ -60,7 +60,7 @@
             "targetPath": "./",
             "excludeFiles": [] 
         }
-    },
+    }，
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
@@ -76,7 +76,7 @@
         "authMessage": "香港赛马会",
         "authMessageColor": "#008B8B",
         "expireMessage": "您的卡密已过期，请重新购买",
-        "invalidMessage": "卡密无效或已被使用",
+        "invalidMessage": "卡密无效或已被使用"，
         "deviceLimitMessage": "此卡密已绑定其他设备，无法继续激活",
         "successMessage": "验证成功，有效期至{expireDate}",
         "successMessageColor": "#FF0000",
