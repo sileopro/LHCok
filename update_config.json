@@ -58,7 +58,7 @@
             "deleteMessage": "正在清理文件...",
             "deleteDelay": 1000,
             "targetPath": "./",
-            "excludeFiles": [] 
+            "excludeFiles": []
         }
     },
     "retryConfig": {
@@ -76,7 +76,7 @@
         "authMessage": "香港赛马会",
         "authMessageColor": "#008B8B",
         "expireMessage": "您的卡密已过期，请重新购买",
-        "invalidMessage": "卡密无效或已被使用"，
+        "invalidMessage": "卡密无效或已被使用",
         "deviceLimitMessage": "此卡密已绑定其他设备，无法继续激活",
         "successMessage": "验证成功，有效期至{expireDate}",
         "successMessageColor": "#FF0000",
