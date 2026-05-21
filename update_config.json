@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.5",
     "promptInterval": 86400000,
@@ -60,7 +60,7 @@
             "targetPath": "./",
             "excludeFiles": []
         }
-    },
+    }，
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
