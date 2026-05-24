@@ -181,6 +181,7 @@ const ssqdefaultData = {
     { period: "054", numbers: [13, 20, 25, 29, 30, 33, 2] },
     { period: "055", numbers: [4, 11, 24, 25, 32, 33, 13] },
     { period: "056", numbers: [10, 19, 21, 22, 31, 33, 5] },
-    { period: "057", numbers: [1, 10, 22, 24, 28, 30, 7] }
+    { period: "057", numbers: [1, 10, 22, 24, 28, 30, 7] },
+    { period: "058", numbers: [1, 4, 7, 21, 29, 30, 1] }
   ]
 };
