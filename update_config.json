@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "currentVersion": "1.0.0",
     "latestVersion": "1.0.5",
     "promptInterval": 86400000,
@@ -97,7 +97,7 @@
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": "he9ollyl", "expireDate": "2099-12-31", "deviceLimit": 1},
             {"code": "dn123", "deviceId": "wkdopuyn", "expireDate": "2099-02-02", "deviceLimit": 1},
-            {"code": "sj123", "deviceId": "b6ryw793", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "sj123", "deviceId": "aqsat515", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "dnfc123", "deviceId": "7ycib2b5", "expireDate": "2099-12-29", "deviceLimit": 2},
