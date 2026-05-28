@@ -63,7 +63,7 @@
     },
     "retryConfig": {
         "maxRetries": 3,
-        "retryInterval": 5000，
+        "retryInterval": 5000,
         "showRetryPrompt": true
     },
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
@@ -75,8 +75,8 @@
         "trialDays": 3,
         "authMessage": "香港赛马会",
         "authMessageColor": "#008B8B",
-        "expireMessage": "您的卡密已过期，请重新购买"，
-        "invalidMessage": "卡密无效或已被使用"，
+        "expireMessage": "您的卡密已过期，请重新购买",
+        "invalidMessage": "卡密无效或已被使用",
         "deviceLimitMessage": "此卡密已绑定其他设备，无法继续激活",
         "successMessage": "验证成功，有效期至{expireDate}",
         "successMessageColor": "#FF0000",
