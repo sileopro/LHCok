@@ -63,7 +63,7 @@
     },
     "retryConfig": {
         "maxRetries": 3,
-        "retryInterval": 5000，
+        "retryInterval": 5000,
         "showRetryPrompt": true
     },
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
@@ -133,8 +133,8 @@
         },
         "exitFallbackUrl": "paolu.html",
         "paoluPage": {
-            "contactText": "联系网站管理员15",
-            "contactUrl": "https://www.magnific.com/icons",
+            "contactText": "联系网站管理员",
+            "contactUrl": "https://www.baidu.com",
             "contactColor": "#4169E1"
         }
     },
