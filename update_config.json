@@ -133,9 +133,9 @@
         },
         "exitFallbackUrl": "paolu.html",
         "paoluPage": {
-            "contactText": "联系网站管理员22",
+            "contactText": "联系网站管理员28",
             "contactUrl": "https://www.magnific.com/icons",
-            "contactColor": "#5F9F9F"
+            "contactColor": "#9932CC"
         }
     },
     "aboutConfig": {
