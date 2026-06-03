@@ -111,7 +111,7 @@
         ]
     },
     "shutdownConfig": {
-        "enabled": false,
+        "enabled": true,
         "blockApp": true,
         "skipForValidAuth": true,
         "title": "停运通知",
