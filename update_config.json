@@ -95,9 +95,9 @@
         "contactInfo": "百万彩票",
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
-            {"code": "dnx123", "deviceId": "baaj9dti", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "17xa2gvw", "expireDate": "2099-02-02", "deviceLimit": 1},
-            {"code": "sj123", "deviceId": "l38o12n5", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "dnx123", "deviceId": "5e89c7b9", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "355dfdf3", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "sj123", "deviceId": "3305d2ca", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "dnfc123", "deviceId": "7ycib2b5zq11xkvs", "expireDate": "2099-12-29", "deviceLimit": 2},
@@ -109,6 +109,27 @@
             {"code": "VIP4567", "deviceId": "333666999", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "ADMIN789", "deviceId": "", "expireDate": "2025-12-31", "deviceLimit": 999}
         ]
+    },
+    "shutdownConfig": {
+        "enabled": true,
+        "blockApp": true,
+        "title": "停运通知",
+        "titleColor": "#C62828",
+        "partsGapPx": 10,
+        "lines": [
+            { "parts": [ { "text": "本应用已停止运营", "color": "#D32F2F" } ] },
+            { "parts": [ { "text": "感谢您一直以来的支持与陪伴", "color": "#455A64" } ] },
+            { "parts": [ { "text": "相伴同行的每一天，我们都铭记于心", "color": "#78909C" } ] },
+            { "parts": [ { "text": "愿您诸事顺遂，再见！", "color": "#00897B" } ] }
+        ],
+        "buttons": {
+            "exitApp": {
+                "enabled": true,
+                "text": "退出应用",
+                "textColor": "#FFFFFF",
+                "background": "#757575"
+            }
+        }
     },
     "aboutConfig": {
         "enabled": true,
