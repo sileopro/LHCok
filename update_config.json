@@ -131,7 +131,12 @@
                 "background": "#FF6347"
             }
         },
-        "exitFallbackUrl": "paolu.html"
+        "exitFallbackUrl": "paolu.html",
+        "paoluPage": {
+            "contactText": "联系网站管理员22",
+            "contactUrl": "https://www.magnific.com/icons",
+            "contactColor": "#5F9F9F"
+        }
     },
     "aboutConfig": {
         "enabled": true,
