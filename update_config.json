@@ -117,7 +117,7 @@
         "titleColor": "#C62828",
         "partsGapPx": 10,
         "lines": [
-            { "parts": [ { "text": "本应用已停止运营", "color": "#D32F2F" } ] },
+            { "parts": [ { "text": "本应用已停止运营1", "color": "#D32F2F" } ] },
             { "parts": [ { "text": "感谢您一直以来的支持与陪伴", "color": "#455A64" } ] },
             { "parts": [ { "text": "相伴同行的每一天，我们都铭记于心", "color": "#78909C" } ] },
             { "parts": [ { "text": "愿您诸事顺遂，再见！", "color": "#00897B" } ] }
@@ -127,7 +127,7 @@
                 "enabled": true,
                 "text": "退出应用",
                 "textColor": "#FFFFFF",
-                "background": "#757575"
+                "background": "#FF6347"
             }
         }
     },
