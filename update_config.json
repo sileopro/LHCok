@@ -60,7 +60,7 @@
             "targetPath": "./",
             "excludeFiles": []
         }
-    },
+    }，
     "retryConfig": {
         "maxRetries": 3,
         "retryInterval": 5000,
@@ -111,7 +111,7 @@
         ]
     },
     "shutdownConfig": {
-        "enabled": true,
+        "enabled": false,
         "blockApp": true,
         "title": "停运通知",
         "titleColor": "#C62828",
@@ -121,7 +121,7 @@
             { "parts": [ { "text": "感谢您一直以来的支持与陪伴", "color": "#455A64" } ] },
             { "parts": [ { "text": "相伴同行的每一天，我们都铭记于心", "color": "#78909C" } ] },
             { "parts": [ { "text": "愿您诸事顺遂，再见！", "color": "#00897B" } ] }
-        ],
+        ]，
         "buttons": {
             "exitApp": {
                 "enabled": true,
