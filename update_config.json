@@ -95,9 +95,9 @@
         "contactInfo": "百万彩票",
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
-            {"code": "dnx123", "deviceId": "w8q3p85y", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "c298qk2s", "expireDate": "2099-02-02", "deviceLimit": 1},
-            {"code": "sj123", "deviceId": "e77jz1rf", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "dnx123", "deviceId": "kmi55s5s", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "37ghttam", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "sj123", "deviceId": "70v6n2u9", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "dnfc123", "deviceId": "7ycib2b", "expireDate": "2099-12-29", "deviceLimit": 2},
@@ -167,7 +167,7 @@
             {
                 "align": "right",
                 "parts": [
-                    { "text": "香港赛马会", "color": "#9400D3" }
+                    { "text": "香港赛马会1", "color": "#9400D3" }
                 ]
             }
             
