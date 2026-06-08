@@ -317,7 +317,7 @@
         "https://156.225.89.149:2285/kj/caiji/amkj.js",
         "https://156.225.94.47:6523/kj/caiji/amkj.js",
         "https://156.225.89.140:8255/kj/caiji/amkj.js",
-        "https://156.225.89.144:5576/kj/caiji/amkj.js",
+        "https://156.225.89.144:5576/kj/caiji/amkj.js"，
         "https://45.221.97.29:8775/kj/caiji/amkj.js",
         "https://45.221.97.23:6165/kj/caiji/amkj.js",
         "https://156.225.94.20:3335/kj/caiji/amkj.js",
@@ -357,7 +357,7 @@
     "presets": {
       "m3u8": {
         "label": "M3U8",
-        "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        "url": "https://live-macaujc.com/live/livestream/new.m3u8",
         "color": "#4169E1"
       },
       "flv": {
