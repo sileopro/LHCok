@@ -138,6 +138,12 @@
             "contactColor": "#0000CD"
         }
     },
+    "dataSourceConfig": {
+        "enabled": true,
+        "version": 1,
+        "remoteUrl": "https://sileopro.github.io/LHCok/data_sources.json",
+        "backupRemoteUrl": "https://am49.dpdns.org/data_sources.json"
+    },
     "aboutConfig": {
         "enabled": true,
         "title": "彩票系统",
