@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "proxy": "https://api.allorigins.win/raw?url=",
+  "_readme": "上传到 GitHub 后可通过修改本文件同步主界面/历史页/debug窗口/iframe 数据源。只需写要改的字段；未写项使用代码内默认并自动合并备用。",
+  "githubHistory": {
+    "hk": [
+      "https://sileopro.github.io/LHCok/hk.txt",
+      "https://am49.dpdns.org/hk.txt"
+    ],
+    "nz": [
+      "https://sileopro.github.io/LHCok/xam.txt",
+      "https://am49.dpdns.org/xam.txt"
+    ],
+    "au": [
+      "https://sileopro.github.io/LHCok/lam.txt",
+      "https://am49.dpdns.org/lam.txt"
+    ],
+    "tw": [
+      "https://sileopro.github.io/LHCok/tc.txt",
+      "https://am49.dpdns.org/tc.txt"
+    ]
+  },
+  "drawTimes": {
+    "primary": {
+      "hk": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json",
+      "nz": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json",
+      "au": "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "tw": "https://154.81.36.17:8335/kj/caiji/amkj.js"
+    },
+    "backup": {
+      "hk": [
+        "https://154.81.36.18:8925/kj/caiji/hkkj.js",
+        "https://154.198.233.78:6777/kj/caiji/hkkj.js",
+        "https://154.81.36.8:5935/kj/caiji/hkkj.js",
+        "https://kjkj.kj88889.com/bmjg.js",
+        "https://001033.com/kj/js/xgjs.asp",
+        "https://api.493210.com/bmxg.js",
+        "https://www.hkj.rip/hkwsj.aspx"
+      ],
+      "nz": [
+        "https://154.81.36.18:8925/kj/caiji/amkj.js",
+        "https://154.198.233.78:6777/kj/caiji/amkj.js",
+        "https://154.81.36.8:5935/kj/caiji/amkj.js",
+        "https://001033.com/kj/js/amjs.asp",
+        "https://api.493210.com/bmam.js",
+        "https://www.hkj.rip/xamsj.aspx"
+      ],
+      "au": [
+        "https://49xr.cc/data/tw.js",
+        "https://www.hkj.rip/lamsj.aspx"
+      ],
+      "tw": [
+        "https://154.81.36.17:8335/kj/caiji/amkj.js",
+        "https://49xr.cc/data/xjp.js"
+      ]
+    },
+    "fallbackText": "https://sileopro.github.io/LHCok/time.txt"
+  },
+  "autoUpdateApi": {
+    "hk": [
+      { "url": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json", "mode": "cors", "parser": "hkjRip" }
+    ],
+    "nz": [
+      { "url": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json", "mode": "cors", "parser": "hkjRip" }
+    ]
+  },
+  "liveDrawPoll": {
+    "hk": [
+      "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json"
+    ],
+    "nz": [
+      "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json"
+    ]
+  },
+  "debugWindow": {
+    "hk": {
+      "api": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json"
+    },
+    "nz": {
+      "api": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json"
+    },
+    "au": {
+      "api": "https://macaumarksix.com/api/live",
+      "backupApis": ["https://macaumarksix.com/api/macaujc.com"]
+    },
+    "tw": {
+      "api": "https://49xr.cc/data/tw.js",
+      "backupApis": ["https://005679.com/2chajian/bmjg.js"]
+    },
+    "nextDrawApis": {
+      "hk": [
+        "https://154.81.36.17:8335/kj/caiji/hkkj.js",
+        "https://156.225.94.25:7395/kj/caiji/hkkj.js",
+        "https://154.198.233.78:6777/kj/caiji/hkkj.js"
+      ],
+      "nz": [
+        "https://154.81.36.17:8335/kj/caiji/amkj.js",
+        "https://156.225.94.25:7395/kj/caiji/amkj.js",
+        "https://154.198.233.78:6777/kj/caiji/amkj.js"
+      ]
+    }
+  },
+  "iframeMain": {
+    "ambm": "https://156.225.89.140:8255/kj/ambm.html",
+    "hkbm": "https://156.225.89.140:8255/kj/hkbm.html"
+  },
+  "iframeZuikuaikj": [
+    "https://156.225.89.140:8255/kj/hkbm.html",
+    "https://156.225.89.144:5576/kj/hkbm.html",
+    "https://156.225.89.140:8255/kj/ambm.html",
+    "https://156.225.89.144:5576/kj/ambm.html",
+    "https://156.225.94.47:6523/kj/ambm.html"
+  ]
+}
