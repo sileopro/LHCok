@@ -250,6 +250,29 @@
     }
   },
 
+  "nextDrawApis": {
+    "hk": [
+      "https://154.81.36.17:8335/kj/caiji/hkkj.js",
+      "https://156.225.94.25:7395/kj/caiji/hkkj.js",
+      "https://154.198.233.78:6777/kj/caiji/hkkj.js"
+    ],
+    "nz": [
+      "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "https://156.225.94.25:7395/kj/caiji/amkj.js",
+      "https://154.198.233.78:6777/kj/caiji/amkj.js"
+    ],
+    "au": [
+      "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "https://156.225.94.25:7395/kj/caiji/amkj.js",
+      "https://154.198.233.78:6777/kj/caiji/amkj.js"
+    ],
+    "tw": [
+      "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "https://156.225.94.25:7395/kj/caiji/amkj.js",
+      "https://154.198.233.78:6777/kj/caiji/amkj.js"
+    ]
+  },
+
   "debugWindow": {
     "hk": {
       "api": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json",
@@ -294,11 +317,11 @@
         "https://156.225.89.149:2285/kj/caiji/amkj.js",
         "https://156.225.94.47:6523/kj/caiji/amkj.js",
         "https://156.225.89.140:8255/kj/caiji/amkj.js",
-        "https://156.225.89.144:5576/kj/caiji/amkj.js",
+        "https://156.225.89.144:5576/kj/caiji/amkj.js"，
         "https://45.221.97.29:8775/kj/caiji/amkj.js",
         "https://45.221.97.23:6165/kj/caiji/amkj.js",
         "https://156.225.94.20:3335/kj/caiji/amkj.js",
-        "https://001033.com/kj/js/amjs.asp"，
+        "https://001033.com/kj/js/amjs.asp",
         "https://api.493210.com/bmam.js",
         "https://www.hkj.rip/xamsj.aspx"
       ]
@@ -314,28 +337,6 @@
       "backupApis": [
         "https://005679.com/2chajian/bmjg.js"
       ]
-    },
-    "nextDrawApis": {
-      "hk": [
-        "https://154.81.36.17:8335/kj/caiji/hkkj.js",
-        "https://156.225.94.25:7395/kj/caiji/hkkj.js",
-        "https://154.198.233.78:6777/kj/caiji/hkkj.js"
-      ],
-      "nz": [
-        "https://154.81.36.17:8335/kj/caiji/amkj.js",
-        "https://156.225.94.25:7395/kj/caiji/amkj.js",
-        "https://154.198.233.78:6777/kj/caiji/amkj.js"
-      ],
-      "au": [
-        "https://154.81.36.17:8335/kj/caiji/amkj.js",
-        "https://156.225.94.25:7395/kj/caiji/amkj.js",
-        "https://154.198.233.78:6777/kj/caiji/amkj.js"
-      ],
-      "tw": [
-        "https://154.81.36.17:8335/kj/caiji/amkj.js",
-        "https://156.225.94.25:7395/kj/caiji/amkj.js",
-        "https://154.198.233.78:6777/kj/caiji/amkj.js"
-      ]
     }
   },
 
@@ -350,5 +351,23 @@
     "https://156.225.89.140:8255/kj/ambm.html",
     "https://156.225.89.144:5576/kj/ambm.html",
     "https://156.225.94.47:6523/kj/ambm.html"
-  ]
+  ],
+
+  "liveStream": {
+    "presets": {
+      "m3u8": {
+        "label": "M3U8",
+        "url": "https://live-macaujc.com/live/livestream/new.m3u8",
+        "color": "#4169E1"
+      },
+      "flv": {
+        "label": "FLV",
+        "url": "https://live-macaujc.com/live/livestream/new.flv",
+        "color": "#FF6347"
+      }
+    },
+    "testUrls": [
+      "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+    ]
+  }
 }
