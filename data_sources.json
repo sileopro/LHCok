@@ -321,7 +321,7 @@
         "https://45.221.97.29:8775/kj/caiji/amkj.js",
         "https://45.221.97.23:6165/kj/caiji/amkj.js",
         "https://156.225.94.20:3335/kj/caiji/amkj.js",
-        "https://001033.com/kj/js/amjs.asp",
+        "https://001033.com/kj/js/amjs.asp"，
         "https://api.493210.com/bmam.js",
         "https://www.hkj.rip/xamsj.aspx"
       ]
@@ -354,6 +354,7 @@
   ],
 
   "liveStream": {
+    "mp4VodBase": "https://xgdds11ttkk.qinglongtk3.com/images/np4/",
     "presets": {
       "m3u8": {
         "label": "M3U8",
