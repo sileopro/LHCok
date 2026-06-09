@@ -1,0 +1,55 @@
+# 每年 1 月 1 日 00:00（北京时间）将根目录开奖 txt 归档到 defaultData/
+name: 年度归档 defaultData
+
+on:
+  schedule:
+    # 北京时间 1月1日 00:00 = UTC 12月31日 16:00
+    - cron: '0 16 31 12 *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archive-default-data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 设置时区
+        uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: Asia/Shanghai
+
+      - name: 归档到 defaultData
+        run: python archive_default_data.py
+        env:
+          TZ: Asia/Shanghai
+
+      - name: 提交 defaultData 变更
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add defaultData/
+          if git diff --staged --quiet; then
+            echo "defaultData 无变更，跳过提交"
+            exit 0
+          fi
+          YEAR=$(date '+%Y')
+          PREV=$((YEAR - 1))
+          git commit -m "chore(defaultData): 归档 ${PREV} 年开奖数据 [skip ci]"
+          for i in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main || (git rebase --abort && exit 1)
+            git push && exit 0
+            echo "Push 失败，重试 $i/3"
+            sleep 2
+          done
+          exit 1
