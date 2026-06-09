@@ -2,8 +2,19 @@
 # -*- coding: utf-8 -*-
 """
 每年 1 月 1 日（北京时间）将根目录开奖 txt 归档到 defaultData/。
+保留 defaultData 里已有年份，新年份写在最上面。
 
-根目录文件名（zuikuai.py 实际写入）→ defaultData 对应文件：
+格式示例：
+  港彩 hk
+  2026
+  第001期：27 08 43 33 42 11 特码 29 牛
+  第002期：...
+
+  2025
+  第001期：09 23 42 44 45 46 特码 22 羊
+  ...
+
+根目录源文件 → defaultData：
   hk.txt   → defaultData/hk.txt   港彩 hk
   xam.txt  → defaultData/nz.txt   新澳 nz
   lam.txt  → defaultData/au.txt   老澳 au
@@ -20,6 +31,8 @@ from zoneinfo import ZoneInfo
 
 BJ = ZoneInfo("Asia/Shanghai")
 ISSUE_RE = re.compile(r"第(\d{1,3})期")
+YEAR_RE = re.compile(r"^\d{4}$")
+LABEL_PREFIXES = ("港彩", "新澳", "老澳", "台彩")
 
 ARCHIVES = [
     {"src": ["hk.txt"], "dest": "defaultData/hk.txt", "label": "港彩 hk"},
@@ -36,18 +49,24 @@ def resolve_src(paths: list[str]) -> str | None:
     return None
 
 
+def is_label_line(line: str) -> bool:
+    return any(line.startswith(p) for p in LABEL_PREFIXES)
+
+
 def read_issue_lines(path: str) -> list[str]:
+    """从根目录 txt 读取期数行（去掉标题行、年份行）。"""
     with open(path, encoding="utf-8") as f:
         lines = []
         for raw in f:
             line = raw.strip()
             if not line:
                 continue
-            if line.startswith("港彩") or line.startswith("新澳") or line.startswith("老澳") or line.startswith("台彩"):
+            if is_label_line(line):
                 continue
-            if re.fullmatch(r"\d{4}", line):
+            if YEAR_RE.fullmatch(line):
                 continue
-            lines.append(line)
+            if ISSUE_RE.search(line):
+                lines.append(line)
         return lines
 
 
@@ -59,11 +78,62 @@ def sort_issue_lines(lines: list[str]) -> list[str]:
     return sorted(lines, key=issue_num)
 
 
-def build_archive(label: str, year: int, lines: list[str]) -> str:
-    body = "\n".join(sort_issue_lines(lines))
-    if body:
-        return f"{label}\n{year}\n{body}\n"
-    return f"{label}\n{year}\n\n"
+def parse_default_data(content: str) -> tuple[str | None, dict[int, list[str]]]:
+    """解析 defaultData 多 year 块，返回 (彩种标题, {年: [期数行]})。"""
+    label = None
+    years: dict[int, list[str]] = {}
+    current_year: int | None = None
+
+    for raw in content.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if label is None and is_label_line(line):
+            label = line
+            continue
+        if YEAR_RE.fullmatch(line):
+            current_year = int(line)
+            years.setdefault(current_year, [])
+            continue
+        if current_year is not None and ISSUE_RE.search(line):
+            years[current_year].append(line)
+
+    return label, years
+
+
+def build_multi_year_archive(label: str, year_blocks: dict[int, list[str]]) -> str:
+    """按年份从新到旧输出，年份块之间空一行。"""
+    parts = [label]
+    sorted_years = sorted(year_blocks.keys(), reverse=True)
+    for i, year in enumerate(sorted_years):
+        lines = sort_issue_lines(year_blocks[year])
+        if not lines:
+            continue
+        parts.append(str(year))
+        parts.extend(lines)
+        if i < len(sorted_years) - 1:
+            parts.append("")
+    return "\n".join(parts) + "\n"
+
+
+def merge_archive(dest: str, label: str, archive_year: int, new_lines: list[str]) -> str:
+    """合并：保留旧年份，更新/插入 archive_year。"""
+    existing_label = label
+    year_blocks: dict[int, list[str]] = {}
+
+    if os.path.isfile(dest):
+        with open(dest, encoding="utf-8") as f:
+            old_label, year_blocks = parse_default_data(f.read())
+        if old_label:
+            existing_label = old_label
+
+    if new_lines:
+        year_blocks[archive_year] = list(new_lines)
+
+    if not year_blocks:
+        return f"{existing_label}\n\n"
+
+    return build_multi_year_archive(existing_label, year_blocks)
 
 
 def main() -> int:
@@ -90,11 +160,12 @@ def main() -> int:
             print(f"跳过 {label}：{src} 无有效期数行")
             continue
 
-        content = build_archive(label, archive_year, lines)
         old = ""
         if os.path.isfile(dest):
             with open(dest, encoding="utf-8") as f:
                 old = f.read()
+
+        content = merge_archive(dest, label, archive_year, lines)
 
         if old == content:
             print(f"未变化 {dest}（{label} {archive_year}，来源 {src}）")
@@ -103,7 +174,9 @@ def main() -> int:
         with open(dest, "w", encoding="utf-8") as f:
             f.write(content)
         changed += 1
-        print(f"已归档 {src} → {dest}（{label} {archive_year}，共 {len(lines)} 期）")
+        _, kept = parse_default_data(content)
+        years_info = ", ".join(f"{y}({len(kept[y])}期)" for y in sorted(kept.keys(), reverse=True))
+        print(f"已归档 {src} → {dest}（{label}，写入 {archive_year}，保留年份: {years_info}）")
 
     if changed == 0:
         print("defaultData 无变更")
