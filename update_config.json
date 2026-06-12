@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "latestVersion": "1.3.5",
     "apkUrl": "https://sileopro.github.io/LHCok/apk/money.apk",
     "apkBackupUrl": "https://am49.dpdns.org/apk/money.apk",
@@ -96,9 +96,9 @@
         "contactInfo": "百万彩票",
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
-            {"code": "dnx123", "deviceId": "biezc0rc", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "dnx123", "deviceId": "sgpf8abc", "expireDate": "2099-12-31", "deviceLimit": 1},
             {"code": "dn123", "deviceId": "oacctwlq", "expireDate": "2099-02-02", "deviceLimit": 1},
-            {"code": "sj123", "deviceId": "bu96jxpx", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "sj123", "deviceId": "fxqqfcwx", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "dnfc123", "deviceId": "7ycib2b", "expireDate": "2099-12-29", "deviceLimit": 2},
