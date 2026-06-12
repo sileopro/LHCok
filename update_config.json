@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "latestVersion": "1.3.5",
     "apkUrl": "https://sileopro.github.io/LHCok/apk/money.apk",
     "apkBackupUrl": "https://am49.dpdns.org/apk/money.apk",
