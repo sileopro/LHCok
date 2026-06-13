@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "latestVersion": "1.3.5",
     "apkUrl": "https://sileopro.github.io/LHCok/apk/money.apk",
     "apkBackupUrl": "https://am49.dpdns.org/apk/money.apk",
@@ -17,15 +17,15 @@
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
         "type": "auth",
-        "exclusiveMode": true,
+        "exclusiveMode": false,
         "options": {
             "immediate": {
-                "enabled": true,
+                "enabled": false,
                 "message": "全新升级，更胜以往",
                 "buttonText": "立即更新"
             },
             "auth": {
-                "enabled": false,
+                "enabled": true,
                 "message": "需要验证卡密才能继续使用",
                 "buttonText": "验证卡密"
             },
