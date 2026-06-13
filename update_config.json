@@ -30,7 +30,7 @@
                 "buttonText": "验证卡密"
             },
             "selective": {
-                "enabled": true,
+                "enabled": false,
                 "message": "发现新功能，是否需要更新？",
                 "buttonText": "广告预设",
                 "welcome": {
@@ -99,8 +99,8 @@
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": "sgpf8abc", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "wdip7f2d", "expireDate": "2099-02-02", "deviceLimit": 1},
-            {"code": "sj123", "deviceId": "in7whq22", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "dn123", "deviceId": "5d9s22cv", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "sj123", "deviceId": "m58mt1an", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "dnfc123", "deviceId": "7ycib2b", "expireDate": "2099-12-29", "deviceLimit": 2},
