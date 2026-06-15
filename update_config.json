@@ -1,5 +1,5 @@
 {
-    "enableUpdate": true,
+    "enableUpdate": false,
     "latestVersion": "1.3.5",
     "apkUrl": "https://sileopro.github.io/LHCok/apk/money.apk",
     "apkBackupUrl": "https://am49.dpdns.org/apk/money.apk",
@@ -99,7 +99,7 @@
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": "p06eumdu", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "5d9s22cv", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "v38x0zyh", "expireDate": "2099-02-02", "deviceLimit": 1},
             {"code": "sj123", "deviceId": "gtcuq9nw", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
