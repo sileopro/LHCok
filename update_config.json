@@ -1,6 +1,6 @@
 {
     "enableUpdate": true,
-    "latestVersion": "1.3.6",
+    "latestVersion": "1.3.7",
     "apkUrl": "https://sileopro.github.io/LHCok/apk",
     "apkBackupUrl": "https://am49.dpdns.org/apk",
     "promptInterval": 86400000,
