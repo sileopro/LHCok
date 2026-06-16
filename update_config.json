@@ -24,7 +24,7 @@
             },
             "selective": {
                 "enabled": true,
-                "message": "发现新功能，是否需要更新？",
+                "message": "广告弹窗功能",
                 "buttonText": "广告预设",
                 "welcome": {
                     "title": "欢迎使用",
@@ -59,8 +59,7 @@
     },
     "retryConfig": {
         "maxRetries": 3,
-        "retryInterval": 5000,
-        "showRetryPrompt": true
+        "retryInterval": 5000
     },
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
     "retryButtonText": "重新下载",
