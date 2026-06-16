@@ -12,7 +12,7 @@
     "updateTitle": "全新升级，更胜以往",
     "updateTitleColor": "#FF6347",
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
-    "forceUpdate": true,
+    "forceUpdate": false,
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
@@ -23,7 +23,7 @@
                 "buttonText": "验证卡密"
             },
             "selective": {
-                "enabled": false,
+                "enabled": true,
                 "message": "发现新功能，是否需要更新？",
                 "buttonText": "广告预设",
                 "welcome": {
