@@ -16,14 +16,7 @@
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
-        "type": "immediate",
-        "exclusiveMode": true,
         "options": {
-            "immediate": {
-                "enabled": true,
-                "message": "全新升级，更胜以往",
-                "buttonText": "立即更新"
-            },
             "auth": {
                 "enabled": true,
                 "message": "需要验证卡密才能继续使用",
