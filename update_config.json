@@ -12,7 +12,7 @@
     "updateTitle": "全新升级，更胜以往",
     "updateTitleColor": "#FF6347",
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
-    "forceUpdate": false,
+    "forceUpdate": true,
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
@@ -35,7 +35,7 @@
                     "lines": [
                         { "parts": [ { "text": "精准记录全维度数据", "color": "#DC143C" } ] },
                         { "parts": [
-                            { "text": "科学精准33", "color": "#32CD32" },
+                            { "text": "科学精准", "color": "#32CD32" },
                             { "text": "超高预测", "color": "#FF00FF" }
                         ] },
                         { "parts": [
