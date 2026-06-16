@@ -12,13 +12,13 @@
     "updateTitle": "全新升级，更胜以往",
     "updateTitleColor": "#FF6347",
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
-    "forceUpdate": true,
+    "forceUpdate": false,
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
         "options": {
             "auth": {
-                "enabled": false,
+                "enabled": true,
                 "message": "需要验证卡密才能继续使用",
                 "buttonText": "验证卡密"
             },
@@ -27,7 +27,7 @@
                 "message": "广告弹窗功能",
                 "buttonText": "广告预设",
                 "welcome": {
-                    "title": "欢迎使用",
+                    "title": "欢迎使用3333",
                     "titleColor": "#1E90FF",
                     "currentVersionColor": "#90EE90",
                     "latestVersionColor": "#FF1493",
