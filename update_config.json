@@ -1,6 +1,6 @@
 {
     "enableUpdate": true,
-    "latestVersion": "1.3.4",
+    "latestVersion": "1.3.5",
     "apkUrl": "https://sileopro.github.io/LHCok/apk",
     "apkBackupUrl": "https://am49.dpdns.org/apk",
     "promptInterval": 86400000,
@@ -64,7 +64,6 @@
     "networkErrorMessage": "网络连接失败，请检查网络后重试",
     "retryButtonText": "重新下载",
     "authConfig": {
-        "enabled": true,
         "serverUrl": "https://sileopro.github.io/LHCok/auth.php",
         "authExpireDays": 30,
         "trialDays": 3,
@@ -92,7 +91,7 @@
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": "sgpf8abc", "expireDate": "2099-12-31", "deviceLimit": 1},
             {"code": "dn123", "deviceId": "v38x0zyh", "expireDate": "2099-02-02", "deviceLimit": 1},
-            {"code": "sj123", "deviceId": "oevqk2c0", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "sj123", "deviceId": "kdz0mzit", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "dnfc123", "deviceId": "7ycib2b", "expireDate": "2099-12-29", "deviceLimit": 2},
