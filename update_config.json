@@ -18,7 +18,7 @@
     "updateMode": {
         "options": {
             "auth": {
-                "enabled": false,
+                "enabled": true,
                 "message": "需要验证卡密才能继续使用",
                 "buttonText": "验证卡密"
             },
