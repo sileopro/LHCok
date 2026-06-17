@@ -18,7 +18,7 @@
     "updateMode": {
         "options": {
             "auth": {
-                "enabled": false,
+                "enabled": true,
                 "message": "需要验证卡密才能继续使用",
                 "buttonText": "验证卡密"
             },
@@ -105,7 +105,7 @@
         ]
     },
     "shutdownConfig": {
-        "enabled": false,
+        "enabled": true,
         "blockApp": true,
         "skipForValidAuth": true,
         "title": "停运通知",
