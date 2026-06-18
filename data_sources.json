@@ -1,7 +1,7 @@
 {
-  "version": 5,
+  "version": 6,
   "proxy": "https://api.allorigins.win/raw?url=",
-  "_readme": "与 dataSourceConfig.js 内默认地址完全一致，上传到 GitHub 后可远程修改同步。代码内仍保留相同默认作兜底；改地址时只需改要变的项，bump version。香港直播流已于 66111w livev2/2442 regionType=2 核对。",
+  "_readme": "与 dataSourceConfig.js 内默认地址完全一致，上传到 GitHub 后可远程修改同步。代码内仍保留相同默认作兜底；改地址时只需改要变的项，bump version。香港直播流已于 66111w livev2/2473 regionType=2 核对。",
 
   "githubHistory": {
     "hk": [
@@ -418,7 +418,7 @@
       "enabled": true,
       "liveId": 2326,
       "liveIds": {
-        "hk": 2442
+        "hk": 2473
       },
       "baseUrl": "https://pc.66111w.com/sd/livestream/v2/",
       "regionTypes": {
