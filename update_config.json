@@ -1,5 +1,4 @@
 {
-    "currentVersion": "1.3.5",
     "latestVersion": "1.3.5",
     "apkUrl": "https://sileopro.github.io/LHCok/apk",
     "apkBackupUrl": "https://am49.dpdns.org/apk",
@@ -18,7 +17,7 @@
     "updateMode": {
         "options": {
             "auth": {
-                "enabled": false,
+                "enabled": true,
                 "message": "需要验证卡密才能继续使用",
                 "buttonText": "验证卡密"
             },
@@ -89,8 +88,8 @@
         "contactInfo": "百万彩票",
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
-            {"code": "dnx123", "deviceId": "p06eumdu", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "6aj1qrc0", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "dnx123", "deviceId": "sgpf8abc", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "v38x0zyh", "expireDate": "2099-02-02", "deviceLimit": 1},
             {"code": "sj123", "deviceId": "p5afuv8m", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
