@@ -1,7 +1,7 @@
 {
     "latestVersion": "1.3.5",
     "apkUrl": "https://sileopro.github.io/LHCok/apk",
-    "apkBackupUrl": "https://am49.dpdns.org/apk",
+    "apkBackupUrl": "https://xgam49.dpdns.org/apk",
     "promptInterval": 86400000,
     "updatePopupTiming": {
         "initialDelayMs": 1000,
@@ -88,9 +88,11 @@
         "contactInfo": "百万彩票",
         "validCodes": [
             {"code": "VIP888999", "deviceId": "2f265fe8", "expireDate": "2095-12-22", "deviceLimit": 2},
-            {"code": "dnx123", "deviceId": "p06eumdu", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "9mp3w2yx", "expireDate": "2099-02-02", "deviceLimit": 1},
-            {"code": "sj123", "deviceId": "dpxq9ji6", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "dnx123", "deviceId": "sgpf8abc", "expireDate": "2099-12-31", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "v38x0zyh", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "r70123", "deviceId": "erazjinv", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "z2123", "deviceId": "pryavuhz", "expireDate": "2098-12-31", "deviceLimit": 2},
+            {"code": "moto123", "deviceId": "p5afuv8m", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "cs123", "deviceId": "555c74ab", "expireDate": "2099-07-07", "deviceLimit": 2},
             {"code": "wh123", "deviceId": "48561d46", "expireDate": "2025-12-22", "deviceLimit": 2},
             {"code": "dnfc123", "deviceId": "7ycib2b", "expireDate": "2099-12-29", "deviceLimit": 2},
@@ -135,7 +137,7 @@
         "enabled": true,
         "version": 1,
         "remoteUrl": "https://sileopro.github.io/LHCok/data_sources.json",
-        "backupRemoteUrl": "https://am49.dpdns.org/data_sources.json"
+        "backupRemoteUrl": "https://xgam49.dpdns.org/data_sources.json"
     },
     "aboutConfig": {
         "enabled": true,
