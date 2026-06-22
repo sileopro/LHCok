@@ -77,7 +77,7 @@
         "warningMessageColor": "#008080",
         "contactInfoColor": "#9932CC",
         "buyUrl": "paolu.html" ,
-        "buyButtonText": "联系客服",
+        "buyButtonText": "联系管理员",
         "unbindDeviceMessage": "此卡密尚未绑定设备，请联系管理员绑定",
         "unbindMessageColor": "#FF6347",
         "deviceIdTitle": "您的设备ID",
