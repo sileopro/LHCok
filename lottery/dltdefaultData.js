@@ -79,6 +79,7 @@ const dltdefaultData = {
     { period: "068", numbers: [3, 11, 12, 21, 22, 6, 10] },
     { period: "069", numbers: [12, 19, 21, 24, 29, 3, 10] },
     { period: "070", numbers: [4, 5, 15, 21, 32, 2, 11] },
-    { period: "071", numbers: [5, 13, 22, 26, 32, 2, 3] }
+    { period: "071", numbers: [5, 13, 22, 26, 32, 2, 3] },
+    { period: "072", numbers: [1, 13, 26, 29, 30, 9, 11] }
   ]
 };
