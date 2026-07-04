@@ -1,5 +1,5 @@
 {
-    "latestVersion": "1.3.5",
+    "latestVersion": "1.3.2",
     "apkUrl": "https://sileopro.github.io/LHCok/apk",
     "apkBackupUrl": "https://xgam49.dpdns.org/apk",
     "promptInterval": 86400000,
@@ -11,7 +11,7 @@
     "updateTitle": "全新升级，更胜以往",
     "updateTitleColor": "#FF6347",
     "updateDescription": "1. 修复已知问题\n2. 优化用户体验\n3. 新增部分功能",
-    "forceUpdate": false,
+    "forceUpdate": true,
     "minVersion": "1.0.0",
     "forceUpdateMessage": "当前版本过低，必须更新后才能继续使用",
     "updateMode": {
