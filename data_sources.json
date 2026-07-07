@@ -1,0 +1,458 @@
+{
+  "version": 9,
+  "proxy": "https://api.allorigins.win/raw?url=",
+  "_readme": "与 dataSourceConfig.js 内默认地址完全一致，上传到 GitHub 后可远程修改同步。代码内仍保留相同默认作兜底；改地址时只需改要变的项，bump version。直播：anchorRoomIds 为正常直播间固定入口(新澳2556/香港2555)；当期开奖房间号(如2540→2549)由 zhibo.js 通过 API openResult 链自动发现并本地缓存，无需在 JSON 里写死。66111w 失败时用乐透宝 hkLotobaoFallback 备用。",
+
+  "githubHistory": {
+    "hk": [
+      "https://sileopro.github.io/LHCok/hk.txt",
+      "https://xgam49.dpdns.org/hk.txt",
+      "https://cdn.jsdelivr.net/gh/sileopro/LHCok/hk.txt",
+      "https://fastly.jsdelivr.net/gh/sileopro/LHCok/hk.txt",
+      "https://gcore.jsdelivr.net/gh/sileopro/LHCok/hk.txt"
+    ],
+    "nz": [
+      "https://sileopro.github.io/LHCok/xam.txt",
+      "https://xgam49.dpdns.org/xam.txt",
+      "https://cdn.jsdelivr.net/gh/sileopro/LHCok/xam.txt",
+      "https://fastly.jsdelivr.net/gh/sileopro/LHCok/xam.txt",
+      "https://gcore.jsdelivr.net/gh/sileopro/LHCok/xam.txt"
+    ],
+    "au": [
+      "https://sileopro.github.io/LHCok/lam.txt",
+      "https://xgam49.dpdns.org/lam.txt",
+      "https://cdn.jsdelivr.net/gh/sileopro/LHCok/lam.txt",
+      "https://fastly.jsdelivr.net/gh/sileopro/LHCok/lam.txt",
+      "https://gcore.jsdelivr.net/gh/sileopro/LHCok/lam.txt"
+    ],
+    "tw": [
+      "https://sileopro.github.io/LHCok/tc.txt",
+      "https://xgam49.dpdns.org/tc.txt",
+      "https://cdn.jsdelivr.net/gh/sileopro/LHCok/tc.txt",
+      "https://fastly.jsdelivr.net/gh/sileopro/LHCok/tc.txt",
+      "https://gcore.jsdelivr.net/gh/sileopro/LHCok/tc.txt"
+    ]
+  },
+
+  "drawTimes": {
+    "primary": {
+      "hk": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json",
+      "nz": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json",
+      "au": "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "tw": "https://154.81.36.17:8335/kj/caiji/amkj.js"
+    },
+    "backup": {
+      "hk": [
+        "https://154.81.36.18:8925/kj/caiji/hkkj.js",
+        "https://154.198.233.78:6777/kj/caiji/hkkj.js",
+        "https://154.81.36.8:5935/kj/caiji/hkkj.js",
+        "https://kjkj.kj88889.com/bmjg.js",
+        "https://001033.com/kj/js/xgjs.asp",
+        "https://api.493210.com/bmxg.js",
+        "https://www.hkj.rip/hkwsj.aspx"
+      ],
+      "nz": [
+        "https://154.81.36.18:8925/kj/caiji/amkj.js",
+        "https://154.198.233.78:6777/kj/caiji/amkj.js",
+        "https://154.81.36.8:5935/kj/caiji/amkj.js",
+        "https://001033.com/kj/js/amjs.asp",
+        "https://api.493210.com/bmam.js",
+        "https://www.hkj.rip/xamsj.aspx"
+      ],
+      "au": [
+        "https://49xr.cc/data/tw.js",
+        "https://www.hkj.rip/lamsj.aspx"
+      ],
+      "tw": [
+        "https://154.81.36.17:8335/kj/caiji/amkj.js",
+        "https://49xr.cc/data/xjp.js"
+      ]
+    },
+    "fallbackText": "https://sileopro.github.io/LHCok/time.txt"
+  },
+
+  "autoUpdateApi": {
+    "hk": [
+      { "url": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://hk-marksix.com/api/lottery/info/six", "mode": "cors" },
+      { "url": "https://154.81.36.18:8925/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://154.198.233.78:6777/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://154.81.36.8:5935/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://kjkj.kj88889.com/bmjg.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://api.493210.com/bmxg.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://001033.com/kj/js/xgjs.asp", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://154.81.36.17:8335/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.42:7625/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.89.155:6825/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.15:5395/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.25:7395/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.30:2255/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.89.149:2285/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.47:6523/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.89.140:8255/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.89.144:5576/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://45.221.97.29:8775/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://45.221.97.23:6165/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.20:3335/kj/caiji/hkkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://49xr.cc/data/hk.js", "mode": "cors", "parser": "hkjRip" }
+    ],
+    "nz": [
+      { "url": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://macaumarksix.com/api/macaujc2.com", "mode": "cors" },
+      { "url": "https://154.81.36.18:8925/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://154.198.233.78:6777/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://154.81.36.8:5935/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://api.493210.com/bmam.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://154.81.36.17:8335/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.42:7625/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.89.155:6825/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.15:5395/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.25:7395/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.30:2255/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.89.149:2285/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.47:6523/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.89.140:8255/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.89.144:5576/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://45.221.97.29:8775/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://45.221.97.23:6165/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://156.225.94.20:3335/kj/caiji/amkj.js", "mode": "cors", "parser": "hkjRip" },
+      { "url": "https://001033.com/kj/js/amjs.asp", "mode": "cors", "parser": "hkjRip" }
+    ],
+    "au": [
+      { "url": "https://005679.com/2chajian/bmjg.js", "mode": "no-cors", "parser": "hkjRip" },
+      { "url": "https://49xr.cc/data/tw.js", "mode": "no-cors", "parser": "hkjRip" }
+    ],
+    "tw": [
+      { "url": "https://49xr.cc/data/xjp.js", "mode": "no-cors", "parser": "hkjRip" },
+      { "url": "https://49xr.cc/data/hk.js", "mode": "no-cors", "parser": "hkjRip" }
+    ]
+  },
+
+  "liveDrawPoll": {
+    "hk": [
+      "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json",
+      "https://154.198.233.78:6777/kj/caiji/hkkj.js",
+      "https://154.81.36.17:8335/kj/caiji/hkkj.js",
+      "https://154.81.36.8:5935/kj/caiji/hkkj.js",
+      "https://154.81.36.18:8925/kj/caiji/hkkj.js",
+      "https://156.225.94.42:7625/kj/caiji/hkkj.js",
+      "https://156.225.89.155:6825/kj/caiji/hkkj.js",
+      "https://156.225.94.15:5395/kj/caiji/hkkj.js",
+      "https://156.225.94.25:7395/kj/caiji/hkkj.js",
+      "https://156.225.94.30:2255/kj/caiji/hkkj.js",
+      "https://156.225.89.149:2285/kj/caiji/hkkj.js",
+      "https://156.225.94.47:6523/kj/caiji/hkkj.js",
+      "https://156.225.89.140:8255/kj/caiji/hkkj.js",
+      "https://156.225.89.144:5576/kj/caiji/hkkj.js",
+      "https://45.221.97.29:8775/kj/caiji/hkkj.js",
+      "https://45.221.97.23:6165/kj/caiji/hkkj.js",
+      "https://156.225.94.20:3335/kj/caiji/hkkj.js",
+      "https://kjkj.kj88889.com/bmjg.js",
+      "https://001033.com/kj/js/xgjs.asp",
+      "https://api.493210.com/bmxg.js",
+      "https://xgam49.dpdns.org/hkkj.json"
+    ],
+    "nz": [
+      "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json",
+      "https://154.198.233.78:6777/kj/caiji/amkj.js",
+      "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "https://154.81.36.8:5935/kj/caiji/amkj.js",
+      "https://154.81.36.18:8925/kj/caiji/amkj.js",
+      "https://156.225.94.42:7625/kj/caiji/amkj.js",
+      "https://156.225.89.155:6825/kj/caiji/amkj.js",
+      "https://156.225.94.15:5395/kj/caiji/amkj.js",
+      "https://156.225.94.25:7395/kj/caiji/amkj.js",
+      "https://156.225.94.30:2255/kj/caiji/amkj.js",
+      "https://156.225.89.149:2285/kj/caiji/amkj.js",
+      "https://156.225.94.47:6523/kj/caiji/amkj.js",
+      "https://156.225.89.140:8255/kj/caiji/amkj.js",
+      "https://156.225.89.144:5576/kj/caiji/amkj.js",
+      "https://45.221.97.29:8775/kj/caiji/amkj.js",
+      "https://45.221.97.23:6165/kj/caiji/amkj.js",
+      "https://156.225.94.20:3335/kj/caiji/amkj.js",
+      "https://001033.com/kj/js/amjs.asp",
+      "https://api.493210.com/bmam.js",
+      "https://xgam49.dpdns.org/xamkj.json"
+    ],
+    "au": [
+      "https://www.hkj.rip/lamsj.aspx",
+      "https://xgam49.dpdns.org/lamkj.json"
+    ],
+    "tw": [
+      "https://49xr.cc/data/hk.js"
+    ]
+  },
+
+  "kaijiangApi": {
+    "hk": {
+      "main": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json",
+      "backups": [
+        "https://macaumarksix.com/api/hkjc.com",
+        "https://154.198.233.78:6777/kj/caiji/hkkj.js",
+        "https://154.81.36.17:8335/kj/caiji/hkkj.js",
+        "https://154.81.36.8:5935/kj/caiji/hkkj.js",
+        "https://154.81.36.18:8925/kj/caiji/hkkj.js",
+        "https://156.225.94.42:7625/kj/caiji/hkkj.js",
+        "https://156.225.89.155:6825/kj/caiji/hkkj.js",
+        "https://156.225.94.15:5395/kj/caiji/hkkj.js",
+        "https://156.225.94.25:7395/kj/caiji/hkkj.js",
+        "https://156.225.94.30:2255/kj/caiji/hkkj.js",
+        "https://156.225.89.149:2285/kj/caiji/hkkj.js",
+        "https://156.225.94.47:6523/kj/caiji/hkkj.js",
+        "https://156.225.89.140:8255/kj/caiji/hkkj.js",
+        "https://156.225.89.144:5576/kj/caiji/hkkj.js",
+        "https://45.221.97.29:8775/kj/caiji/hkkj.js",
+        "https://45.221.97.23:6165/kj/caiji/hkkj.js",
+        "https://156.225.94.20:3335/kj/caiji/hkkj.js",
+        "https://kjkj.kj88889.com/bmjg.js",
+        "https://001033.com/kj/js/xgjs.asp",
+        "https://api.493210.com/bmxg.js",
+        "https://xgam49.dpdns.org/hkkj.json"
+      ]
+    },
+    "nz": {
+      "main": "https://macaumarksix.com/api/live2",
+      "backups": [
+        "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json",
+        "https://macaumarksix.com/api/macaujc2.com",
+        "https://154.198.233.78:6777/kj/caiji/amkj.js",
+        "https://154.81.36.17:8335/kj/caiji/amkj.js",
+        "https://154.81.36.8:5935/kj/caiji/amkj.js",
+        "https://154.81.36.18:8925/kj/caiji/amkj.js",
+        "https://156.225.94.42:7625/kj/caiji/amkj.js",
+        "https://156.225.89.155:6825/kj/caiji/amkj.js",
+        "https://156.225.94.15:5395/kj/caiji/amkj.js",
+        "https://156.225.94.25:7395/kj/caiji/amkj.js",
+        "https://156.225.94.30:2255/kj/caiji/amkj.js",
+        "https://156.225.89.149:2285/kj/caiji/amkj.js",
+        "https://156.225.94.47:6523/kj/caiji/amkj.js",
+        "https://156.225.89.140:8255/kj/caiji/amkj.js",
+        "https://156.225.89.144:5576/kj/caiji/amkj.js",
+        "https://45.221.97.29:8775/kj/caiji/amkj.js",
+        "https://45.221.97.23:6165/kj/caiji/amkj.js",
+        "https://156.225.94.20:3335/kj/caiji/amkj.js",
+        "https://001033.com/kj/js/amjs.asp",
+        "https://api.493210.com/bmam.js",
+        "https://xgam49.dpdns.org/xamkj.json"
+      ]
+    },
+    "au": {
+      "main": "https://macaumarksix.com/api/live",
+      "backups": [
+        "https://macaumarksix.com/api/macaujc.com"
+      ]
+    },
+    "tw": {
+      "main": "https://49xr.cc/data/tw.js",
+      "backups": [
+        "https://005679.com/2chajian/bmjg.js"
+      ]
+    }
+  },
+
+  "nextDrawApis": {
+    "hk": [
+      "https://154.81.36.17:8335/kj/caiji/hkkj.js",
+      "https://156.225.94.25:7395/kj/caiji/hkkj.js",
+      "https://154.198.233.78:6777/kj/caiji/hkkj.js"
+    ],
+    "nz": [
+      "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "https://156.225.94.25:7395/kj/caiji/amkj.js",
+      "https://154.198.233.78:6777/kj/caiji/amkj.js"
+    ],
+    "au": [
+      "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "https://156.225.94.25:7395/kj/caiji/amkj.js",
+      "https://154.198.233.78:6777/kj/caiji/amkj.js"
+    ],
+    "tw": [
+      "https://154.81.36.17:8335/kj/caiji/amkj.js",
+      "https://156.225.94.25:7395/kj/caiji/amkj.js",
+      "https://154.198.233.78:6777/kj/caiji/amkj.js"
+    ]
+  },
+
+  "debugWindow": {
+    "hk": {
+      "api": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/xgkj.json",
+      "backupApis": [
+        "https://154.198.233.78:6777/kj/caiji/hkkj.js",
+        "https://macaumarksix.com/api/hkjc.com",
+        "https://154.81.36.17:8335/kj/caiji/hkkj.js",
+        "https://154.81.36.8:5935/kj/caiji/hkkj.js",
+        "https://154.81.36.18:8925/kj/caiji/hkkj.js",
+        "https://156.225.94.42:7625/kj/caiji/hkkj.js",
+        "https://156.225.89.155:6825/kj/caiji/hkkj.js",
+        "https://156.225.94.15:5395/kj/caiji/hkkj.js",
+        "https://156.225.94.25:7395/kj/caiji/hkkj.js",
+        "https://156.225.94.30:2255/kj/caiji/hkkj.js",
+        "https://156.225.89.149:2285/kj/caiji/hkkj.js",
+        "https://156.225.94.47:6523/kj/caiji/hkkj.js",
+        "https://156.225.89.140:8255/kj/caiji/hkkj.js",
+        "https://156.225.89.144:5576/kj/caiji/hkkj.js",
+        "https://45.221.97.29:8775/kj/caiji/hkkj.js",
+        "https://45.221.97.23:6165/kj/caiji/hkkj.js",
+        "https://156.225.94.20:3335/kj/caiji/hkkj.js",
+        "https://kjkj.kj88889.com/bmjg.js",
+        "https://001033.com/kj/js/xgjs.asp",
+        "https://api.493210.com/bmxg.js",
+        "https://www.hkj.rip/hkwsj.aspx"
+      ]
+    },
+    "nz": {
+      "api": "https://mnashd213asdhgask.amsndgbaidu.com/asmdasda/amksj.json",
+      "backupApis": [
+        "https://154.198.233.78:6777/kj/caiji/amkj.js",
+        "https://macaumarksix.com/api/live2",
+        "https://macaumarksix.com/api/macaujc2.com",
+        "https://154.81.36.17:8335/kj/caiji/amkj.js",
+        "https://154.81.36.8:5935/kj/caiji/amkj.js",
+        "https://154.81.36.18:8925/kj/caiji/amkj.js",
+        "https://156.225.94.42:7625/kj/caiji/amkj.js",
+        "https://156.225.89.155:6825/kj/caiji/amkj.js",
+        "https://156.225.94.15:5395/kj/caiji/amkj.js",
+        "https://156.225.94.25:7395/kj/caiji/amkj.js",
+        "https://156.225.94.30:2255/kj/caiji/amkj.js",
+        "https://156.225.89.149:2285/kj/caiji/amkj.js",
+        "https://156.225.94.47:6523/kj/caiji/amkj.js",
+        "https://156.225.89.140:8255/kj/caiji/amkj.js",
+        "https://156.225.89.144:5576/kj/caiji/amkj.js",
+        "https://45.221.97.29:8775/kj/caiji/amkj.js",
+        "https://45.221.97.23:6165/kj/caiji/amkj.js",
+        "https://156.225.94.20:3335/kj/caiji/amkj.js",
+        "https://001033.com/kj/js/amjs.asp",
+        "https://api.493210.com/bmam.js",
+        "https://www.hkj.rip/xamsj.aspx"
+      ]
+    },
+    "au": {
+      "api": "https://macaumarksix.com/api/live",
+      "backupApis": [
+        "https://macaumarksix.com/api/macaujc.com"
+      ]
+    },
+    "tw": {
+      "api": "https://49xr.cc/data/tw.js",
+      "backupApis": [
+        "https://005679.com/2chajian/bmjg.js"
+      ]
+    }
+  },
+
+  "iframeMain": {
+    "ambm": "https://156.225.89.140:8255/kj/ambm.html",
+    "hkbm": "https://156.225.89.140:8255/kj/hkbm.html"
+  },
+
+  "iframeZuikuaikj": [
+    "https://156.225.89.140:8255/kj/hkbm.html",
+    "https://156.225.89.144:5576/kj/hkbm.html",
+    "https://156.225.89.140:8255/kj/ambm.html",
+    "https://156.225.89.144:5576/kj/ambm.html",
+    "https://156.225.94.47:6523/kj/ambm.html"
+  ],
+
+  "liveStream": {
+    "mp4VodBase": "https://xgdds11ttkk.qinglongtk3.com/images/np4/",
+    "presets": {
+      "m3u8": {
+        "label": "M3U8",
+        "url": "https://play3892.qzrex.com/live/mosixmark.flv",
+        "color": "#4169E1"
+      },
+      "flv": {
+        "label": "FLV",
+        "url": "https://play8372.ljhwu.com/live/mosixmark.flv",
+        "color": "#FF6347"
+      }
+    },
+    "regions": {
+      "nz": {
+        "label": "新澳",
+        "presets": {
+          "m3u8": {
+            "label": "M3U8",
+            "url": "https://play3892.qzrex.com/live/mosixmark.flv",
+            "color": "#4169E1"
+          },
+          "flv": {
+            "label": "FLV",
+            "url": "https://play8372.ljhwu.com/live/mosixmark.flv",
+            "color": "#FF6347"
+          }
+        }
+      },
+      "hk": {
+        "label": "香港",
+        "presets": {
+          "m3u8": {
+            "label": "M3U8",
+            "url": "https://250915hkbl.scnlyl.com/live/66111hk.flv",
+            "color": "#4169E1"
+          },
+          "flv": {
+            "label": "FLV",
+            "url": "https://250915hkbl.scnlyl.com/live/66111hk.flv",
+            "backupUrl": "https://260327bl.ubxmg.com/live/66111hk.flv",
+            "color": "#FF6347"
+          }
+        }
+      },
+      "au": {
+        "label": "老澳",
+        "presets": {
+          "m3u8": {
+            "label": "M3U8",
+            "url": "https://live-macaujc.com/live/livestream/new.m3u8",
+            "color": "#4169E1"
+          },
+          "flv": {
+            "label": "FLV",
+            "url": "https://live-macaujc.com/live/livestream/new.flv",
+            "color": "#FF6347"
+          }
+        }
+      }
+    },
+    "liveStreamApi": {
+      "enabled": true,
+      "liveId": 2326,
+      "anchorRoomIds": {
+        "hk": 2555,
+        "nz": 2556
+      },
+      "liveIds": {
+        "hk": 2555,
+        "nz": 2556
+      },
+      "baseUrl": "https://pc.66111w.com/sd/livestream/v2/",
+      "regionTypes": {
+        "nz": 1,
+        "hk": 2
+      },
+      "areaPages": {
+        "hk": "https://pc.66111w.com/area/hk",
+        "nz": "https://pc.66111w.com/area/aomen"
+      },
+      "autoResolveLiveId": true,
+      "liveIdCacheMs": 300000,
+      "refreshMinIntervalMs": 15000
+    },
+    "hkLotobaoFallback": {
+      "enabled": true,
+      "pageUrl": "https://lotobao.com/loto/hk/mark6/live",
+      "streamApiUrls": [
+        "https://lotobao.com/api/v1/loto/hk/mark6/live/stream",
+        "https://lotobao.com/api/v1/loto/hk/mark6/live/play",
+        "https://lotobao.com/api/v1/loto/hk/mark6/live/pull"
+      ],
+      "cacheMs": 60000,
+      "refreshMinIntervalMs": 20000
+    },
+    "testUrls": [
+      "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+      "https://sf1-cdn-tos.huoshanstatic.com/obj/media-fe/xgplayer_doc_video/flv/xgplayer-demo-720p.flv"
+    ]
+  }
+}
