@@ -145,8 +145,9 @@
         "titleColor": "#FF00FF",
         "lines": [
             {
+                "align": "center",
                 "parts": [
-                    { "text": "彩票功能齐全 根据各彩种的规则进行统计", "color": "#DC143C" }
+                    { "text": "统计各彩种数据", "color": "#DC143C" }
                 ]
             },
             {
@@ -161,14 +162,14 @@
                 "parts": [
                     { "text": "三肖发", "color": "#B8860B" },
                     { "text": "漏三肖", "color": "#FF00FF" },
-                    { "text": "超级准确率", "color": "#9400D3" }
+                    { "text": "超级准确", "color": "#9400D3" }
                 ]
             },
             {
                 "gap": 4,
                 "parts": [
                     { "text": "风险提示：", "color": "#FF0000" },
-                    { "text": "彩票是公益与娱乐，理性投注、不追号、不透支", "color": "#4169E1" }
+                    { "text": "彩票是公益与娱乐，理性投注", "color": "#4169E1" }
                 ]
             },
             {
