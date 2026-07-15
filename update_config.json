@@ -147,7 +147,7 @@
             {
                 "align": "center",
                 "parts": [
-                    { "text": "统计各彩种数据", "color": "#DC143C" }
+                    { "text": "关注下面N组数据", "color": "#DC143C" }
                 ]
             },
             {
@@ -166,6 +166,7 @@
                 ]
             },
             {
+                "align": "center",
                 "gap": 4,
                 "parts": [
                     { "text": "风险提示：", "color": "#FF0000" },
