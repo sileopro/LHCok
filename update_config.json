@@ -150,12 +150,14 @@
                 ]
             },
             {
+                "align": "center",
                 "parts": [
                     { "text": "AI助手10码", "color": "#32CD32" },
                     { "text": "新五行四组", "color": "#FF4500" }
                 ]
             },
             {
+                "align": "center",
                 "parts": [
                     { "text": "三肖发", "color": "#B8860B" },
                     { "text": "漏三肖", "color": "#FF00FF" },
@@ -163,6 +165,7 @@
                 ]
             },
             {
+                "gap": 4,
                 "parts": [
                     { "text": "风险提示：", "color": "#FF0000" },
                     { "text": "彩票是公益与娱乐，理性投注、不追号、不透支", "color": "#4169E1" }
