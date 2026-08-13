@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 14,
   "proxy": "https://api.allorigins.win/raw?url=",
   "proxyFallbacks": [
     { "prefix": "https://cors-anywhere.herokuapp.com/", "encode": false },
@@ -18,7 +18,9 @@
 
   "dayConflictFeeds": {
     "hkrc": "https://sileopro.github.io/LHCok/hkrc.txt",
-    "hkwlrc": "https://sileopro.github.io/LHCok/hkwlrc.txt"
+    "hkwlrc": "https://sileopro.github.io/LHCok/hkwlrc.txt",
+    "hkyxh": "https://sileopro.github.io/LHCok/hkyxh.txt",
+    "hkwlyxh": "https://sileopro.github.io/LHCok/hkwlyxh.txt"
   },
 
   "githubHistory": {
