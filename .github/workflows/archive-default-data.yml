@@ -1,5 +1,5 @@
-# 每年 1 月 1 日 00:00（北京时间）将根目录开奖 txt 归档到 defaultData/
-name: 年度归档 defaultData
+# 每年 1 月 1 日 00:00（北京时间）归档开奖 defaultData + 月循 hkwlyxh
+name: 年度归档 defaultData / 月循
 
 on:
   schedule:
@@ -28,23 +28,24 @@ jobs:
         with:
           timezoneLinux: Asia/Shanghai
 
-      - name: 归档到 defaultData
+      - name: 归档 defaultData + 月循 hkwlyxh
         run: python archive_default_data.py
         env:
           TZ: Asia/Shanghai
 
-      - name: 提交 defaultData 变更
+      - name: 提交归档变更
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add defaultData/
+          git add defaultData/ hkwlyxh.txt
+          git add -u -- wlhkyxh.txt 2>/dev/null || true
           if git diff --staged --quiet; then
-            echo "defaultData 无变更，跳过提交"
+            echo "归档无变更，跳过提交"
             exit 0
           fi
           YEAR=$(date '+%Y')
           PREV=$((YEAR - 1))
-          git commit -m "chore(defaultData): 归档 ${PREV} 年开奖数据 [skip ci]"
+          git commit -m "chore(archive): 归档 ${PREV} 年开奖/月循数据 [skip ci]"
           for i in 1 2 3; do
             git fetch origin main
             git rebase origin/main || (git rebase --abort && exit 1)
