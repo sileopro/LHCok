@@ -137,6 +137,31 @@ ZODIAC_MAPPING = {
 
 DAY_ZODIAC = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']
 
+# 月循六组：每月 1 号起按日循环 ((day-1) % 6)
+YUEXUN_GROUPS = ['鼠牛', '虎兔', '龙蛇', '马羊', '猴鸡', '狗猪']
+
+# 港彩月循/日冲 txt 习惯用繁体生肖
+ZODIAC_TO_TRAD = {'龙': '龍', '鸡': '雞', '马': '馬', '猪': '豬'}
+
+
+def zodiac_to_trad(z):
+    z = str(z or '')
+    return ZODIAC_TO_TRAD.get(z, z)
+
+
+def get_yuexun_group_by_day(day_of_month):
+    """
+    按当月几号计算月循双肖组（与 App 月循规则一致）：
+    ((day-1) % 6) → 鼠牛/虎兔/龙蛇/马羊/猴鸡/狗猪
+    """
+    try:
+        d = int(day_of_month)
+    except (TypeError, ValueError):
+        d = 1
+    if d < 1:
+        d = 1
+    return YUEXUN_GROUPS[(d - 1) % 6]
+
 
 def _julian_day_noon(dt):
     """
@@ -241,6 +266,77 @@ def update_hkrc_file(issue_str, special_number, special_zodiac):
         logger.info("✅ 已保存港彩日冲记录到 hkrc.txt")
     except Exception as e:
         logger.error(f"更新港彩日冲记录失败: {str(e)}")
+
+
+def update_hkyxh_file(issue_str, special_number, special_zodiac, dt=None):
+    """
+    更新港彩月循记录 hkyxh.txt：
+    - 行格式：08.11 → 087期: 13馬 → 猴鸡
+    - 日期用当前开奖日（默认今天），双肖按「当月几号」循环推算
+    - 按期数倒序排列
+    - 若最新一期为 001 期，则视为新一年：清空旧记录，从 001 期重新开始
+    - 若最新一期期数、特码与当前相同，则不更新
+    """
+    try:
+        try:
+            issue_int = int(issue_str)
+        except ValueError:
+            return
+
+        if dt is None:
+            dt = datetime.now()
+
+        filename = 'hkyxh.txt'
+        existing_lines = []
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                existing_lines = [ln.rstrip('\n') for ln in f if ln.strip()]
+
+        # 若最新一期期数、特码与当前相同，则跳过更新
+        if existing_lines:
+            first_line = existing_lines[0]
+            m = re.search(r'(\d{1,3})期\s*[:：]\s*(\d{1,2})', first_line)
+            if m:
+                old_issue_int = int(m.group(1))
+                old_special = m.group(2)
+                try:
+                    new_special_int = int(special_number) if str(special_number).isdigit() else 0
+                    old_special_int = int(old_special)
+                    if old_issue_int == issue_int and old_special_int == new_special_int:
+                        return
+                except (ValueError, AttributeError):
+                    pass
+
+        group_label = get_yuexun_group_by_day(dt.day)
+        date_str = f"{dt.month:02d}.{dt.day:02d}"
+        special_trad = zodiac_to_trad(special_zodiac)
+        special_num = str(special_number).zfill(2)
+        line = f"{date_str} → {str(issue_int).zfill(3)}期: {special_num}{special_trad} → {group_label}"
+
+        issue_to_line = {}
+        for ln in existing_lines:
+            m = re.search(r'(\d{1,3})期', ln)
+            if not m:
+                continue
+            try:
+                old_issue_int = int(m.group(1))
+            except ValueError:
+                continue
+            issue_to_line[old_issue_int] = ln
+
+        # 新一年第一期，从该期开始重记
+        if issue_int == 1:
+            issue_to_line = {}
+
+        issue_to_line[issue_int] = line
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            for k in sorted(issue_to_line.keys(), reverse=True):
+                f.write(issue_to_line[k] + '\n')
+        logger.info(line)
+        logger.info("✅ 已保存港彩月循记录到 hkyxh.txt")
+    except Exception as e:
+        logger.error(f"更新港彩月循记录失败: {str(e)}")
 
 
 def random_sleep(min_time=1, max_time=3):
@@ -503,11 +599,12 @@ def save_lottery_result(lottery_info, lottery_type, data_str=None):
                 for issue_int in sorted(issue_to_line.keys(), reverse=True):
                     f.write(issue_to_line[issue_int] + '\n')
 
-            # 港彩专用：hk.txt 更新时，同时更新日冲生肖记录 hkrc.txt
+            # 港彩专用：hk.txt 更新时，同时更新日冲 hkrc.txt、月循 hkyxh.txt
             if lottery_type == 'hk':
                 # 优先使用 API 返回的生肖，没有则按号码映射
                 special_zodiac = lottery_info.get('zodiac') or ZODIAC_MAPPING.get(special_number.zfill(2), '')
                 update_hkrc_file(new_issue_str, special_number, special_zodiac)
+                update_hkyxh_file(new_issue_str, special_number, special_zodiac)
 
         # 保存API原始内容为json文件（无论号码是否完整都保存）
         json_map = {
