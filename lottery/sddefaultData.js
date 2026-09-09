@@ -601,6 +601,7 @@ const sddefaultData = {
     { period: "238", numbers: [8, 9, 9] },
     { period: "239", numbers: [0, 0, 2] },
     { period: "240", numbers: [9, 8, 1] },
-    { period: "241", numbers: [0, 0, 2] }
+    { period: "241", numbers: [0, 0, 2] },
+    { period: "242", numbers: [5, 5, 5] }
   ]
 };
