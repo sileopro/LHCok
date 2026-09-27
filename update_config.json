@@ -1,5 +1,5 @@
 {
-    "latestVersion": "1.3.2",
+    "latestVersion": "1.3.3",
     "apkUrl": "https://sileopro.github.io/LHCok/apk",
     "apkBackupUrl": "https://xgam49.dpdns.org/apk",
     "promptInterval": 86400000,
@@ -89,7 +89,7 @@
         "validCodes": [
             {"code": "VIP888999", "deviceId": "3b7w31j7", "expireDate": "2095-12-22", "deviceLimit": 2},
             {"code": "dnx123", "deviceId": "aq9jrxms", "expireDate": "2099-12-31", "deviceLimit": 1},
-            {"code": "dn123", "deviceId": "kg3l6s2g", "expireDate": "2099-02-02", "deviceLimit": 1},
+            {"code": "dn123", "deviceId": "0q65y11d", "expireDate": "2099-02-02", "deviceLimit": 1},
             {"code": "r70123", "deviceId": "c9pmdkh3", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "mate70", "deviceId": "xowzryxe", "expireDate": "2098-12-31", "deviceLimit": 2},
             {"code": "yj123", "deviceId": "7r0o868w", "expireDate": "2098-12-31", "deviceLimit": 2},
