@@ -124,7 +124,7 @@ LOTTERY_NAMES = {
     'tc': '快乐8'
 }
 
-# 生肖映射表（如果API不返回生肖信息）
+# 生肖映射表（旧固定表 ≈ 2024 基准；港彩 hkyxh 请用 get_hk_number_zodiac 按年份计算）
 ZODIAC_MAPPING = {
     '01': '鼠', '02': '牛', '03': '虎', '04': '兔', '05': '龙', '06': '蛇',
     '07': '马', '08': '羊', '09': '猴', '10': '鸡', '11': '狗', '12': '猪',
@@ -145,10 +145,51 @@ YUEXUN_GROUPS = ['鼠牛', '虎兔', '龙蛇', '马羊', '猴鸡', '狗猪']
 # 港彩月循/日冲 txt 习惯用繁体生肖
 ZODIAC_TO_TRAD = {'龙': '龍', '鸡': '雞', '马': '馬', '猪': '豬'}
 
+# 港彩生肖换年期号（与 App chongxiao.js zodiacThresholds.hk 对齐）
+HK_ZODIAC_THRESHOLDS = {
+    2023: 9, 2024: 17, 2025: 11, 2026: 20, 2027: 11, 2028: 11, 2029: 11, 2030: 11,
+}
+
+# App getZodiac 基准：2024 年号码→生肖顺序
+HK_ZODIAC_BASE_ORDER = ['龙', '兔', '虎', '牛', '鼠', '猪', '狗', '鸡', '猴', '羊', '马', '蛇']
+
 
 def zodiac_to_trad(z):
     z = str(z or '')
     return ZODIAC_TO_TRAD.get(z, z)
+
+
+def get_hk_number_zodiac(number, year, period=None):
+    """
+    按公历年/期号计算港彩号码生肖（与 App getZodiac 一致）。
+    lottery.hk 只有号码无生肖，不能写死 ZODIAC_MAPPING（那是 2024 表）。
+    """
+    try:
+        num = int(number)
+        y = int(year)
+    except (TypeError, ValueError):
+        return ''
+    if num < 1 or num > 49:
+        return ''
+    use_year = y
+    try:
+        p = int(period) if period is not None else None
+    except (TypeError, ValueError):
+        p = None
+    if p is not None:
+        thr = HK_ZODIAC_THRESHOLDS.get(y, 11)
+        if p < thr:
+            use_year = y - 1
+    offset = use_year - 2024
+    # 对齐 JS：baseOrder.slice(-yearOffset%12) + slice(0, -yearOffset%12)
+    # Python 的 (-n)%12 与 JS 的 -n%12 不同，按 JS 语义处理负切片
+    n = offset % 12
+    if n < 0:
+        n += 12
+    # JS: slice(-offset) when offset>0 moves last |offset| to front
+    # yearOffset=2 → ['马','蛇'] + rest → 05→虎
+    order = HK_ZODIAC_BASE_ORDER[-n:] + HK_ZODIAC_BASE_ORDER[:-n] if n else list(HK_ZODIAC_BASE_ORDER)
+    return order[(num - 1) % 12]
 
 
 def get_yuexun_group_by_day(day_of_month):
@@ -365,13 +406,14 @@ def fetch_lottery_hk_jieguo(year=None, force=False):
     return out
 
 
-def build_hkyxh_line(dt, issue_int, special_number, special_zodiac=None):
-    """生成月循一行：08.11 → 087期: 13馬 → 猴鸡"""
+def build_hkyxh_line(dt, issue_int, special_number, special_zodiac=None, year=None):
+    """生成月循一行：08.11 → 087期: 13馬 → 猴鸡（生肖按当年规则，非官网提供）"""
     group_label = get_yuexun_group_by_day(dt.day)
     date_str = f"{dt.month:02d}.{dt.day:02d}"
     special_num = str(special_number).zfill(2)
+    y = int(year or (dt.year if dt else datetime.now().year))
     if not special_zodiac:
-        special_zodiac = ZODIAC_MAPPING.get(special_num, '')
+        special_zodiac = get_hk_number_zodiac(special_num, y, issue_int)
     special_trad = zodiac_to_trad(special_zodiac)
     return f"{date_str} → {str(issue_int).zfill(3)}期: {special_num}{special_trad} → {group_label}"
 
@@ -379,7 +421,7 @@ def build_hkyxh_line(dt, issue_int, special_number, special_zodiac=None):
 def sync_hkyxh_from_lottery_hk(year=None):
     """
     用 lottery.hk 官方日期/特码校正并回写 hkyxh.txt。
-    GitHub 工作流可能非开奖当天跑，今天日期会写错；官网日期最准。
+    官网无生肖：生肖按当年号码规则计算（与 App 一致），不用固定 ZODIAC_MAPPING。
     """
     y = int(year or datetime.now().year)
     filename = 'hkyxh.txt'
@@ -414,8 +456,8 @@ def sync_hkyxh_from_lottery_hk(year=None):
                 special = msp.group(1).zfill(2) if msp else None
             if not special:
                 continue
-            zodiac = ZODIAC_MAPPING.get(str(special).zfill(2), '')
-            new_line = build_hkyxh_line(info['dt'], period, special, zodiac)
+            zodiac = get_hk_number_zodiac(special, y, period)
+            new_line = build_hkyxh_line(info['dt'], period, special, zodiac, year=y)
             old_line = issue_to_line.get(period)
             if old_line != new_line:
                 changed += 1
@@ -470,12 +512,19 @@ def update_hkyxh_file(issue_str, special_number, special_zodiac, dt=None):
                     dt = info['dt']
                     if info.get('special'):
                         special_number = info['special']
-                        special_zodiac = ZODIAC_MAPPING.get(str(special_number).zfill(2), special_zodiac)
+                        # 官网无生肖，按当年规则重算
+                        special_zodiac = get_hk_number_zodiac(
+                            special_number, info.get('year') or dt.year, issue_int
+                        )
                     logger.info(f"hkyxh 使用 lottery.hk 日期: {dt.month:02d}.{dt.day:02d} 第{issue_int:03d}期")
             except Exception as e:
                 logger.warning(f"查 lottery.hk 日期失败，回退本地日期: {e}")
         if dt is None:
             dt = datetime.now()
+        # 保证生肖用当年规则（勿用固定 ZODIAC_MAPPING）
+        special_zodiac = get_hk_number_zodiac(
+            special_number, dt.year, issue_int
+        ) or special_zodiac
 
         filename = 'hkyxh.txt'
         existing_lines = []
@@ -498,7 +547,7 @@ def update_hkyxh_file(issue_str, special_number, special_zodiac, dt=None):
                 except (ValueError, AttributeError):
                     pass
 
-        line = build_hkyxh_line(dt, issue_int, special_number, special_zodiac)
+        line = build_hkyxh_line(dt, issue_int, special_number, special_zodiac, year=dt.year)
 
         issue_to_line = {}
         for ln in existing_lines:
