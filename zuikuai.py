@@ -270,11 +270,187 @@ def update_hkrc_file(issue_str, special_number, special_zodiac):
         logger.error(f"更新港彩日冲记录失败: {str(e)}")
 
 
+# lottery.hk 结果缓存：{(year,): map}，同一次运行避免重复请求
+_LOTTERY_HK_JIEGUO_CACHE = {}
+
+
+def fetch_lottery_hk_jieguo(year=None, force=False):
+    """
+    从 https://lottery.hk/liuhecai/jieguo/ 抓取港彩日期与开奖结果。
+    返回 {period_int: {'year','month','day','special','dt'}}，日期以官网为准。
+    """
+    y = int(year or datetime.now().year)
+    if not force and y in _LOTTERY_HK_JIEGUO_CACHE:
+        return _LOTTERY_HK_JIEGUO_CACHE[y]
+
+    urls = [
+        f'https://lottery.hk/liuhecai/jieguo/{y}',
+        'https://lottery.hk/liuhecai/jieguo/',
+    ]
+    headers = {
+        'User-Agent': (
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'zh-HK,zh;q=0.9,en;q=0.8',
+    }
+    html = ''
+    for url in urls:
+        try:
+            logger.info(f"抓取 lottery.hk 开奖结果: {url}")
+            resp = requests.get(url, headers=headers, timeout=25)
+            if resp.status_code == 200 and resp.text and len(resp.text) > 200:
+                html = resp.text
+                break
+            logger.warning(f"lottery.hk 响应异常 status={resp.status_code} url={url}")
+        except Exception as e:
+            logger.warning(f"lottery.hk 抓取失败 {url}: {e}")
+    if not html:
+        _LOTTERY_HK_JIEGUO_CACHE[y] = {}
+        return {}
+
+    text = re.sub(r'<script[\s\S]*?</script>', ' ', html, flags=re.I)
+    text = re.sub(r'<style[\s\S]*?</style>', ' ', text, flags=re.I)
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = re.sub(r'&nbsp;', ' ', text, flags=re.I)
+    text = re.sub(r'\s+', ' ', text)
+
+    # 26/107 08/10/2026 18 19 24 31 40 44 5
+    re_row = re.compile(
+        r'(\d{2})\s*/\s*(\d{1,3})\s+(\d{1,2})\s*/\s*(\d{1,2})\s*/\s*(\d{4})'
+        r'([\s\S]{0,220}?)(?=\d{2}\s*/\s*\d{1,3}\s+\d{1,2}\s*/|$)'
+    )
+    out = {}
+    for m in re_row.finditer(text):
+        yy_short = int(m.group(1))
+        period = int(m.group(2))
+        day = int(m.group(3))
+        month = int(m.group(4))
+        year_full = int(m.group(5))
+        if period < 1 or period > 366:
+            continue
+        if not (1 <= month <= 12 and 1 <= day <= 31 and year_full >= 1993):
+            continue
+        if (year_full % 100) != yy_short:
+            continue
+        if year_full != y:
+            continue
+        chunk = m.group(6) or ''
+        nums = []
+        for nm in re.finditer(r'\b([1-9]|[1-4]\d)\b', chunk):
+            n = int(nm.group(1))
+            if 1 <= n <= 49:
+                nums.append(n)
+            if len(nums) >= 7:
+                break
+        special = None
+        if len(nums) >= 7:
+            special = nums[6]
+        elif nums:
+            special = nums[-1]
+        try:
+            dt = datetime(year_full, month, day, 21, 30, 0)
+        except ValueError:
+            continue
+        out[period] = {
+            'year': year_full,
+            'month': month,
+            'day': day,
+            'special': str(special).zfill(2) if special is not None else None,
+            'dt': dt,
+        }
+    logger.info(f"lottery.hk 解析到 {len(out)} 条 {y} 年开奖记录")
+    _LOTTERY_HK_JIEGUO_CACHE[y] = out
+    return out
+
+
+def build_hkyxh_line(dt, issue_int, special_number, special_zodiac=None):
+    """生成月循一行：08.11 → 087期: 13馬 → 猴鸡"""
+    group_label = get_yuexun_group_by_day(dt.day)
+    date_str = f"{dt.month:02d}.{dt.day:02d}"
+    special_num = str(special_number).zfill(2)
+    if not special_zodiac:
+        special_zodiac = ZODIAC_MAPPING.get(special_num, '')
+    special_trad = zodiac_to_trad(special_zodiac)
+    return f"{date_str} → {str(issue_int).zfill(3)}期: {special_num}{special_trad} → {group_label}"
+
+
+def sync_hkyxh_from_lottery_hk(year=None):
+    """
+    用 lottery.hk 官方日期/特码校正并回写 hkyxh.txt。
+    GitHub 工作流可能非开奖当天跑，今天日期会写错；官网日期最准。
+    """
+    y = int(year or datetime.now().year)
+    filename = 'hkyxh.txt'
+    try:
+        jieguo = fetch_lottery_hk_jieguo(y)
+        if not jieguo:
+            logger.warning("lottery.hk 无数据，跳过 hkyxh.txt 校正")
+            return False
+
+        existing_lines = []
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                existing_lines = [ln.rstrip('\n') for ln in f if ln.strip()]
+
+        issue_to_line = {}
+        for ln in existing_lines:
+            m = re.search(r'(\d{1,3})期', ln)
+            if not m:
+                continue
+            try:
+                issue_to_line[int(m.group(1))] = ln
+            except ValueError:
+                continue
+
+        changed = 0
+        for period, info in jieguo.items():
+            special = info.get('special')
+            if not special:
+                # 官网缺特码时，尽量保留原行特码，只校正日期
+                old = issue_to_line.get(period, '')
+                msp = re.search(r'期\s*[:：]\s*(\d{1,2})', old)
+                special = msp.group(1).zfill(2) if msp else None
+            if not special:
+                continue
+            zodiac = ZODIAC_MAPPING.get(str(special).zfill(2), '')
+            new_line = build_hkyxh_line(info['dt'], period, special, zodiac)
+            old_line = issue_to_line.get(period)
+            if old_line != new_line:
+                changed += 1
+            issue_to_line[period] = new_line
+
+        if not issue_to_line:
+            logger.warning("hkyxh.txt 校正后仍无记录")
+            return False
+
+        new_content = ''.join(
+            issue_to_line[k] + '\n' for k in sorted(issue_to_line.keys(), reverse=True)
+        )
+        old_content = ''
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                old_content = f.read()
+        if new_content == old_content:
+            logger.info("hkyxh.txt 与 lottery.hk 一致，无需改写")
+            return False
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        logger.info(f"✅ 已按 lottery.hk 校正 hkyxh.txt（变更 {changed} 条，共 {len(issue_to_line)} 期）")
+        return True
+    except Exception as e:
+        logger.error(f"按 lottery.hk 校正 hkyxh.txt 失败: {e}")
+        return False
+
+
 def update_hkyxh_file(issue_str, special_number, special_zodiac, dt=None):
     """
     更新港彩月循记录 hkyxh.txt：
     - 行格式：08.11 → 087期: 13馬 → 猴鸡
-    - 日期用当前开奖日（默认今天），双肖按「当月几号」循环推算
+    - 日期优先用 lottery.hk 官方开奖日；其次传入 dt；最后才用今天
+    - 双肖按「当月几号」循环推算
     - 按期数倒序排列
     - 若最新一期为 001 期，则视为新一年：清空旧记录，从 001 期重新开始
     - 若最新一期期数、特码与当前相同，则不更新
@@ -285,6 +461,19 @@ def update_hkyxh_file(issue_str, special_number, special_zodiac, dt=None):
         except ValueError:
             return
 
+        # 优先官网日期（避免 Actions 非开奖日写入错日）
+        if dt is None:
+            try:
+                jieguo = fetch_lottery_hk_jieguo(datetime.now().year)
+                if issue_int in jieguo:
+                    info = jieguo[issue_int]
+                    dt = info['dt']
+                    if info.get('special'):
+                        special_number = info['special']
+                        special_zodiac = ZODIAC_MAPPING.get(str(special_number).zfill(2), special_zodiac)
+                    logger.info(f"hkyxh 使用 lottery.hk 日期: {dt.month:02d}.{dt.day:02d} 第{issue_int:03d}期")
+            except Exception as e:
+                logger.warning(f"查 lottery.hk 日期失败，回退本地日期: {e}")
         if dt is None:
             dt = datetime.now()
 
@@ -309,11 +498,7 @@ def update_hkyxh_file(issue_str, special_number, special_zodiac, dt=None):
                 except (ValueError, AttributeError):
                     pass
 
-        group_label = get_yuexun_group_by_day(dt.day)
-        date_str = f"{dt.month:02d}.{dt.day:02d}"
-        special_trad = zodiac_to_trad(special_zodiac)
-        special_num = str(special_number).zfill(2)
-        line = f"{date_str} → {str(issue_int).zfill(3)}期: {special_num}{special_trad} → {group_label}"
+        line = build_hkyxh_line(dt, issue_int, special_number, special_zodiac)
 
         issue_to_line = {}
         for ln in existing_lines:
@@ -580,7 +765,8 @@ def parse_api_data(data_str, lottery_type):
                     'special_number': special_number,
                     'zodiac': zodiac,
                     'next_issue': next_issue,
-                    'next_time': next_time
+                    'next_time': next_time,
+                    'open_time': open_time,
                 }
             except json.JSONDecodeError:
                 logger.error(f"解析新API JSON失败: {data_str}")
@@ -768,7 +954,18 @@ def save_lottery_result(lottery_info, lottery_type, data_str=None):
                 # 优先使用 API 返回的生肖，没有则按号码映射
                 special_zodiac = lottery_info.get('zodiac') or ZODIAC_MAPPING.get(special_number.zfill(2), '')
                 update_hkrc_file(new_issue_str, special_number, special_zodiac)
-                update_hkyxh_file(new_issue_str, special_number, special_zodiac)
+                # 日期优先 openTime，最终仍以 lottery.hk 校正
+                open_dt = None
+                open_time = str(lottery_info.get('open_time') or '').strip()
+                if open_time:
+                    for fmt, n in (('%Y-%m-%d %H:%M:%S', 19), ('%Y-%m-%d', 10)):
+                        try:
+                            open_dt = datetime.strptime(open_time[:n], fmt)
+                            break
+                        except ValueError:
+                            open_dt = None
+                update_hkyxh_file(new_issue_str, special_number, special_zodiac, dt=open_dt)
+                sync_hkyxh_from_lottery_hk()
 
         # 保存API原始内容为json文件（无论号码是否完整都保存）
         json_map = {
@@ -921,6 +1118,12 @@ def main():
         logger.info("开始获取彩票开奖结果...")
         
         results = get_lottery_results()
+
+        # 港彩月循：无论本期是否新增，都用 lottery.hk 校正日期/特码
+        try:
+            sync_hkyxh_from_lottery_hk()
+        except Exception as eYx:
+            logger.warning(f"lottery.hk 校正 hkyxh.txt 跳过: {eYx}")
         
         # 删除main函数中对fetch_new_api_data和parse_new_api_data的调用
         
