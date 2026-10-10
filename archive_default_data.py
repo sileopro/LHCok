@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-每年 1 月 1 日（北京时间）归档：
+每年 1 月 1–3 日（北京时间）可归档（元旦主跑 + 漏跑补档）：
 
 1) 根目录开奖 txt → defaultData/
    保留已有年份，新年份写在最上面。
@@ -21,13 +21,19 @@
      lam.txt  → defaultData/au.txt   老澳 au
      klb.txt  → defaultData/tw.txt   台彩 tw（若无则尝试 tc.txt）
 
-2) 港彩月循：hkyxh.txt → hkwlyxh.txt（按年份）
-   格式与日冲 hkwlrc 类似：
+2) 港彩月循：hkyxh.txt → hkwlyxh.txt（按年份，期内倒序）
      2026
      08.11 → 087期: 13馬 → 猴鸡
      ...
      2025
      12.28 → 134期: 45雞 → 马羊
+
+3) 港彩日冲：hkrc.txt → hkwlrc.txt（按年份，期内正序，与现有 hkwlrc 一致）
+     2026
+     001期：22猴 → 羊日冲牛
+     ...
+     2025
+     001期：...
 """
 
 from __future__ import annotations
@@ -43,6 +49,8 @@ ISSUE_RE = re.compile(r"第(\d{1,3})期")
 YUEXUN_ISSUE_RE = re.compile(r"(\d{1,3})期")
 YEAR_RE = re.compile(r"^\d{4}$")
 LABEL_PREFIXES = ("港彩", "新澳", "老澳", "台彩")
+# 北京时间 1 月 1–3 日可写（1 日主跑，2–3 日补档）；其它日期需 --force
+ARCHIVE_WINDOW_DAYS = (1, 2, 3)
 
 ARCHIVES = [
     {"src": ["hk.txt"], "dest": "defaultData/hk.txt", "label": "港彩 hk"},
@@ -55,6 +63,10 @@ ARCHIVES = [
 YUEXUN_SRC = "hkyxh.txt"
 YUEXUN_DEST = "hkwlyxh.txt"
 YUEXUN_DEST_LEGACY = "wlhkyxh.txt"  # 旧文件名，仅作读入兼容
+
+# 当年日冲 → 往年日冲（按年）
+RICHONG_SRC = "hkrc.txt"
+RICHONG_DEST = "hkwlrc.txt"
 
 
 def resolve_src(paths: list[str]) -> str | None:
@@ -151,8 +163,8 @@ def merge_archive(dest: str, label: str, archive_year: int, new_lines: list[str]
     return build_multi_year_archive(existing_label, year_blocks)
 
 
-def read_yuexun_lines(path: str) -> list[str]:
-    """读取月循行（去掉空行、纯年份行）。"""
+def read_period_lines(path: str) -> list[str]:
+    """读取含「N期」的行（月循/日冲；去掉空行、纯年份行）。"""
     with open(path, encoding="utf-8") as f:
         lines = []
         for raw in f:
@@ -164,8 +176,8 @@ def read_yuexun_lines(path: str) -> list[str]:
         return lines
 
 
-def parse_yuexun_years(content: str) -> dict[int, list[str]]:
-    """解析 hkwlyxh 多年块：{年: [月循行]}。"""
+def parse_period_years(content: str) -> dict[int, list[str]]:
+    """解析按年分块的月循/日冲文件：{年: [行]}。"""
     years: dict[int, list[str]] = {}
     current_year: int | None = None
     for raw in content.splitlines():
@@ -181,12 +193,12 @@ def parse_yuexun_years(content: str) -> dict[int, list[str]]:
     return years
 
 
-def build_yuexun_archive(year_blocks: dict[int, list[str]]) -> str:
-    """月循多年输出：新年份在上，期内倒序（与现有 hkwlyxh 一致）。"""
+def build_period_archive(year_blocks: dict[int, list[str]], *, reverse_within_year: bool) -> str:
+    """多年输出：新年份在上；期内顺序由 reverse_within_year 控制。"""
     parts: list[str] = []
     sorted_years = sorted(year_blocks.keys(), reverse=True)
     for i, year in enumerate(sorted_years):
-        lines = sort_issue_lines(year_blocks[year], reverse=True)
+        lines = sort_issue_lines(year_blocks[year], reverse=reverse_within_year)
         if not lines:
             continue
         parts.append(str(year))
@@ -194,6 +206,20 @@ def build_yuexun_archive(year_blocks: dict[int, list[str]]) -> str:
         if i < len(sorted_years) - 1:
             parts.append("")
     return ("\n".join(parts) + "\n") if parts else ""
+
+
+def merge_period_lines(old_lines: list[str], new_lines: list[str]) -> list[str]:
+    """按期号合并：同源期号以新行为准，保留归档里已有、源里已消失的期（防元旦后源被清空）。"""
+    by_issue: dict[int, str] = {}
+    for line in old_lines:
+        m = YUEXUN_ISSUE_RE.search(line)
+        if m:
+            by_issue[int(m.group(1))] = line
+    for line in new_lines:
+        m = YUEXUN_ISSUE_RE.search(line)
+        if m:
+            by_issue[int(m.group(1))] = line
+    return list(by_issue.values())
 
 
 def resolve_yuexun_dest() -> str:
@@ -205,64 +231,167 @@ def resolve_yuexun_dest() -> str:
     return YUEXUN_DEST
 
 
-def archive_yuexun(archive_year: int) -> bool:
+def archive_period_file(
+    *,
+    src: str,
+    dest: str,
+    archive_year: int,
+    kind: str,
+    reverse_within_year: bool,
+    dest_read: str | None = None,
+    dest_write: str | None = None,
+    legacy_cleanup: str | None = None,
+) -> bool:
     """
-    将 hkyxh.txt 整年内容写入 hkwlyxh.txt 的 archive_year 块。
+    将当年源文件写入按年归档目标的 archive_year 块。
     返回是否写文件有变更。
     """
-    if not os.path.isfile(YUEXUN_SRC):
-        print(f"跳过月循：未找到 {YUEXUN_SRC}")
+    dest_read = dest_read or dest
+    dest_write = dest_write or dest
+
+    if not os.path.isfile(src):
+        print(f"跳过{kind}：未找到 {src}")
         return False
 
-    new_lines = read_yuexun_lines(YUEXUN_SRC)
+    new_lines = read_period_lines(src)
     if not new_lines:
-        print(f"跳过月循：{YUEXUN_SRC} 无有效期数行")
+        print(f"跳过{kind}：{src} 无有效期数行")
         return False
 
-    dest_read = resolve_yuexun_dest()
     year_blocks: dict[int, list[str]] = {}
     old = ""
     if os.path.isfile(dest_read):
         with open(dest_read, encoding="utf-8") as f:
             old = f.read()
-        year_blocks = parse_yuexun_years(old)
+        year_blocks = parse_period_years(old)
 
-    year_blocks[archive_year] = list(new_lines)
-    content = build_yuexun_archive(year_blocks)
+    merged = merge_period_lines(year_blocks.get(archive_year, []), new_lines)
+    year_blocks[archive_year] = merged
+    content = build_period_archive(year_blocks, reverse_within_year=reverse_within_year)
 
-    if old == content and dest_read == YUEXUN_DEST:
-        print(f"未变化 {YUEXUN_DEST}（月循 {archive_year}，来源 {YUEXUN_SRC}）")
+    if old == content and dest_read == dest_write:
+        print(f"未变化 {dest_write}（{kind} {archive_year}，来源 {src}）")
         return False
 
-    with open(YUEXUN_DEST, "w", encoding="utf-8") as f:
+    with open(dest_write, "w", encoding="utf-8") as f:
         f.write(content)
 
-    # 旧名存在且与新名不同时删除，避免双份
-    if dest_read == YUEXUN_DEST_LEGACY and os.path.isfile(YUEXUN_DEST_LEGACY):
+    if legacy_cleanup and legacy_cleanup != dest_write and os.path.isfile(legacy_cleanup):
         try:
-            os.remove(YUEXUN_DEST_LEGACY)
-            print(f"已移除旧文件名 {YUEXUN_DEST_LEGACY}")
+            os.remove(legacy_cleanup)
+            print(f"已移除旧文件名 {legacy_cleanup}")
         except OSError as e:
-            print(f"警告：无法删除 {YUEXUN_DEST_LEGACY}: {e}")
+            print(f"警告：无法删除 {legacy_cleanup}: {e}")
 
     years_info = ", ".join(
         f"{y}({len(year_blocks[y])}期)" for y in sorted(year_blocks.keys(), reverse=True)
     )
-    print(f"已归档 {YUEXUN_SRC} → {YUEXUN_DEST}（月循，写入 {archive_year}，保留年份: {years_info}）")
+    print(f"已归档 {src} → {dest_write}（{kind}，写入 {archive_year}，保留年份: {years_info}）")
     return True
 
 
-def main() -> int:
-    now = datetime.now(BJ)
-    archive_year = now.year - 1
-    force = "--force" in sys.argv
+def archive_yuexun(archive_year: int) -> bool:
+    """将 hkyxh.txt 整年内容写入 hkwlyxh.txt 的 archive_year 块（期内倒序）。"""
+    dest_read = resolve_yuexun_dest()
+    return archive_period_file(
+        src=YUEXUN_SRC,
+        dest=YUEXUN_DEST,
+        archive_year=archive_year,
+        kind="月循",
+        reverse_within_year=True,
+        dest_read=dest_read,
+        dest_write=YUEXUN_DEST,
+        legacy_cleanup=YUEXUN_DEST_LEGACY if dest_read == YUEXUN_DEST_LEGACY else None,
+    )
 
-    if now.month != 1 or now.day != 1:
-        print(f"当前北京时间 {now:%Y-%m-%d %H:%M:%S}，非 1 月 1 日；归档年份应为 {archive_year}")
-        if not force:
-            print("已跳过写入（避免误把当年数据归档）。元旦自动跑，或手动加 --force")
-            return 0
-        print("已指定 --force，继续写入")
+
+def archive_richong(archive_year: int) -> bool:
+    """将 hkrc.txt 整年内容写入 hkwlrc.txt 的 archive_year 块（期内正序）。"""
+    return archive_period_file(
+        src=RICHONG_SRC,
+        dest=RICHONG_DEST,
+        archive_year=archive_year,
+        kind="日冲",
+        reverse_within_year=False,
+    )
+
+
+def default_data_year_count(dest: str, year: int) -> int:
+    if not os.path.isfile(dest):
+        return 0
+    with open(dest, encoding="utf-8") as f:
+        _, years = parse_default_data(f.read())
+    return len(years.get(year, []))
+
+
+def period_file_year_count(dest: str, year: int) -> int:
+    if not os.path.isfile(dest):
+        return 0
+    with open(dest, encoding="utf-8") as f:
+        years = parse_period_years(f.read())
+    return len(years.get(year, []))
+
+
+def is_year_adequately_archived(archive_year: int, *, min_ratio: float = 0.8) -> bool:
+    """
+    判断 archive_year 是否已充分写入各归档目标。
+    仅校验「源文件仍明显持有上一年数据」(期数 > 1) 的项；
+    源已滚到仅 001/空 时跳过该项（无法再从源补档）。
+    """
+    pending: list[str] = []
+
+    for item in ARCHIVES:
+        src = resolve_src(item["src"])
+        if not src:
+            continue
+        src_n = len(read_issue_lines(src))
+        if src_n <= 1:
+            continue
+        dest_n = default_data_year_count(item["dest"], archive_year)
+        need = max(1, int(src_n * min_ratio))
+        if dest_n < need:
+            pending.append(f"{item['label']} {dest_n}/{src_n}")
+
+    if os.path.isfile(YUEXUN_SRC):
+        src_n = len(read_period_lines(YUEXUN_SRC))
+        if src_n > 1:
+            dest = resolve_yuexun_dest()
+            dest_n = period_file_year_count(dest, archive_year)
+            need = max(1, int(src_n * min_ratio))
+            if dest_n < need:
+                pending.append(f"月循 {dest_n}/{src_n}")
+
+    if os.path.isfile(RICHONG_SRC):
+        src_n = len(read_period_lines(RICHONG_SRC))
+        if src_n > 1:
+            dest_n = period_file_year_count(RICHONG_DEST, archive_year)
+            need = max(1, int(src_n * min_ratio))
+            if dest_n < need:
+                pending.append(f"日冲 {dest_n}/{src_n}")
+
+    if pending:
+        print(f"归档未就绪 {archive_year}：{', '.join(pending)}")
+        return False
+    return True
+
+
+def run_archive(archive_year: int, *, force: bool = False) -> int:
+    """执行归档写入。返回有变更的文件数。force 时忽略 1/1–1/3 日期窗口。"""
+    now = datetime.now(BJ)
+    in_window = now.month == 1 and now.day in ARCHIVE_WINDOW_DAYS
+
+    if not in_window and not force:
+        print(
+            f"当前北京时间 {now:%Y-%m-%d %H:%M:%S}，不在 1 月 {ARCHIVE_WINDOW_DAYS[0]}–"
+            f"{ARCHIVE_WINDOW_DAYS[-1]} 日窗口；归档年份应为 {archive_year}"
+        )
+        print("已跳过写入（避免误把当年数据归档）。元旦/补档自动跑，或手动加 --force")
+        return 0
+
+    if force and not in_window:
+        print(f"强制归档 {archive_year}（当前北京时间 {now:%Y-%m-%d %H:%M:%S}）")
+    elif in_window and now.day != 1:
+        print(f"当前北京时间 {now:%Y-%m-%d %H:%M:%S}，补档窗口日；归档年份 {archive_year}")
 
     os.makedirs("defaultData", exist_ok=True)
     changed = 0
@@ -301,9 +430,42 @@ def main() -> int:
 
     if archive_yuexun(archive_year):
         changed += 1
+    if archive_richong(archive_year):
+        changed += 1
 
     if changed == 0:
-        print("归档无变更（defaultData / hkwlyxh）")
+        print("归档无变更（defaultData / hkwlyxh / hkwlrc）")
+    return changed
+
+
+def ensure_archived_for_rollover(archive_year: int | None = None) -> bool:
+    """
+    新年 001 清空源文件前调用：若上一年尚未充分归档则强制补档。
+    返回 True 表示可以安全清空；False 表示仍未就绪，调用方应暂不清空。
+    """
+    if archive_year is None:
+        archive_year = datetime.now(BJ).year - 1
+
+    if is_year_adequately_archived(archive_year):
+        print(f"上一年 {archive_year} 已归档，允许清空并写入 001")
+        return True
+
+    print(f"上一年 {archive_year} 未归档或覆盖不足，001 清空前强制补档…")
+    run_archive(archive_year, force=True)
+
+    ok = is_year_adequately_archived(archive_year)
+    if ok:
+        print(f"补档成功：{archive_year} 已就绪，允许清空")
+    else:
+        print(f"补档后仍未就绪：{archive_year}，禁止清空源文件")
+    return ok
+
+
+def main() -> int:
+    now = datetime.now(BJ)
+    archive_year = now.year - 1
+    force = "--force" in sys.argv
+    run_archive(archive_year, force=force)
     return 0
 
 
