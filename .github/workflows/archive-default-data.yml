@@ -1,10 +1,15 @@
-# 每年 1 月 1 日 00:00（北京时间）归档开奖 defaultData + 月循 hkwlyxh
+# 每年 1 月 1–3 日 00:00（北京时间）归档开奖 defaultData + 月循 hkwlyxh + 日冲 hkwlrc
+# 1 日主跑；2–3 日补档（元旦漏跑时仍可归档；已成功则脚本判无变更跳过提交）
 name: 年度归档 defaultData / 月循
 
 on:
   schedule:
-    # 北京时间 1月1日 00:00 = UTC 12月31日 16:00
+    # 北京 1/1 00:00 = UTC 12/31 16:00
     - cron: '0 16 31 12 *'
+    # 北京 1/2 00:00 = UTC 1/1 16:00
+    - cron: '0 16 1 1 *'
+    # 北京 1/3 00:00 = UTC 1/2 16:00
+    - cron: '0 16 2 1 *'
   workflow_dispatch: {}
 
 permissions:
@@ -28,7 +33,7 @@ jobs:
         with:
           timezoneLinux: Asia/Shanghai
 
-      - name: 归档 defaultData + 月循 hkwlyxh
+      - name: 归档 defaultData + 月循 hkwlyxh + 日冲 hkwlrc
         run: python archive_default_data.py
         env:
           TZ: Asia/Shanghai
@@ -37,7 +42,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add defaultData/ hkwlyxh.txt
+          git add defaultData/ hkwlyxh.txt hkwlrc.txt
           git add -u -- wlhkyxh.txt 2>/dev/null || true
           if git diff --staged --quiet; then
             echo "归档无变更，跳过提交"
@@ -45,7 +50,7 @@ jobs:
           fi
           YEAR=$(date '+%Y')
           PREV=$((YEAR - 1))
-          git commit -m "chore(archive): 归档 ${PREV} 年开奖/月循数据 [skip ci]"
+          git commit -m "chore(archive): 归档 ${PREV} 年开奖/月循/日冲数据 [skip ci]"
           for i in 1 2 3; do
             git fetch origin main
             git rebase origin/main || (git rebase --abort && exit 1)
