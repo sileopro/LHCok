@@ -82,8 +82,9 @@ jobs:
             echo '{"k":"001,43,19,06,22,23,34,11,002,09,09,二,21:30:00,2022","t":"1000","tool":"#492130#com","url":"","lhc":"","ok":"0"}' > xamkj.json
           fi
           
-          # 强制添加所有txt和json文件以及log文件
+          # 强制添加 txt/json/log；含 defaultData（001 清空前补档可能改动）
           git add -f *.txt *.json lottery.log
+          git add -f defaultData/ 2>/dev/null || true
           
           # 即使没有变化也创建提交
           git commit -m "更新开奖结果 $(date '+%Y-%m-%d %H:%M:%S')" --allow-empty || true
