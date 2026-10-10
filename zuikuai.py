@@ -246,6 +246,29 @@ def get_day_zodiac_and_chong(dt=None):
     return day_zodiac, chong_zodiac
 
 
+def ensure_archived_before_year_clear(max_existing_issue, new_issue_int, context=""):
+    """
+    写入 001 并将清空上一年源数据前：若归档未就绪则强制补档。
+    补档仍失败则返回 False，调用方应暂不清空、跳过本次写入。
+    """
+    if new_issue_int != 1 or max_existing_issue <= 1:
+        return True
+    try:
+        from archive_default_data import ensure_archived_for_rollover
+        ok = ensure_archived_for_rollover()
+        if ok:
+            logger.info(f"✅ 上一年已归档，允许清空并写入 001{('（' + context + '）') if context else ''}")
+            return True
+        logger.error(
+            f"❌ 上一年归档未成功，暂不清空历史数据，跳过本次 001 写入"
+            f"{('（' + context + '）') if context else ''}；下次抓取将重试"
+        )
+        return False
+    except Exception as e:
+        logger.error(f"❌ 001 清空前补档异常，暂不清空: {e}")
+        return False
+
+
 def update_hkrc_file(issue_str, special_number, special_zodiac):
     """
     更新港彩日冲记录 hkrc.txt：
@@ -295,8 +318,11 @@ def update_hkrc_file(issue_str, special_number, special_zodiac):
                 continue
             issue_to_line[old_issue_int] = ln
 
-        # 新一年第一期，从该期开始重记
+        # 新一年第一期，从该期开始重记（先确保上一年已归档）
         if issue_int == 1:
+            max_existing = max(issue_to_line.keys()) if issue_to_line else 0
+            if not ensure_archived_before_year_clear(max_existing, issue_int, "hkrc.txt"):
+                return
             issue_to_line = {}
 
         issue_to_line[issue_int] = line
@@ -560,8 +586,11 @@ def update_hkyxh_file(issue_str, special_number, special_zodiac, dt=None):
                 continue
             issue_to_line[old_issue_int] = ln
 
-        # 新一年第一期，从该期开始重记
+        # 新一年第一期，从该期开始重记（先确保上一年已归档）
         if issue_int == 1:
+            max_existing = max(issue_to_line.keys()) if issue_to_line else 0
+            if not ensure_archived_before_year_clear(max_existing, issue_int, "hkyxh.txt"):
+                return
             issue_to_line = {}
 
         issue_to_line[issue_int] = line
@@ -986,8 +1015,12 @@ def save_lottery_result(lottery_info, lottery_type, data_str=None):
                     max_existing_issue = issue_int
 
             # 如果新期数为 001，认为是“新一年”的第一期：
-            # 清空旧记录，只从这一期重新开始
+            # 先确保上一年已归档，再清空旧记录，只从这一期重新开始
             if new_issue_int == 1:
+                if not ensure_archived_before_year_clear(
+                    max_existing_issue, new_issue_int, filename
+                ):
+                    return False
                 issue_to_line = {}
 
             # 更新 / 新增当前期记录（保持原样格式）
