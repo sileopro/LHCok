@@ -28,6 +28,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   fetch:
@@ -73,3 +74,12 @@ jobs:
             echo "推送失败，已重试多次"
             exit 1
           fi
+
+      - name: 删除旧的工作流运行记录
+        if: always()
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: 7
+          keep_minimum_runs: 100
