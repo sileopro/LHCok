@@ -149,18 +149,18 @@ def fetch_html(url: str, timeout: int = 20) -> str | None:
             r.raise_for_status()
             text = decode_response(r)
             if is_bot_challenge(text):
-                print(f"  fetch {url} attempt {attempt + 1}/3: bot challenge page")
+                print(f"  抓取 {url} 第 {attempt + 1}/3 次：触发反爬验证页")
                 if attempt < 2:
                     time.sleep(1.5)
                 continue
             if len(text) < 200:
-                print(f"  fetch {url} attempt {attempt + 1}/3: too short ({len(text)})")
+                print(f"  抓取 {url} 第 {attempt + 1}/3 次：内容过短（{len(text)}）")
                 if attempt < 2:
                     time.sleep(1)
                 continue
             return text
         except Exception as e:
-            print(f"  fetch {url} attempt {attempt + 1}/3: {e}")
+            print(f"  抓取 {url} 第 {attempt + 1}/3 次：{e}")
             if attempt < 2:
                 time.sleep(1)
     return None
@@ -492,44 +492,45 @@ def main() -> int:
 
         rec = None
         for url in urls:
-            print(f"[{key}] fetch {url}")
+            print(f"[{key}] 抓取 {url}")
             html = fetch_html(url)
             if not html:
-                print("  no html")
+                print("  未获取到网页内容")
                 continue
             rec = parse_fn(html)
             if rec:
-                print("  parsed OK")
+                print("  解析成功")
                 break
             print(
-                "  parse failed, try next URL"
+                "  解析失败，尝试下一个地址"
                 if len(urls) > 1
-                else "  parse failed"
+                else "  解析失败"
             )
 
         if not rec:
-            print(f"  skip {key}: parse latest failed for all URLs")
+            print(f"  跳过 {key}：所有地址均未能解析最新开奖")
             failed.append(key)
             continue
-        print(f"  latest: {rec['year']} {rec['period']}")
+        print(f"  最新一期：{rec['year']}年 第{rec['period']}期")
 
         data = load_lottery_js(path)
         if merge_record(data, rec):
             save_lottery_js(path, data, var_name, comment)
             updated.append(f"lottery/{filename}")
-            print(f"  merged -> {path}")
+            print(f"  已合并写入 -> {path}")
         else:
-            print("  no new record")
+            print("  无新开奖记录")
 
     if updated:
-        print("Updated:", ", ".join(updated))
+        print("已更新：", ", ".join(updated))
     else:
-        print("No files updated.")
+        print("没有文件需要更新。")
 
     if failed:
-        print("Parse failed:", ", ".join(failed))
+        print("解析失败：", ", ".join(failed))
         return 1
     return 0
+
 
 
 if __name__ == "__main__":
