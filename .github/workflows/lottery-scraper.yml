@@ -25,6 +25,10 @@ concurrency:
   group: lottery-scraper-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   scrape-data:
     runs-on: ubuntu-latest
