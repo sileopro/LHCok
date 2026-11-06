@@ -269,13 +269,113 @@ def ensure_archived_before_year_clear(max_existing_issue, new_issue_int, context
         return False
 
 
-def update_hkrc_file(issue_str, special_number, special_zodiac):
+def build_hkrc_line(dt, issue_int, special_number, special_zodiac):
+    """生成日冲一行：117期：46雞 → 羊日冲牛（日冲按开奖日，不按脚本运行日）。"""
+    day_zodiac, chong_zodiac = get_day_zodiac_and_chong(dt)
+    raw_num = str(special_number).strip()
+    special_num = raw_num.zfill(2) if raw_num.isdigit() else raw_num
+    special_trad = zodiac_to_trad(special_zodiac)
+    return f"{str(issue_int).zfill(3)}期：{special_num}{special_trad} → {day_zodiac}日冲{chong_zodiac}"
+
+
+def _parse_hkrc_special(line):
+    """从日冲行取出特码、生肖。返回 (特码两位, 生肖) 或 (None, None)。"""
+    m = re.search(r'期\s*[:：]\s*(\d{1,2})(\S+?)\s*→', line or '')
+    if not m:
+        return None, None
+    return m.group(1).zfill(2), m.group(2)
+
+
+def sync_hkrc_from_lottery_hk(year=None):
+    """
+    用 lottery.hk 官方开奖日重算 hkrc.txt 的「X日冲Y」。
+    特码与官网一致时保留原行生肖，只改日冲；避免 Actions 跨零点写成「今天」。
+    """
+    y = int(year or datetime.now().year)
+    filename = 'hkrc.txt'
+    try:
+        jieguo = fetch_lottery_hk_jieguo(y)
+        if not jieguo:
+            logger.warning("lottery.hk 无数据，跳过 hkrc.txt 校正")
+            return False
+
+        existing_lines = []
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                existing_lines = [ln.rstrip('\n') for ln in f if ln.strip()]
+
+        issue_to_line = {}
+        for ln in existing_lines:
+            m = re.search(r'(\d{1,3})期', ln)
+            if not m:
+                continue
+            try:
+                issue_to_line[int(m.group(1))] = ln
+            except ValueError:
+                continue
+
+        changed = 0
+        for period, info in jieguo.items():
+            old = issue_to_line.get(period, '')
+            old_special, old_zodiac = _parse_hkrc_special(old)
+            special = info.get('special') or old_special
+            if not special:
+                continue
+            same_special = bool(old_zodiac and old_special and str(special).zfill(2) == old_special)
+            if same_special:
+                zodiac = old_zodiac
+            else:
+                zodiac = get_hk_number_zodiac(special, y, period) or old_zodiac
+            if not zodiac:
+                continue
+            built = build_hkrc_line(info['dt'], period, special, zodiac)
+            clash_m = re.search(r'→\s*(\S+)\s*$', built)
+            new_clash = clash_m.group(1) if clash_m else ''
+            if same_special and old:
+                # 只改日冲，保留原行的冒号和简繁写法
+                old_clash_m = re.search(r'→\s*(\S+)\s*$', old)
+                old_clash = old_clash_m.group(1) if old_clash_m else ''
+                if old_clash == new_clash:
+                    continue
+                new_line = re.sub(r'(→\s*)\S+\s*$', lambda mo, c=new_clash: mo.group(1) + c, old.rstrip())
+            else:
+                new_line = built
+            if old != new_line:
+                changed += 1
+            issue_to_line[period] = new_line
+
+        if not issue_to_line:
+            logger.warning("hkrc.txt 校正后仍无记录")
+            return False
+
+        new_content = ''.join(
+            issue_to_line[k] + '\n' for k in sorted(issue_to_line.keys(), reverse=True)
+        )
+        old_content = ''
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                old_content = f.read()
+        if new_content == old_content:
+            logger.info("hkrc.txt 与 lottery.hk 开奖日一致，无需改写")
+            return False
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        logger.info(f"✅ 已按 lottery.hk 开奖日校正 hkrc.txt（变更 {changed} 条，共 {len(issue_to_line)} 期）")
+        return True
+    except Exception as e:
+        logger.error(f"按 lottery.hk 校正 hkrc.txt 失败: {e}")
+        return False
+
+
+def update_hkrc_file(issue_str, special_number, special_zodiac, dt=None):
     """
     更新港彩日冲记录 hkrc.txt：
     - 行格式：024期：45狗 → 牛日冲羊
+    - 日冲按开奖日：优先 lottery.hk 官方日期，其次传入 dt，最后才用今天
+    - 没有官网日期时，同期同特码不改写（避免用脚本运行日盖掉已写好的日冲）
     - 按期数倒序排列
     - 若最新一期为 001 期，则视为新一年：清空旧记录，从 001 期重新开始
-    - 若 hkrc.txt 最新一期的期数、特码与当前相同，则不更新（避免重复计算日冲生肖）
     """
     try:
         try:
@@ -289,23 +389,39 @@ def update_hkrc_file(issue_str, special_number, special_zodiac):
             with open(filename, 'r', encoding='utf-8') as f:
                 existing_lines = [ln.rstrip('\n') for ln in f if ln.strip()]
 
-        # 若最新一期期数、特码与当前相同，则跳过更新
-        if existing_lines:
-            first_line = existing_lines[0]
-            m = re.search(r'(\d{1,3})期：(\d{1,2})', first_line)
-            if m:
-                old_issue_int = int(m.group(1))
-                old_special = m.group(2)
+        # 优先官网日期（避免 Actions 跨零点或改期后写成错日）
+        official = False
+        try:
+            lookup_year = dt.year if dt else datetime.now().year
+            jieguo = fetch_lottery_hk_jieguo(lookup_year)
+            if issue_int in jieguo:
+                info = jieguo[issue_int]
+                dt = info['dt']
+                official = True
+                if info.get('special'):
+                    special_number = info['special']
+                    special_zodiac = get_hk_number_zodiac(
+                        special_number, info.get('year') or dt.year, issue_int
+                    ) or special_zodiac
+                logger.info(f"hkrc 使用 lottery.hk 日期: {dt.month:02d}.{dt.day:02d} 第{issue_int:03d}期")
+        except Exception as e:
+            logger.warning(f"查 lottery.hk 日期失败，回退本地日期: {e}")
+        if dt is None:
+            dt = datetime.now()
+
+        # 没有官网日期时，同期同特码不改写
+        if not official:
+            for ln in existing_lines:
+                m = re.search(r'(\d{1,3})期\s*[:：]\s*(\d{1,2})', ln)
+                if not m or int(m.group(1)) != issue_int:
+                    continue
                 try:
-                    new_special_int = int(special_number) if special_number.isdigit() else 0
-                    old_special_int = int(old_special)
-                    if old_issue_int == issue_int and old_special_int == new_special_int:
-                        return  # 期数、特码未变，不更新
+                    if str(special_number).isdigit() and int(m.group(2)) == int(special_number):
+                        return
                 except (ValueError, AttributeError):
                     pass
 
-        day_zodiac, chong_zodiac = get_day_zodiac_and_chong()
-        line = f"{str(issue_int).zfill(3)}期：{special_number}{special_zodiac} → {day_zodiac}日冲{chong_zodiac}"
+        line = build_hkrc_line(dt, issue_int, special_number, special_zodiac)
 
         issue_to_line = {}
         for ln in existing_lines:
@@ -325,6 +441,8 @@ def update_hkrc_file(issue_str, special_number, special_zodiac):
                 return
             issue_to_line = {}
 
+        if issue_to_line.get(issue_int) == line:
+            return
         issue_to_line[issue_int] = line
 
         with open(filename, 'w', encoding='utf-8') as f:
@@ -1036,6 +1154,7 @@ def save_lottery_result(lottery_info, lottery_type, data_str=None):
                 # 优先使用 API 返回的生肖，没有则按号码映射
                 special_zodiac = lottery_info.get('zodiac') or ZODIAC_MAPPING.get(special_number.zfill(2), '')
                 update_hkrc_file(new_issue_str, special_number, special_zodiac)
+                sync_hkrc_from_lottery_hk()
                 # 日期优先 openTime，最终仍以 lottery.hk 校正
                 open_dt = None
                 open_time = str(lottery_info.get('open_time') or '').strip()
@@ -1201,11 +1320,15 @@ def main():
         
         results = get_lottery_results()
 
-        # 港彩月循：无论本期是否新增，都用 lottery.hk 校正日期/特码
+        # 港彩月循 / 日冲：无论本期是否新增，都用 lottery.hk 开奖日校正
         try:
             sync_hkyxh_from_lottery_hk()
         except Exception as eYx:
             logger.warning(f"lottery.hk 校正 hkyxh.txt 跳过: {eYx}")
+        try:
+            sync_hkrc_from_lottery_hk()
+        except Exception as eRc:
+            logger.warning(f"lottery.hk 校正 hkrc.txt 跳过: {eRc}")
         
         # 删除main函数中对fetch_new_api_data和parse_new_api_data的调用
         
