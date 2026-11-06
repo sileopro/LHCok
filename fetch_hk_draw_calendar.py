@@ -3,7 +3,7 @@
 """
 从香港马会官网 Sitecore 抓取六合彩搅珠日期 / 金多宝，写入 lottery.txt。
 
-供 GitHub Actions 在每月 15、16 日运行（官网大约月中公布下月赛程）。
+供 GitHub Actions 每天运行。官网改期、取消搅珠日时，用官网整月日期覆盖已写入的月份。
 格式与 App 解析一致：
   2026.09: 1,3,5,8,10,12,15,17,19,22,26,29 金多宝26
 """
@@ -203,7 +203,7 @@ def main() -> int:
     if old.replace("\r\n", "\n") == text:
         print("lottery.txt 无变化（官网 %d 个月份）" % len(official))
         if datetime.now().day >= 15 and not has_next:
-            print("官网尚未公布 %s，15–28 日会继续定时抓取" % nxt)
+            print("官网尚未公布 %s，之后每天会继续抓取" % nxt)
         return 0
     with open(OUT_PATH, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
@@ -212,7 +212,7 @@ def main() -> int:
     print(text)
     print("抓取时间", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     if datetime.now().day >= 15 and not has_next:
-        print("官网尚未公布 %s，15–28 日会继续定时抓取" % nxt)
+        print("官网尚未公布 %s，之后每天会继续抓取" % nxt)
     return 0
 
 
