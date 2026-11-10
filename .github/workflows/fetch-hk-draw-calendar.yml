@@ -249,7 +249,7 @@ jobs:
             echo "无变化，跳过提交"
             exit 0
           fi
-          git commit -m "chore(lottery.txt): 同步开奖日期 $(date '+%Y-%m-%d') [skip ci]"
+          git commit -m "同步开奖日期 $(date '+%Y-%m-%d')" -m "[skip ci]"
           for i in 1 2 3; do
             git fetch origin main
             git rebase origin/main || (git rebase --abort && exit 1)
