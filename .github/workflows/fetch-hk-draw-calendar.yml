@@ -1,7 +1,7 @@
 # 从香港马会官网写入 lottery.txt（搅珠日 / 金多宝）
 # 每天抓两次：下月赛程约在月中公布，当月取消或改期也能当天写回。
 # 仓库里没有 fetch_hk_draw_calendar.py 时会自动创建。
-name: 港彩搅珠日期 (马会官网)
+name: 港彩搅珠日期 (香港官网)
 
 on:
   schedule:
