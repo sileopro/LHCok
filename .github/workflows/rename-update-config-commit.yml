@@ -1,0 +1,64 @@
+# 在网页上保存 update_config.json 时，GitHub 默认说明是
+# “Update update_config.json”。这里把它改成“更新内容 年-月-日 时:分:秒”。
+# 只改提交说明，不改文件内容。
+name: 更新说明 (update_config.json)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - update_config.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rename-update-config-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rename:
+    if: >-
+      startsWith(github.event.head_commit.message, 'Update update_config.json') ||
+      startsWith(github.event.head_commit.message, 'Create update_config.json')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 2
+          ref: main
+
+      - name: 改写网页默认提交说明
+        env:
+          TZ: Asia/Shanghai
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          SUBJECT=$(git log -1 --format=%s)
+          case "$SUBJECT" in
+            "Update update_config.json"|"Create update_config.json") ;;
+            *)
+              echo "提交说明已是自定义内容，跳过"
+              exit 0
+              ;;
+          esac
+
+          PARENTS=$(git rev-list --parents -n 1 HEAD | wc -w)
+          if [ "$PARENTS" -gt 2 ]; then
+            echo "合并提交，跳过"
+            exit 0
+          fi
+
+          FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+          if [ "$FILES" != "update_config.json" ]; then
+            echo "这次提交还改了其它文件，跳过"
+            exit 0
+          fi
+
+          STAMP=$(date -d "$(git log -1 --format=%cI)" '+%Y-%m-%d %H:%M:%S')
+          git commit --amend -m "更新内容 ${STAMP}" -m "[skip ci]"
+          git push --force-with-lease origin HEAD:main
