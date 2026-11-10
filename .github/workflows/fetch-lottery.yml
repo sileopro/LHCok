@@ -62,7 +62,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "开奖数据无变更，跳过提交"
           else
-            git commit -m "chore(lottery): 更新 500.com 开奖数据 [skip ci]"
+             git commit -m "更新 500.com 开奖数据" -m "[skip ci]"
             # 避免 non-fast-forward：push 前先同步远端，再重试 push
             for i in 1 2 3; do
               git fetch origin main
