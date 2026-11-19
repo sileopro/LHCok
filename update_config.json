@@ -108,7 +108,7 @@
         ]
     },
     "shutdownConfig": {
-        "enabled": true,
+        "enabled": false,
         "blockApp": true,
         "skipForValidAuth": false,
         "skipForMinVersion": "1.3.5",
