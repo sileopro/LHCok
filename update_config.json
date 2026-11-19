@@ -111,7 +111,7 @@
         "enabled": true,
         "blockApp": true,
         "skipForValidAuth": false,
-        "skipForMinVersion": "1.3.7",
+        "skipForMinVersion": "1.3.5",
         "title": "停运通知",
         "titleColor": "#C62828",
         "partsGapPx": 10,
