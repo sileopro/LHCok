@@ -110,7 +110,7 @@
     "shutdownConfig": {
         "enabled": true,
         "blockApp": true,
-        "skipForValidAuth": true,
+        "skipForValidAuth": false,
         "title": "停运通知",
         "titleColor": "#C62828",
         "partsGapPx": 10,
