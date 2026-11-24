@@ -1,5 +1,5 @@
 {
-    "latestVersion": "1.3.5",
+    "latestVersion": "1.6.8",
     "apkUrl": "https://sileopro.github.io/LHCok/apk",
     "apkBackupUrl": "https://xgam49.dpdns.org/apk",
     "promptInterval": 86400000,
@@ -144,7 +144,7 @@
     },
     "aboutConfig": {
         "enabled": true,
-        "title": "彩票系统",
+        "title": "彩票分类统计",
         "titleColor": "#FF00FF",
         "lines": [
             {
