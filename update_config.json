@@ -144,7 +144,7 @@
     },
     "aboutConfig": {
         "enabled": true,
-        "title": "彩票系统",
+        "title": "彩票分类统计",
         "titleColor": "#FF00FF",
         "lines": [
             {
