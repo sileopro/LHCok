@@ -150,7 +150,7 @@
             {
                 "align": "center",
                 "parts": [
-                    { "text": "彩票功能齐全", "color": "#DC143C" },
+                    { "text": "功能齐全", "color": "#DC143C" },
                     { "text": "规则统计", "color": "#1E90FF" }
                 ]
             },
